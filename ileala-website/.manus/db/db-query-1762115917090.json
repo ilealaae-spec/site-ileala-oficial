@@ -1,0 +1,80 @@
+{
+  "query": "SELECT id, nameEN, namePT, collection, imageUrl FROM products ORDER BY id;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3343P5EaumD8LV3.root --database KLajHo6RcettUsHDC8Cddd --execute SELECT id, nameEN, namePT, collection, imageUrl FROM products ORDER BY id;",
+  "rows": [
+    {
+      "id": "1",
+      "nameEN": "Botanical Placemat",
+      "namePT": "Jogo Americano Botanical",
+      "collection": "Botanica",
+      "imageUrl": "/images/about_me_card.webp"
+    },
+    {
+      "id": "2",
+      "nameEN": "La Mer Table Runner",
+      "namePT": "Caminho de Mesa La Mer",
+      "collection": "La Mer",
+      "imageUrl": "/images/collection_la_mer.webp"
+    },
+    {
+      "id": "3",
+      "nameEN": "Soul Stamps Napkin Set (4 pieces)",
+      "namePT": "Conjunto de Guardanapos Soul Stamps (4 peças)",
+      "collection": "Soul Stamps",
+      "imageUrl": "/images/collection_soul_stamps.webp"
+    },
+    {
+      "id": "4",
+      "nameEN": "Khata Ceremonial Cloth",
+      "namePT": "Pano Cerimonial Khata",
+      "collection": "Khata",
+      "imageUrl": "/images/collection_khata.webp"
+    },
+    {
+      "id": "5",
+      "nameEN": "Anima Cushion Cover",
+      "namePT": "Capa de Almofada Anima",
+      "collection": "Anima",
+      "imageUrl": "/images/our_collections_card.webp"
+    },
+    {
+      "id": "6",
+      "nameEN": "Lacea Lace Doily",
+      "namePT": "Toalha de Renda Lacea",
+      "collection": "Lacea",
+      "imageUrl": "/images/our_values_card.webp"
+    },
+    {
+      "id": "7",
+      "nameEN": "Terracotta Serving Bowl",
+      "namePT": "Tigela de Servir Terracotta",
+      "collection": "Terracotta",
+      "imageUrl": "/images/about_me_card.webp"
+    },
+    {
+      "id": "8",
+      "nameEN": "Nocturne Dinner Plate",
+      "namePT": "Prato de Jantar Nocturne",
+      "collection": "Nocturne",
+      "imageUrl": "/images/collection_botanical.webp"
+    },
+    {
+      "id": "9",
+      "nameEN": "Aurora Tablecloth",
+      "namePT": "Toalha de Mesa Aurora",
+      "collection": "Aurora",
+      "imageUrl": "/images/our_collections_card.webp"
+    },
+    {
+      "id": "10",
+      "nameEN": "Botanical Napkin Rings (Set of 6)",
+      "namePT": "Anéis para Guardanapos Botanical (Conjunto de 6)",
+      "collection": "Botanica",
+      "imageUrl": "/images/collection_botanical.webp"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tnameEN\tnamePT\tcollection\timageUrl\n1\tBotanical Placemat\tJogo Americano Botanical\tBotanica\t/images/about_me_card.webp\n2\tLa Mer Table Runner\tCaminho de Mesa La Mer\tLa Mer\t/images/collection_la_mer.webp\n3\tSoul Stamps Napkin Set (4 pieces)\tConjunto de Guardanapos Soul Stamps (4 peças)\tSoul Stamps\t/images/collection_soul_stamps.webp\n4\tKhata Ceremonial Cloth\tPano Cerimonial Khata\tKhata\t/images/collection_khata.webp\n5\tAnima Cushion Cover\tCapa de Almofada Anima\tAnima\t/images/our_collections_card.webp\n6\tLacea Lace Doily\tToalha de Renda Lacea\tLacea\t/images/our_values_card.webp\n7\tTerracotta Serving Bowl\tTigela de Servir Terracotta\tTerracotta\t/images/about_me_card.webp\n8\tNocturne Dinner Plate\tPrato de Jantar Nocturne\tNocturne\t/images/collection_botanical.webp\n9\tAurora Tablecloth\tToalha de Mesa Aurora\tAurora\t/images/our_collections_card.webp\n10\tBotanical Napkin Rings (Set of 6)\tAnéis para Guardanapos Botanical (Conjunto de 6)\tBotanica\t/images/collection_botanical.webp\n",
+  "stderr": "",
+  "execution_time_ms": 464
+}

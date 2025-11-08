@@ -1,0 +1,80 @@
+{
+  "query": "SELECT id, nameEN, slug, active, stock FROM products LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3343P5EaumD8LV3.root --database KLajHo6RcettUsHDC8Cddd --execute SELECT id, nameEN, slug, active, stock FROM products LIMIT 10;",
+  "rows": [
+    {
+      "id": "1",
+      "nameEN": "Botanical Placemat",
+      "slug": "botanical-placemat-1",
+      "active": "1",
+      "stock": "50"
+    },
+    {
+      "id": "2",
+      "nameEN": "La Mer Table Runner",
+      "slug": "la-mer-table-runner-2",
+      "active": "1",
+      "stock": "30"
+    },
+    {
+      "id": "3",
+      "nameEN": "Soul Stamps Napkin Set (4 pieces)",
+      "slug": "soul-stamps-napkin-set-(4-pieces)-3",
+      "active": "1",
+      "stock": "100"
+    },
+    {
+      "id": "4",
+      "nameEN": "Khata Ceremonial Cloth",
+      "slug": "khata-ceremonial-cloth-4",
+      "active": "1",
+      "stock": "20"
+    },
+    {
+      "id": "5",
+      "nameEN": "Anima Cushion Cover",
+      "slug": "anima-cushion-cover-5",
+      "active": "1",
+      "stock": "75"
+    },
+    {
+      "id": "6",
+      "nameEN": "Lacea Lace Doily",
+      "slug": "lacea-lace-doily-6",
+      "active": "1",
+      "stock": "60"
+    },
+    {
+      "id": "7",
+      "nameEN": "Terracotta Serving Bowl",
+      "slug": "terracotta-serving-bowl-7",
+      "active": "1",
+      "stock": "25"
+    },
+    {
+      "id": "8",
+      "nameEN": "Nocturne Dinner Plate",
+      "slug": "nocturne-dinner-plate-8",
+      "active": "1",
+      "stock": "40"
+    },
+    {
+      "id": "9",
+      "nameEN": "Aurora Tablecloth",
+      "slug": "aurora-tablecloth-9",
+      "active": "1",
+      "stock": "15"
+    },
+    {
+      "id": "10",
+      "nameEN": "Botanical Napkin Rings (Set of 6)",
+      "slug": "botanical-napkin-rings-(set-of-6)-10",
+      "active": "1",
+      "stock": "80"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tnameEN\tslug\tactive\tstock\n1\tBotanical Placemat\tbotanical-placemat-1\t1\t50\n2\tLa Mer Table Runner\tla-mer-table-runner-2\t1\t30\n3\tSoul Stamps Napkin Set (4 pieces)\tsoul-stamps-napkin-set-(4-pieces)-3\t1\t100\n4\tKhata Ceremonial Cloth\tkhata-ceremonial-cloth-4\t1\t20\n5\tAnima Cushion Cover\tanima-cushion-cover-5\t1\t75\n6\tLacea Lace Doily\tlacea-lace-doily-6\t1\t60\n7\tTerracotta Serving Bowl\tterracotta-serving-bowl-7\t1\t25\n8\tNocturne Dinner Plate\tnocturne-dinner-plate-8\t1\t40\n9\tAurora Tablecloth\taurora-tablecloth-9\t1\t15\n10\tBotanical Napkin Rings (Set of 6)\tbotanical-napkin-rings-(set-of-6)-10\t1\t80\n",
+  "stderr": "",
+  "execution_time_ms": 49
+}

@@ -1,0 +1,1 @@
+-- Slug column already exists, skipping

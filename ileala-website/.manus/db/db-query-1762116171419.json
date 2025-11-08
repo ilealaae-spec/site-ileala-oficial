@@ -1,0 +1,9 @@
+{
+  "query": "UPDATE products SET imageUrl = '/images/collection_khata.webp' WHERE nameEN = 'Khata Ceremonial Cloth';\nUPDATE products SET imageUrl = '/images/collection_anima.webp' WHERE nameEN = 'Anima Cushion Cover';\nUPDATE products SET imageUrl = '/images/collection_lacea.webp' WHERE nameEN = 'Lacea Lace Doily';\nUPDATE products SET imageUrl = '/images/collection_terracotta.webp' WHERE nameEN = 'Terracotta Serving Bowl';\nUPDATE products SET imageUrl = '/images/collection_nocturne.webp' WHERE nameEN = 'Nocturne Dinner Plate';\nUPDATE products SET imageUrl = '/images/collection_aurora.webp' WHERE nameEN = 'Aurora Tablecloth';\nUPDATE products SET imageUrl = '/images/collection_botanical.webp' WHERE nameEN LIKE 'Botanical Napkin Rings%';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3343P5EaumD8LV3.root --database KLajHo6RcettUsHDC8Cddd --execute UPDATE products SET imageUrl = '/images/collection_khata.webp' WHERE nameEN = 'Khata Ceremonial Cloth';\nUPDATE products SET imageUrl = '/images/collection_anima.webp' WHERE nameEN = 'Anima Cushion Cover';\nUPDATE products SET imageUrl = '/images/collection_lacea.webp' WHERE nameEN = 'Lacea Lace Doily';\nUPDATE products SET imageUrl = '/images/collection_terracotta.webp' WHERE nameEN = 'Terracotta Serving Bowl';\nUPDATE products SET imageUrl = '/images/collection_nocturne.webp' WHERE nameEN = 'Nocturne Dinner Plate';\nUPDATE products SET imageUrl = '/images/collection_aurora.webp' WHERE nameEN = 'Aurora Tablecloth';\nUPDATE products SET imageUrl = '/images/collection_botanical.webp' WHERE nameEN LIKE 'Botanical Napkin Rings%';",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 101
+}

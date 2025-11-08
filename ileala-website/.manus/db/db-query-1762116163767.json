@@ -1,0 +1,9 @@
+{
+  "query": "UPDATE products SET imageUrl = '/images/collection_botanical.webp' WHERE nameEN = 'Botanical Placemat';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3343P5EaumD8LV3.root --database KLajHo6RcettUsHDC8Cddd --execute UPDATE products SET imageUrl = '/images/collection_botanical.webp' WHERE nameEN = 'Botanical Placemat';",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 3662
+}

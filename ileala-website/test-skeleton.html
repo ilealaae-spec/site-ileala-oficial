@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Skeleton Loading Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #2d5f4f;
+            text-align: center;
+        }
+        .demo {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            margin: 20px 0;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .skeleton {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .skeleton-stars {
+            display: flex;
+            justify-content: center;
+            gap: 4px;
+            margin-bottom: 24px;
+        }
+        .skeleton-star {
+            width: 20px;
+            height: 20px;
+            background: #e5e7eb;
+            border-radius: 4px;
+        }
+        .skeleton-text {
+            height: 24px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            margin-bottom: 12px;
+        }
+        .skeleton-author {
+            height: 20px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            margin: 0 auto;
+        }
+        .content {
+            text-align: center;
+        }
+        .stars {
+            color: #fbbf24;
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+        .quote {
+            font-size: 20px;
+            font-style: italic;
+            color: #4b5563;
+            margin-bottom: 20px;
+        }
+        .author {
+            font-weight: bold;
+            color: #111827;
+        }
+        .location {
+            color: #6b7280;
+        }
+        button {
+            background: #2d5f4f;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 20px auto;
+            display: block;
+        }
+        button:hover {
+            background: #1f4438;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 Skeleton Loading Animation Demo</h1>
+        
+        <div class="demo" id="testimonial">
+            <!-- Skeleton will be shown initially -->
+        </div>
+        
+        <button onclick="reload()">🔄 Reload Animation</button>
+        
+        <div style="background: white; padding: 20px; border-radius: 8px; margin-top: 20px;">
+            <h3>✅ Implementação Concluída:</h3>
+            <ul>
+                <li>Skeleton loading com animação pulse (1.5s)</li>
+                <li>5 estrelas em skeleton</li>
+                <li>3 linhas de texto em skeleton</li>
+                <li>Nome e localização do autor em skeleton</li>
+                <li>Transição suave para conteúdo real</li>
+            </ul>
+        </div>
+    </div>
+    
+    <script>
+        function showSkeleton() {
+            document.getElementById('testimonial').innerHTML = `
+                <div class="skeleton">
+                    <div class="skeleton-stars">
+                        <div class="skeleton-star"></div>
+                        <div class="skeleton-star"></div>
+                        <div class="skeleton-star"></div>
+                        <div class="skeleton-star"></div>
+                        <div class="skeleton-star"></div>
+                    </div>
+                    <div style="max-width: 600px; margin: 0 auto;">
+                        <div class="skeleton-text" style="width: 100%;"></div>
+                        <div class="skeleton-text" style="width: 83%;"></div>
+                        <div class="skeleton-text" style="width: 66%;"></div>
+                    </div>
+                    <div style="margin-top: 32px;">
+                        <div class="skeleton-author" style="width: 128px;"></div>
+                        <div class="skeleton-author" style="width: 96px; margin-top: 8px;"></div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function showContent() {
+            document.getElementById('testimonial').innerHTML = `
+                <div class="content">
+                    <div class="stars">⭐⭐⭐⭐⭐</div>
+                    <div class="quote">
+                        "The perfect blend of tradition and modernity. These pieces are not just beautiful, they are works of art."
+                    </div>
+                    <div class="author">Ahmed Hassan</div>
+                    <div class="location">Abu Dhabi, UAE</div>
+                </div>
+            `;
+        }
+        
+        function reload() {
+            showSkeleton();
+            setTimeout(showContent, 1500);
+        }
+        
+        // Initial load
+        reload();
+    </script>
+</body>
+</html>

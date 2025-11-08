@@ -1,0 +1,40 @@
+{
+  "query": "SELECT slug FROM products WHERE active = 1;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3343P5EaumD8LV3.root --database KLajHo6RcettUsHDC8Cddd --execute SELECT slug FROM products WHERE active = 1;",
+  "rows": [
+    {
+      "slug": "botanical-placemat-1"
+    },
+    {
+      "slug": "la-mer-table-runner-2"
+    },
+    {
+      "slug": "soul-stamps-napkin-set-(4-pieces)-3"
+    },
+    {
+      "slug": "khata-ceremonial-cloth-4"
+    },
+    {
+      "slug": "anima-cushion-cover-5"
+    },
+    {
+      "slug": "lacea-lace-doily-6"
+    },
+    {
+      "slug": "terracotta-serving-bowl-7"
+    },
+    {
+      "slug": "nocturne-dinner-plate-8"
+    },
+    {
+      "slug": "aurora-tablecloth-9"
+    },
+    {
+      "slug": "botanical-napkin-rings-(set-of-6)-10"
+    }
+  ],
+  "messages": [],
+  "stdout": "slug\nbotanical-placemat-1\nla-mer-table-runner-2\nsoul-stamps-napkin-set-(4-pieces)-3\nkhata-ceremonial-cloth-4\nanima-cushion-cover-5\nlacea-lace-doily-6\nterracotta-serving-bowl-7\nnocturne-dinner-plate-8\naurora-tablecloth-9\nbotanical-napkin-rings-(set-of-6)-10\n",
+  "stderr": "",
+  "execution_time_ms": 45
+}
