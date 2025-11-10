@@ -4,6 +4,8 @@ import { sanityClient, urlFor } from '@/lib/sanity';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { ArrowLeft, ShoppingCart, Heart, Share2, Package, Truck, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { trpc } from '@/lib/trpc';
+import { toast } from 'sonner';
 
 interface SanityProductDetail {
   _id: string;
@@ -41,6 +43,9 @@ export default function SanityProductDetail() {
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
+
+  const createCheckout = trpc.payment.createSanityCheckout.useMutation();
 
   useEffect(() => {
     if (params?.slug) {
@@ -273,10 +278,36 @@ export default function SanityProductDetail() {
               <Button
                 size="lg"
                 className="flex-1 bg-sage-600 hover:bg-sage-700"
-                disabled={!product.inStock}
+                disabled={!product.inStock || isCheckingOut}
+                onClick={async () => {
+                  if (!product) return;
+                  
+                  setIsCheckingOut(true);
+                  try {
+                    const mainImageUrl = product.mainImage 
+                      ? urlFor(product.mainImage).width(800).url()
+                      : undefined;
+                    
+                    const result = await createCheckout.mutateAsync({
+                      productId: product._id,
+                      productName: product.name,
+                      productPrice: product.price,
+                      productImage: mainImageUrl,
+                      quantity: quantity,
+                    });
+                    
+                    if (result.url) {
+                      window.location.href = result.url;
+                    }
+                  } catch (error) {
+                    console.error('Checkout error:', error);
+                    toast.error(t('Failed to start checkout. Please try again.'));
+                    setIsCheckingOut(false);
+                  }
+                }}
               >
                 <ShoppingCart className="w-5 h-5 mr-2" />
-                {t('Add to Cart')}
+                {isCheckingOut ? t('Processing...') : t('Buy Now')}
               </Button>
               <Button size="lg" variant="outline">
                 <Heart className="w-5 h-5" />

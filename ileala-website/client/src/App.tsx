@@ -30,6 +30,7 @@ import ProductCare from "./pages/ProductCare";
 import FindRetailer from "./pages/FindRetailer";
 import SanityProducts from "./pages/SanityProducts";
 import SanityProductDetail from "./pages/SanityProductDetail";
+import PaymentSuccess from "./pages/PaymentSuccess";
 import AdminProducts from "./pages/admin/Products";
 import AdminOrders from "./pages/admin/Orders";
 import AdminCoupons from "./pages/admin/Coupons";
@@ -50,6 +51,7 @@ function Router() {
           <Route path="/shop/:slug" component={ProductDetail} />
           <Route path="/products" component={SanityProducts} />
           <Route path="/products/:slug" component={SanityProductDetail} />
+          <Route path="/payment-success" component={PaymentSuccess} />
           <Route path="/product/:id" component={ProductDetail} />
           <Route path="/cart" component={Cart} />
           <Route path="/checkout" component={Checkout} />
