@@ -1,12 +1,28 @@
+import { useState } from 'react';
 import { Link } from 'wouter';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCart } from '@/contexts/CartContext';
+import { useAuth } from '@/_core/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Globe, ShoppingCart, Instagram, Facebook, MessageCircle } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Globe, ShoppingCart, Instagram, Facebook, MessageCircle, User, LogOut, Package } from 'lucide-react';
 
 export default function Header() {
   const { language, setLanguage, t } = useLanguage();
   const { totalItems } = useCart();
+  const { user, isAuthenticated, logout } = useAuth();
+
+  const handleLogout = async () => {
+    await logout();
+    window.location.href = '/';
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -38,8 +54,50 @@ export default function Header() {
         </nav>
 
         <div className="flex items-center gap-2">
+        {/* User Menu */}
+        {isAuthenticated && user ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="flex items-center gap-2">
+                <User className="h-4 w-4" />
+                <span className="hidden md:inline text-sm">{user.name || user.email}</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuLabel>
+                {language === 'en' ? 'My Account' : 'Minha Conta'}
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href="/orders" className="flex items-center cursor-pointer">
+                  <Package className="h-4 w-4 mr-2" />
+                  {language === 'en' ? 'My Orders' : 'Meus Pedidos'}
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
+                <LogOut className="h-4 w-4 mr-2" />
+                {language === 'en' ? 'Logout' : 'Sair'}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+          <div className="flex items-center gap-2">
+            <Link href="/login">
+              <Button variant="ghost" size="sm">
+                <User className="h-4 w-4 mr-2" />
+                {language === 'en' ? 'Login' : 'Entrar'}
+              </Button>
+            </Link>
+            <Link href="/register">
+              <Button variant="default" size="sm" className="bg-sage-600 hover:bg-sage-700">
+                {language === 'en' ? 'Sign Up' : 'Criar Conta'}
+              </Button>
+            </Link>
+          </div>
+        )}
         {/* Social Media Icons */}
-        <div className="hidden lg:flex items-center gap-2 mr-2">
+        <div className="hidden lg:flex items-center gap-2 mr-2 ml-2">
           <a 
             href="https://instagram.com/ileala" 
             target="_blank" 
