@@ -19,8 +19,8 @@ export async function getDb() {
 }
 
 export async function upsertUser(user: InsertUser): Promise<void> {
-  if (!user.openId) {
-    throw new Error("User openId is required for upsert");
+  if (!user.openId && !user.email) {
+    throw new Error("User openId or email is required for upsert");
   }
 
   const db = await getDb();
@@ -366,4 +366,74 @@ export async function deleteCoupon(id: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.delete(coupons).where(eq(coupons.id, id));
+}
+
+// ===== LOCAL AUTHENTICATION =====
+
+export async function getUserByEmail(email: string) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get user: database not available");
+    return undefined;
+  }
+
+  const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getUserById(id: number) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get user: database not available");
+    return undefined;
+  }
+
+  const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function createUser(data: { email: string; name: string; password: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // Hash password with bcrypt
+  const bcrypt = await import('bcryptjs');
+  const hashedPassword = await bcrypt.hash(data.password, 10);
+
+  const result = await db.insert(users).values({
+    email: data.email,
+    name: data.name,
+    password: hashedPassword,
+    loginMethod: 'local',
+    role: 'user',
+    lastSignedIn: new Date(),
+  });
+
+  return Number(result[0].insertId);
+}
+
+export async function verifyUserCredentials(email: string, password: string) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot verify credentials: database not available");
+    return null;
+  }
+
+  const user = await getUserByEmail(email);
+  if (!user || !user.password) {
+    return null;
+  }
+
+  // Verify password with bcrypt
+  const bcrypt = await import('bcryptjs');
+  const isValid = await bcrypt.compare(password, user.password);
+
+  if (!isValid) {
+    return null;
+  }
+
+  // Update last signed in
+  await db.update(users).set({ lastSignedIn: new Date() }).where(eq(users.id, user.id));
+
+  return user;
 }

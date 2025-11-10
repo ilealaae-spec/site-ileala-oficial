@@ -33,6 +33,8 @@ import SanityProducts from "./pages/SanityProducts";
 import SanityProductDetail from "./pages/SanityProductDetail";
 import SanityCart from "./pages/SanityCart";
 import PaymentSuccess from "./pages/PaymentSuccess";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
 import AdminProducts from "./pages/admin/Products";
 import AdminOrders from "./pages/admin/Orders";
 import AdminCoupons from "./pages/admin/Coupons";
@@ -58,6 +60,8 @@ function Router() {
           <Route path="/product/:id" component={ProductDetail} />
           <Route path="/cart" component={SanityCart} />
           <Route path="/checkout" component={Checkout} />
+          <Route path="/login" component={Login} />
+          <Route path="/register" component={Register} />
           <Route path="/order-confirmation/:id" component={OrderConfirmation} />
           <Route path="/admin" component={Admin} />
           <Route path="/admin/products">

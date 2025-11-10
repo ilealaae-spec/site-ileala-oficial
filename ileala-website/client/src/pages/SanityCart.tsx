@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCart } from '@/contexts/CartContext';
+import { useAuth } from '@/_core/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import { Loader2, Trash2, Plus, Minus, ShoppingBag } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 import { toast } from 'sonner';
@@ -10,6 +12,8 @@ import { toast } from 'sonner';
 export default function SanityCart() {
   const { language } = useLanguage();
   const { items, removeItem, updateQuantity, clearCart, totalPrice } = useCart();
+  const { user, isAuthenticated } = useAuth();
+  const [, setLocation] = useLocation();
 
   const createCartCheckoutMutation = trpc.payment.createSanityCartCheckout.useMutation({
     onSuccess: (data) => {
@@ -31,6 +35,13 @@ export default function SanityCart() {
 
   const handleCheckout = () => {
     if (items.length === 0) return;
+
+    // Check if user is authenticated
+    if (!isAuthenticated) {
+      toast.error(language === 'en' ? 'Please sign in to continue' : 'Por favor, faça login para continuar');
+      setLocation('/login?redirect=/cart');
+      return;
+    }
 
     const checkoutItems = items.map(item => ({
       productId: item.id,

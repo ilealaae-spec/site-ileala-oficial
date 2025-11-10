@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useRoute, Link } from 'wouter';
+import { useRoute, Link, useLocation } from 'wouter';
 import { sanityClient, urlFor } from '@/lib/sanity';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCart } from '@/contexts/CartContext';
+import { useAuth } from '@/_core/hooks/useAuth';
 import { ArrowLeft, ShoppingCart, Heart, Share2, Package, Truck, Shield, Loader2, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -43,7 +44,9 @@ interface SanityProductDetail {
 export default function SanityProductDetail() {
   const { t, language } = useLanguage();
   const { addItem } = useCart();
+  const { isAuthenticated } = useAuth();
   const [, params] = useRoute('/sanity-products/:slug');
+  const [, setLocation] = useLocation();
   const [product, setProduct] = useState<SanityProductDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
@@ -107,6 +110,13 @@ export default function SanityProductDetail() {
 
   const handleBuyNow = () => {
     if (!product) return;
+    
+    // Check if user is authenticated
+    if (!isAuthenticated) {
+      toast.error(language === 'en' ? 'Please sign in to continue' : 'Por favor, faça login para continuar');
+      setLocation(`/login?redirect=/sanity-products/${params?.slug}`);
+      return;
+    }
     
     const imageUrl = getImageUrl(product.mainImage);
     const displayPrice = product.onSale && product.salePrice ? product.salePrice : product.price;
