@@ -5,9 +5,9 @@ import imageUrlBuilder from '@sanity/image-url';
 export const sanityClient = createClient({
   projectId: 'anyz9zel',
   dataset: 'production',
-  useCdn: true, // Use CDN para melhor performance
-  apiVersion: '2024-11-10', // Data de hoje
-  token: import.meta.env.VITE_SANITY_TOKEN, // Token será configurado nas variáveis de ambiente
+  useCdn: true, // Use CDN para melhor performance em leituras públicas
+  apiVersion: '2024-11-10',
+  // Token não é necessário para leituras públicas via CDN
 });
 
 // Helper para gerar URLs de imagens otimizadas
