@@ -4,11 +4,11 @@ import type { SanityImageSource } from '@sanity/image-url/lib/types/types';
 
 // Configuração do cliente Sanity
 export const sanityClient = createClient({
-  projectId: 'anyz9zel',
-  dataset: 'production',
+  projectId: import.meta.env.VITE_SANITY_PROJECT_ID || 'anyz9zel',
+  dataset: import.meta.env.VITE_SANITY_DATASET || 'production',
   useCdn: true, // Use CDN para melhor performance em leituras públicas
   apiVersion: '2024-11-10',
-  // Token não é necessário para leituras públicas via CDN
+  token: import.meta.env.VITE_SANITY_TOKEN, // Token para operações autenticadas
 });
 
 // Helper para gerar URLs de imagens otimizadas
