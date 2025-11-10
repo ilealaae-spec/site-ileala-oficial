@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: ileala-website
+    env: node
+    buildCommand: pnpm install && pnpm run build
+    startCommand: pnpm run start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: VITE_SANITY_PROJECT_ID
+        sync: false
+      - key: VITE_SANITY_DATASET
+        sync: false
+      - key: VITE_SANITY_TOKEN
+        sync: false
+      - key: VITE_STRIPE_PUBLISHABLE_KEY
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false

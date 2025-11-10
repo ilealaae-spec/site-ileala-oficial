@@ -4,8 +4,11 @@ import { sanityClient, urlFor } from '@/lib/sanity';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { ArrowLeft, ShoppingCart, Heart, Share2, Package, Truck, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { trpc } from '@/lib/trpc';
 import { toast } from 'sonner';
+import { loadStripe } from '@stripe/stripe-js';
+
+// Initialize Stripe
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
 interface SanityProductDetail {
   _id: string;
@@ -34,6 +37,8 @@ interface SanityProductDetail {
   careInstructions?: string;
   sku?: string;
   weight?: number;
+  stripeProductId?: string;
+  stripePriceId?: string;
 }
 
 export default function SanityProductDetail() {
@@ -44,8 +49,6 @@ export default function SanityProductDetail() {
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
-
-  const createCheckout = trpc.payment.createSanityCheckout.useMutation();
 
   useEffect(() => {
     if (params?.slug) {
@@ -76,7 +79,9 @@ export default function SanityProductDetail() {
         colors,
         careInstructions,
         sku,
-        weight
+        weight,
+        stripeProductId,
+        stripePriceId
       }`;
       
       const data = await sanityClient.fetch(query, { slug });
@@ -85,6 +90,48 @@ export default function SanityProductDetail() {
       console.error('Error fetching product:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleBuyNow = async () => {
+    if (!product) return;
+    
+    setIsCheckingOut(true);
+    try {
+      const stripe = await stripePromise;
+      if (!stripe) {
+        throw new Error('Stripe failed to load');
+      }
+
+      // Create checkout session via Stripe Checkout
+      const response = await fetch('https://api.stripe.com/v1/checkout/sessions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          'success_url': `${window.location.origin}/payment-success`,
+          'cancel_url': window.location.href,
+          'line_items[0][price_data][currency]': 'aed',
+          'line_items[0][price_data][product_data][name]': product.name,
+          'line_items[0][price_data][unit_amount]': String(Math.round(product.price * 100)),
+          'line_items[0][quantity]': String(quantity),
+          'mode': 'payment',
+        }),
+      });
+
+      const session = await response.json();
+      
+      if (session.url) {
+        window.location.href = session.url;
+      } else {
+        throw new Error('No checkout URL returned');
+      }
+    } catch (error) {
+      console.error('Checkout error:', error);
+      toast.error(t('Failed to start checkout. Please try again.'));
+      setIsCheckingOut(false);
     }
   };
 
@@ -279,32 +326,7 @@ export default function SanityProductDetail() {
                 size="lg"
                 className="flex-1 bg-sage-600 hover:bg-sage-700"
                 disabled={!product.inStock || isCheckingOut}
-                onClick={async () => {
-                  if (!product) return;
-                  
-                  setIsCheckingOut(true);
-                  try {
-                    const mainImageUrl = product.mainImage 
-                      ? urlFor(product.mainImage).width(800).url()
-                      : undefined;
-                    
-                    const result = await createCheckout.mutateAsync({
-                      productId: product._id,
-                      productName: product.name,
-                      productPrice: product.price,
-                      productImage: mainImageUrl,
-                      quantity: quantity,
-                    });
-                    
-                    if (result.url) {
-                      window.location.href = result.url;
-                    }
-                  } catch (error) {
-                    console.error('Checkout error:', error);
-                    toast.error(t('Failed to start checkout. Please try again.'));
-                    setIsCheckingOut(false);
-                  }
-                }}
+                onClick={handleBuyNow}
               >
                 <ShoppingCart className="w-5 h-5 mr-2" />
                 {isCheckingOut ? t('Processing...') : t('Buy Now')}
