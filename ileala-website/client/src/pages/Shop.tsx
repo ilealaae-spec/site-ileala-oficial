@@ -1,46 +1,101 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { trpc } from '@/lib/trpc';
+import { sanityClient, urlFor } from '@/lib/sanity';
 import { Link } from 'wouter';
 import { ShoppingCart, Loader2, Search } from 'lucide-react';
 import { toast } from 'sonner';
-import { useAuth } from '@/_core/hooks/useAuth';
+
+interface SanityProduct {
+  _id: string;
+  name: string;
+  slug: { current: string };
+  price: number;
+  salePrice?: number;
+  shortDescription?: string;
+  description?: string;
+  mainImage?: {
+    asset: {
+      _ref: string;
+    };
+    alt?: string;
+  };
+  category?: string;
+  collection?: string;
+  inStock?: boolean;
+  featured?: boolean;
+  isNew?: boolean;
+  onSale?: boolean;
+}
 
 export default function Shop() {
   const { t, language } = useLanguage();
-  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
-  
-  const { data: products, isLoading } = trpc.products.list.useQuery();
-  const addToCartMutation = trpc.cart.add.useMutation({
-    onSuccess: () => {
-      toast.success(language === 'en' ? 'Added to cart!' : 'Adicionado ao carrinho!');
-    },
-    onError: (error) => {
-      if (error.message.includes('Not authenticated')) {
-        toast.error(language === 'en' ? 'Please login to add items to cart' : 'Faça login para adicionar itens ao carrinho');
-      } else {
-        toast.error(language === 'en' ? 'Failed to add to cart' : 'Falha ao adicionar ao carrinho');
-      }
-    },
-  });
+  const [products, setProducts] = useState<SanityProduct[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleAddToCart = (productId: number) => {
-    addToCartMutation.mutate({ productId, quantity: 1 });
-  };
+  useEffect(() => {
+    async function fetchProducts() {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const query = `*[_type == "product" && inStock == true] | order(_createdAt desc) {
+          _id,
+          name,
+          slug,
+          price,
+          salePrice,
+          shortDescription,
+          description,
+          mainImage {
+            asset,
+            alt
+          },
+          category,
+          collection,
+          inStock,
+          featured,
+          isNew,
+          onSale
+        }`;
+        
+        const data = await sanityClient.fetch(query);
+        console.log('Products fetched from Sanity:', data);
+        setProducts(data);
+      } catch (err) {
+        console.error('Error fetching products from Sanity:', err);
+        setError('Failed to load products');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchProducts();
+  }, []);
 
   const formatPrice = (price: number) => {
-    const aed = price / 100; // Convert fils to AED
-    return `${aed.toFixed(2)} AED`;
+    return `${price.toFixed(2)} AED`;
+  };
+
+  // Get image URL from Sanity
+  const getImageUrl = (mainImage: SanityProduct['mainImage']) => {
+    if (!mainImage?.asset) return null;
+    try {
+      return urlFor(mainImage.asset).width(800).height(800).url();
+    } catch (err) {
+      console.error('Error generating image URL:', err);
+      return null;
+    }
   };
 
   // Filter products based on search query
   const filteredProducts = products?.filter((product) => {
     const query = searchQuery.toLowerCase();
-    const name = (language === 'en' ? product.nameEN : product.namePT).toLowerCase();
-    const description = (language === 'en' ? product.descriptionEN : product.descriptionPT)?.toLowerCase() || '';
+    const name = product.name.toLowerCase();
+    const description = product.shortDescription?.toLowerCase() || product.description?.toLowerCase() || '';
     const collection = product.collection?.toLowerCase() || '';
     const category = product.category?.toLowerCase() || '';
     
@@ -52,10 +107,20 @@ export default function Shop() {
     );
   }) || [];
 
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600">{error}</p>
+        </div>
       </div>
     );
   }
@@ -116,53 +181,75 @@ export default function Shop() {
 
           {filteredProducts && filteredProducts.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-              {filteredProducts.map((product) => (
-                <Card key={product.id} className="overflow-hidden group">
-                  <Link href={`/shop/${product.slug}`}>
-                    <div className="aspect-square overflow-hidden bg-muted cursor-pointer">
-                      {product.imageUrl ? (
-                        <img
-                          src={product.imageUrl}
-                          alt={language === 'en' ? product.nameEN : product.namePT}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                          No image
-                        </div>
-                      )}
-                    </div>
-                  </Link>
-                  <div className="p-4">
-                    <Link href={`/shop/${product.slug}`}>
-                      <h3 className="text-lg font-semibold mb-2 hover:text-primary cursor-pointer">
-                        {language === 'en' ? product.nameEN : product.namePT}
-                      </h3>
+              {filteredProducts.map((product) => {
+                const imageUrl = getImageUrl(product.mainImage);
+                const displayPrice = product.onSale && product.salePrice ? product.salePrice : product.price;
+                
+                return (
+                  <Card key={product._id} className="overflow-hidden group">
+                    <Link href={`/sanity-products/${product.slug.current}`}>
+                      <div className="aspect-square overflow-hidden bg-muted cursor-pointer relative">
+                        {imageUrl ? (
+                          <img
+                            src={imageUrl}
+                            alt={product.mainImage?.alt || product.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                            No image
+                          </div>
+                        )}
+                        {product.onSale && (
+                          <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 text-xs font-semibold rounded">
+                            SALE
+                          </div>
+                        )}
+                        {product.isNew && (
+                          <div className="absolute top-2 left-2 bg-green-500 text-white px-2 py-1 text-xs font-semibold rounded">
+                            NEW
+                          </div>
+                        )}
+                      </div>
                     </Link>
-                    {product.collection && (
-                      <p className="text-sm text-muted-foreground mb-2">
-                        {product.collection}
-                      </p>
-                    )}
-                    <div className="flex items-center justify-between mt-4">
-                      <span className="text-lg font-semibold text-muted-foreground italic">
-                        {language === 'en' ? 'Coming soon...' : 'Em breve...'}
-                      </span>
-                      <Button
-                        size="sm"
-                        onClick={() => handleAddToCart(product.id)}
-                        disabled={addToCartMutation.isPending || product.stock === 0}
-                      >
-                        <ShoppingCart className="w-4 h-4 mr-2" />
-                        {product.stock === 0 
-                          ? (language === 'en' ? 'Out of Stock' : 'Esgotado')
-                          : (language === 'en' ? 'Add' : 'Adicionar')
-                        }
-                      </Button>
+                    <div className="p-4">
+                      <Link href={`/sanity-products/${product.slug.current}`}>
+                        <h3 className="text-lg font-semibold mb-2 hover:text-primary cursor-pointer">
+                          {product.name}
+                        </h3>
+                      </Link>
+                      {product.shortDescription && (
+                        <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
+                          {product.shortDescription}
+                        </p>
+                      )}
+                      {product.collection && (
+                        <p className="text-xs text-muted-foreground mb-2">
+                          {product.collection}
+                        </p>
+                      )}
+                      <div className="flex items-center justify-between mt-4">
+                        <div className="flex flex-col">
+                          <span className="text-lg font-semibold">
+                            {formatPrice(displayPrice)}
+                          </span>
+                          {product.onSale && product.salePrice && (
+                            <span className="text-sm text-muted-foreground line-through">
+                              {formatPrice(product.price)}
+                            </span>
+                          )}
+                        </div>
+                        <Link href={`/sanity-products/${product.slug.current}`}>
+                          <Button size="sm">
+                            <ShoppingCart className="w-4 h-4 mr-2" />
+                            {language === 'en' ? 'View' : 'Ver'}
+                          </Button>
+                        </Link>
+                      </div>
                     </div>
-                  </div>
-                </Card>
-              ))}
+                  </Card>
+                );
+              })}
             </div>
           ) : (
             <div className="text-center py-20">
