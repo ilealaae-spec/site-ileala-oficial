@@ -51,6 +51,7 @@ function Router() {
           <Route path="/shop/:slug" component={ProductDetail} />
           <Route path="/products" component={SanityProducts} />
           <Route path="/products/:slug" component={SanityProductDetail} />
+          <Route path="/sanity-products/:slug" component={SanityProductDetail} />
           <Route path="/payment-success" component={PaymentSuccess} />
           <Route path="/product/:id" component={ProductDetail} />
           <Route path="/cart" component={Cart} />

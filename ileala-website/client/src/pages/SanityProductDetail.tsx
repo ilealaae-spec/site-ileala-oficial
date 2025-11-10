@@ -43,7 +43,7 @@ interface SanityProductDetail {
 
 export default function SanityProductDetail() {
   const { t } = useLanguage();
-  const [, params] = useRoute('/products/:slug');
+  const [, params] = useRoute('/sanity-products/:slug');
   const [product, setProduct] = useState<SanityProductDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
