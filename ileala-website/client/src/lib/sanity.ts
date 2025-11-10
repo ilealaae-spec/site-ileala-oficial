@@ -1,5 +1,6 @@
 import { createClient } from '@sanity/client';
 import imageUrlBuilder from '@sanity/image-url';
+import type { SanityImageSource } from '@sanity/image-url/lib/types/types';
 
 // Configuração do cliente Sanity
 export const sanityClient = createClient({
@@ -13,7 +14,7 @@ export const sanityClient = createClient({
 // Helper para gerar URLs de imagens otimizadas
 const builder = imageUrlBuilder(sanityClient);
 
-export function urlFor(source: any) {
+export function urlFor(source: SanityImageSource) {
   return builder.image(source);
 }
 
