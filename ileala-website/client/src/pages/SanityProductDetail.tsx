@@ -2,19 +2,17 @@ import { useState, useEffect } from 'react';
 import { useRoute, Link } from 'wouter';
 import { sanityClient, urlFor } from '@/lib/sanity';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { ArrowLeft, ShoppingCart, Heart, Share2, Package, Truck, Shield } from 'lucide-react';
+import { ArrowLeft, ShoppingCart, Heart, Share2, Package, Truck, Shield, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { loadStripe } from '@stripe/stripe-js';
-
-// Initialize Stripe
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+import { trpc } from '@/lib/trpc';
 
 interface SanityProductDetail {
   _id: string;
   name: string;
   slug: { current: string };
   price: number;
+  salePrice?: number;
   shortDescription?: string;
   description?: string;
   mainImage?: {
@@ -42,13 +40,24 @@ interface SanityProductDetail {
 }
 
 export default function SanityProductDetail() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [, params] = useRoute('/sanity-products/:slug');
   const [product, setProduct] = useState<SanityProductDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
-  const [isCheckingOut, setIsCheckingOut] = useState(false);
+
+  const createCheckoutMutation = trpc.payment.createSanityCheckout.useMutation({
+    onSuccess: (data) => {
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    },
+    onError: (error) => {
+      toast.error(language === 'en' ? 'Failed to create checkout session' : 'Falha ao criar sessão de checkout');
+      console.error('Checkout error:', error);
+    },
+  });
 
   useEffect(() => {
     if (params?.slug) {
@@ -64,6 +73,7 @@ export default function SanityProductDetail() {
         name,
         slug,
         price,
+        salePrice,
         shortDescription,
         description,
         mainImage,
@@ -93,52 +103,35 @@ export default function SanityProductDetail() {
     }
   };
 
-  const handleBuyNow = async () => {
+  const handleBuyNow = () => {
     if (!product) return;
     
-    setIsCheckingOut(true);
+    const imageUrl = getImageUrl(product.mainImage);
+    const displayPrice = product.onSale && product.salePrice ? product.salePrice : product.price;
+    
+    createCheckoutMutation.mutate({
+      productId: product._id,
+      productName: product.name,
+      productPrice: displayPrice,
+      productImage: imageUrl || undefined,
+      quantity: quantity,
+    });
+  };
+
+  const getImageUrl = (mainImage: SanityProductDetail['mainImage']) => {
+    if (!mainImage?.asset) return null;
     try {
-      const stripe = await stripePromise;
-      if (!stripe) {
-        throw new Error('Stripe failed to load');
-      }
-
-      // Create checkout session via Stripe Checkout
-      const response = await fetch('https://api.stripe.com/v1/checkout/sessions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY}`,
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          'success_url': `${window.location.origin}/payment-success`,
-          'cancel_url': window.location.href,
-          'line_items[0][price_data][currency]': 'aed',
-          'line_items[0][price_data][product_data][name]': product.name,
-          'line_items[0][price_data][unit_amount]': String(Math.round(product.price * 100)),
-          'line_items[0][quantity]': String(quantity),
-          'mode': 'payment',
-        }),
-      });
-
-      const session = await response.json();
-      
-      if (session.url) {
-        window.location.href = session.url;
-      } else {
-        throw new Error('No checkout URL returned');
-      }
-    } catch (error) {
-      console.error('Checkout error:', error);
-      toast.error(t('Failed to start checkout. Please try again.'));
-      setIsCheckingOut(false);
+      return urlFor(mainImage.asset).width(800).height(800).url();
+    } catch (err) {
+      console.error('Error generating image URL:', err);
+      return null;
     }
   };
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-sage-600">{t('Loading...')}</p>
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -147,10 +140,10 @@ export default function SanityProductDetail() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center">
         <h1 className="text-2xl font-display text-sage-900 mb-4">{t('Product not found')}</h1>
-        <Link href="/products">
+        <Link href="/shop">
           <Button variant="outline">
             <ArrowLeft className="w-4 h-4 mr-2" />
-            {t('Back to Products')}
+            {t('Back to Shop')}
           </Button>
         </Link>
       </div>
@@ -162,13 +155,15 @@ export default function SanityProductDetail() {
     ...(product.images || [])
   ];
 
+  const displayPrice = product.onSale && product.salePrice ? product.salePrice : product.price;
+
   return (
     <div className="min-h-screen bg-white">
       {/* Breadcrumb */}
       <div className="container mx-auto px-4 py-6">
-        <Link href="/products" className="inline-flex items-center text-sage-600 hover:text-sage-900 transition-colors">
+        <Link href="/shop" className="inline-flex items-center text-sage-600 hover:text-sage-900 transition-colors">
           <ArrowLeft className="w-4 h-4 mr-2" />
-          {t('Back to Products')}
+          {language === 'en' ? 'Back to Shop' : 'Voltar para Loja'}
         </Link>
       </div>
 
@@ -220,17 +215,17 @@ export default function SanityProductDetail() {
             <div className="flex gap-2">
               {product.featured && (
                 <span className="bg-gold-500 text-white px-3 py-1 rounded-full text-sm font-medium">
-                  {t('Featured')}
+                  {language === 'en' ? 'Featured' : 'Destaque'}
                 </span>
               )}
               {product.isNew && (
                 <span className="bg-sage-600 text-white px-3 py-1 rounded-full text-sm font-medium">
-                  {t('New')}
+                  {language === 'en' ? 'New' : 'Novo'}
                 </span>
               )}
               {product.onSale && (
                 <span className="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-medium">
-                  {t('Sale')}
+                  {language === 'en' ? 'Sale' : 'Promoção'}
                 </span>
               )}
             </div>
@@ -238,11 +233,16 @@ export default function SanityProductDetail() {
             <h1 className="font-display text-4xl text-sage-900">{product.name}</h1>
             
             <div className="flex items-center gap-4">
-              <span className="font-display text-3xl text-sage-900">AED {product.price}</span>
+              <div className="flex flex-col">
+                <span className="font-display text-3xl text-sage-900">AED {displayPrice.toFixed(2)}</span>
+                {product.onSale && product.salePrice && (
+                  <span className="text-lg text-sage-500 line-through">AED {product.price.toFixed(2)}</span>
+                )}
+              </div>
               {product.inStock ? (
-                <span className="text-green-600 font-medium">{t('In Stock')}</span>
+                <span className="text-green-600 font-medium">{language === 'en' ? 'In Stock' : 'Em Estoque'}</span>
               ) : (
-                <span className="text-red-600 font-medium">{t('Out of Stock')}</span>
+                <span className="text-red-600 font-medium">{language === 'en' ? 'Out of Stock' : 'Fora de Estoque'}</span>
               )}
             </div>
 
@@ -260,25 +260,25 @@ export default function SanityProductDetail() {
             <div className="space-y-3 border-t border-sage-200 pt-6">
               {product.category && (
                 <div className="flex justify-between">
-                  <span className="text-sage-600">{t('Category')}:</span>
+                  <span className="text-sage-600">{language === 'en' ? 'Category' : 'Categoria'}:</span>
                   <span className="font-medium text-sage-900 capitalize">{product.category}</span>
                 </div>
               )}
               {product.material && (
                 <div className="flex justify-between">
-                  <span className="text-sage-600">{t('Material')}:</span>
+                  <span className="text-sage-600">{language === 'en' ? 'Material' : 'Material'}:</span>
                   <span className="font-medium text-sage-900">{product.material}</span>
                 </div>
               )}
               {product.dimensions && (
                 <div className="flex justify-between">
-                  <span className="text-sage-600">{t('Dimensions')}:</span>
+                  <span className="text-sage-600">{language === 'en' ? 'Dimensions' : 'Dimensões'}:</span>
                   <span className="font-medium text-sage-900">{product.dimensions}</span>
                 </div>
               )}
               {product.sku && (
                 <div className="flex justify-between">
-                  <span className="text-sage-600">{t('SKU')}:</span>
+                  <span className="text-sage-600">SKU:</span>
                   <span className="font-medium text-sage-900">{product.sku}</span>
                 </div>
               )}
@@ -287,7 +287,7 @@ export default function SanityProductDetail() {
             {/* Colors */}
             {product.colors && product.colors.length > 0 && (
               <div className="space-y-2">
-                <span className="text-sage-600">{t('Available Colors')}:</span>
+                <span className="text-sage-600">{language === 'en' ? 'Available Colors' : 'Cores Disponíveis'}:</span>
                 <div className="flex gap-2">
                   {product.colors.map((color, index) => (
                     <span key={index} className="px-3 py-1 bg-sage-100 text-sage-900 rounded-md text-sm">
@@ -301,7 +301,7 @@ export default function SanityProductDetail() {
             {/* Quantity Selector */}
             {product.inStock && (
               <div className="flex items-center gap-4">
-                <span className="text-sage-600">{t('Quantity')}:</span>
+                <span className="text-sage-600">{language === 'en' ? 'Quantity' : 'Quantidade'}:</span>
                 <div className="flex items-center border border-sage-300 rounded-md">
                   <button
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
@@ -325,11 +325,17 @@ export default function SanityProductDetail() {
               <Button
                 size="lg"
                 className="flex-1 bg-sage-600 hover:bg-sage-700"
-                disabled={!product.inStock || isCheckingOut}
+                disabled={!product.inStock || createCheckoutMutation.isLoading}
                 onClick={handleBuyNow}
               >
-                <ShoppingCart className="w-5 h-5 mr-2" />
-                {isCheckingOut ? t('Processing...') : t('Buy Now')}
+                {createCheckoutMutation.isLoading ? (
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                ) : (
+                  <ShoppingCart className="w-5 h-5 mr-2" />
+                )}
+                {createCheckoutMutation.isLoading 
+                  ? (language === 'en' ? 'Processing...' : 'Processando...') 
+                  : (language === 'en' ? 'Buy Now' : 'Comprar Agora')}
               </Button>
               <Button size="lg" variant="outline">
                 <Heart className="w-5 h-5" />
@@ -343,22 +349,24 @@ export default function SanityProductDetail() {
             <div className="grid grid-cols-3 gap-4 pt-6 border-t border-sage-200">
               <div className="text-center">
                 <Package className="w-8 h-8 mx-auto text-sage-600 mb-2" />
-                <p className="text-sm text-sage-600">{t('Free Shipping')}</p>
+                <p className="text-sm text-sage-600">{language === 'en' ? 'Free Shipping' : 'Frete Grátis'}</p>
               </div>
               <div className="text-center">
                 <Truck className="w-8 h-8 mx-auto text-sage-600 mb-2" />
-                <p className="text-sm text-sage-600">{t('Fast Delivery')}</p>
+                <p className="text-sm text-sage-600">{language === 'en' ? 'Fast Delivery' : 'Entrega Rápida'}</p>
               </div>
               <div className="text-center">
                 <Shield className="w-8 h-8 mx-auto text-sage-600 mb-2" />
-                <p className="text-sm text-sage-600">{t('Secure Payment')}</p>
+                <p className="text-sm text-sage-600">{language === 'en' ? 'Secure Payment' : 'Pagamento Seguro'}</p>
               </div>
             </div>
 
             {/* Care Instructions */}
             {product.careInstructions && (
               <div className="bg-sage-50 p-6 rounded-lg">
-                <h3 className="font-display text-lg text-sage-900 mb-3">{t('Care Instructions')}</h3>
+                <h3 className="font-display text-lg text-sage-900 mb-3">
+                  {language === 'en' ? 'Care Instructions' : 'Instruções de Cuidado'}
+                </h3>
                 <p className="text-sage-600 text-sm whitespace-pre-line">{product.careInstructions}</p>
               </div>
             )}
