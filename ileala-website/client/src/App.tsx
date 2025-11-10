@@ -6,6 +6,7 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { LanguageProvider } from "./contexts/LanguageContext";
+import { CartProvider } from "./contexts/CartContext";
 import Home from "./pages/Home";
 import Shop from "./pages/Shop";
 import ProductDetail from "./pages/ProductDetail";
@@ -30,6 +31,7 @@ import ProductCare from "./pages/ProductCare";
 import FindRetailer from "./pages/FindRetailer";
 import SanityProducts from "./pages/SanityProducts";
 import SanityProductDetail from "./pages/SanityProductDetail";
+import SanityCart from "./pages/SanityCart";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import AdminProducts from "./pages/admin/Products";
 import AdminOrders from "./pages/admin/Orders";
@@ -54,7 +56,7 @@ function Router() {
           <Route path="/sanity-products/:slug" component={SanityProductDetail} />
           <Route path="/payment-success" component={PaymentSuccess} />
           <Route path="/product/:id" component={ProductDetail} />
-          <Route path="/cart" component={Cart} />
+          <Route path="/cart" component={SanityCart} />
           <Route path="/checkout" component={Checkout} />
           <Route path="/order-confirmation/:id" component={OrderConfirmation} />
           <Route path="/admin" component={Admin} />
@@ -112,10 +114,12 @@ function App() {
       >
         <SchemaOrg />
         <LanguageProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Router />
-          </TooltipProvider>
+          <CartProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Router />
+            </TooltipProvider>
+          </CartProvider>
         </LanguageProvider>
       </ThemeProvider>
     </ErrorBoundary>

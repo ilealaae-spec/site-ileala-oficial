@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useRoute, Link } from 'wouter';
 import { sanityClient, urlFor } from '@/lib/sanity';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { ArrowLeft, ShoppingCart, Heart, Share2, Package, Truck, Shield, Loader2 } from 'lucide-react';
+import { useCart } from '@/contexts/CartContext';
+import { ArrowLeft, ShoppingCart, Heart, Share2, Package, Truck, Shield, Loader2, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { trpc } from '@/lib/trpc';
@@ -41,6 +42,7 @@ interface SanityProductDetail {
 
 export default function SanityProductDetail() {
   const { t, language } = useLanguage();
+  const { addItem } = useCart();
   const [, params] = useRoute('/sanity-products/:slug');
   const [product, setProduct] = useState<SanityProductDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -321,27 +323,48 @@ export default function SanityProductDetail() {
             )}
 
             {/* Action Buttons */}
-            <div className="flex gap-4 pt-4">
+            <div className="space-y-4 pt-4">
+              <div className="flex gap-4">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="flex-1"
+                  disabled={!product.inStock}
+                  onClick={() => {
+                    const imageUrl = getImageUrl(product.mainImage);
+                    addItem({
+                      id: product._id,
+                      name: product.name,
+                      price: displayPrice,
+                      image: imageUrl || undefined,
+                      slug: product.slug.current,
+                    }, quantity);
+                  }}
+                >
+                  <ShoppingCart className="w-5 h-5 mr-2" />
+                  {language === 'en' ? 'Add to Cart' : 'Adicionar ao Carrinho'}
+                </Button>
+                <Button size="lg" variant="outline">
+                  <Heart className="w-5 h-5" />
+                </Button>
+                <Button size="lg" variant="outline">
+                  <Share2 className="w-5 h-5" />
+                </Button>
+              </div>
               <Button
                 size="lg"
-                className="flex-1 bg-sage-600 hover:bg-sage-700"
+                className="w-full bg-sage-600 hover:bg-sage-700"
                 disabled={!product.inStock || createCheckoutMutation.isLoading}
                 onClick={handleBuyNow}
               >
                 {createCheckoutMutation.isLoading ? (
                   <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                 ) : (
-                  <ShoppingCart className="w-5 h-5 mr-2" />
+                  <CreditCard className="w-5 h-5 mr-2" />
                 )}
                 {createCheckoutMutation.isLoading 
                   ? (language === 'en' ? 'Processing...' : 'Processando...') 
                   : (language === 'en' ? 'Buy Now' : 'Comprar Agora')}
-              </Button>
-              <Button size="lg" variant="outline">
-                <Heart className="w-5 h-5" />
-              </Button>
-              <Button size="lg" variant="outline">
-                <Share2 className="w-5 h-5" />
               </Button>
             </div>
 

@@ -510,6 +510,45 @@ export const appRouter = router({
         
         return { sessionId: session.id, url: session.url || '' };
       }),
+    // Sanity Cart Checkout (multiple items)
+    createSanityCartCheckout: publicProcedure
+      .input(z.object({
+        items: z.array(z.object({
+          productId: z.string(),
+          productName: z.string(),
+          productPrice: z.number(),
+          productImage: z.string().optional(),
+          quantity: z.number().min(1),
+        })),
+      }))
+      .mutation(async ({ input }) => {
+        const baseUrl = process.env.VITE_FRONTEND_FORGE_API_URL || 'https://ileala.ae';
+        
+        const lineItems = input.items.map(item => ({
+          price_data: {
+            currency: 'aed',
+            product_data: {
+              name: item.productName,
+              images: item.productImage ? [item.productImage] : [],
+            },
+            unit_amount: Math.round(item.productPrice * 100), // Convert to fils (cents)
+          },
+          quantity: item.quantity,
+        }));
+        
+        const session = await stripe.checkout.sessions.create({
+          line_items: lineItems,
+          mode: 'payment',
+          success_url: `${baseUrl}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: `${baseUrl}/cart`,
+          metadata: {
+            source: 'sanity-cart',
+            itemCount: input.items.length.toString(),
+          },
+        });
+        
+        return { sessionId: session.id, url: session.url || '' };
+      }),
   }),
 });
 

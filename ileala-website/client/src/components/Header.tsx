@@ -1,18 +1,12 @@
 import { Link } from 'wouter';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useCart } from '@/contexts/CartContext';
 import { Button } from '@/components/ui/button';
 import { Globe, ShoppingCart, Instagram, Facebook, MessageCircle } from 'lucide-react';
-import { useAuth } from '@/_core/hooks/useAuth';
-import { trpc } from '@/lib/trpc';
 
 export default function Header() {
   const { language, setLanguage, t } = useLanguage();
-  const { user } = useAuth();
-  const { data: cartItems } = trpc.cart.items.useQuery(undefined, {
-    enabled: !!user,
-  });
-  
-  const cartCount = cartItems?.reduce((sum, item) => sum + item.quantity, 0) || 0;
+  const { totalItems } = useCart();
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -78,9 +72,9 @@ export default function Header() {
           <Button variant="ghost" size="sm" className="relative" asChild>
             <span>
               <ShoppingCart className="h-5 w-5" />
-              {cartCount > 0 && (
+              {totalItems > 0 && (
                 <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  {cartCount}
+                  {totalItems}
                 </span>
               )}
             </span>

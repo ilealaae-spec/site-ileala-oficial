@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useCart } from '@/contexts/CartContext';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { sanityClient, urlFor } from '@/lib/sanity';
@@ -32,6 +33,7 @@ interface SanityProduct {
 
 export default function Shop() {
   const { t, language } = useLanguage();
+  const { addItem } = useCart();
   const [searchQuery, setSearchQuery] = useState('');
   const [products, setProducts] = useState<SanityProduct[]>([]);
   const [loading, setLoading] = useState(true);
@@ -272,26 +274,27 @@ export default function Shop() {
                           )}
                         </div>
                         <div className="flex gap-2">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => {
+                              addItem({
+                                id: product._id,
+                                name: product.name,
+                                price: displayPrice,
+                                image: imageUrl || undefined,
+                                slug: product.slug.current,
+                              });
+                            }}
+                          >
+                            <ShoppingCart className="w-4 h-4 mr-2" />
+                            {language === 'en' ? 'Add' : 'Adicionar'}
+                          </Button>
                           <Link href={`/sanity-products/${product.slug.current}`}>
-                            <Button size="sm" variant="outline">
-                              <ShoppingCart className="w-4 h-4 mr-2" />
+                            <Button size="sm">
                               {language === 'en' ? 'View' : 'Ver'}
                             </Button>
                           </Link>
-                          <Button 
-                            size="sm" 
-                            onClick={() => handleBuyNow(product)}
-                            disabled={isBuying}
-                          >
-                            {isBuying ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <>
-                                <CreditCard className="w-4 h-4 mr-2" />
-                                {language === 'en' ? 'Buy' : 'Comprar'}
-                              </>
-                            )}
-                          </Button>
                         </div>
                       </div>
                     </div>
