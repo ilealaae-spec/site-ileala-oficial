@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { sanityClient, urlFor } from '@/lib/sanity';
 import { Link } from 'wouter';
-import { ShoppingCart, Loader2, Search } from 'lucide-react';
+import { ShoppingCart, Loader2, Search, CreditCard } from 'lucide-react';
 import { toast } from 'sonner';
+import { trpc } from '@/lib/trpc';
 
 interface SanityProduct {
   _id: string;
@@ -35,6 +36,20 @@ export default function Shop() {
   const [products, setProducts] = useState<SanityProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [buyingProductId, setBuyingProductId] = useState<string | null>(null);
+
+  const createCheckoutMutation = trpc.payment.createSanityCheckout.useMutation({
+    onSuccess: (data) => {
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    },
+    onError: (error) => {
+      toast.error(language === 'en' ? 'Failed to create checkout session' : 'Falha ao criar sessão de checkout');
+      console.error('Checkout error:', error);
+      setBuyingProductId(null);
+    },
+  });
 
   useEffect(() => {
     async function fetchProducts() {
@@ -89,6 +104,22 @@ export default function Shop() {
       console.error('Error generating image URL:', err);
       return null;
     }
+  };
+
+  // Handle Buy Now button click
+  const handleBuyNow = (product: SanityProduct) => {
+    const imageUrl = getImageUrl(product.mainImage);
+    const displayPrice = product.onSale && product.salePrice ? product.salePrice : product.price;
+    
+    setBuyingProductId(product._id);
+    
+    createCheckoutMutation.mutate({
+      productId: product._id,
+      productName: product.name,
+      productPrice: displayPrice,
+      productImage: imageUrl || undefined,
+      quantity: 1,
+    });
   };
 
   // Filter products based on search query
@@ -184,6 +215,7 @@ export default function Shop() {
               {filteredProducts.map((product) => {
                 const imageUrl = getImageUrl(product.mainImage);
                 const displayPrice = product.onSale && product.salePrice ? product.salePrice : product.price;
+                const isBuying = buyingProductId === product._id;
                 
                 return (
                   <Card key={product._id} className="overflow-hidden group">
@@ -239,12 +271,28 @@ export default function Shop() {
                             </span>
                           )}
                         </div>
-                        <Link href={`/sanity-products/${product.slug.current}`}>
-                          <Button size="sm">
-                            <ShoppingCart className="w-4 h-4 mr-2" />
-                            {language === 'en' ? 'View' : 'Ver'}
+                        <div className="flex gap-2">
+                          <Link href={`/sanity-products/${product.slug.current}`}>
+                            <Button size="sm" variant="outline">
+                              <ShoppingCart className="w-4 h-4 mr-2" />
+                              {language === 'en' ? 'View' : 'Ver'}
+                            </Button>
+                          </Link>
+                          <Button 
+                            size="sm" 
+                            onClick={() => handleBuyNow(product)}
+                            disabled={isBuying}
+                          >
+                            {isBuying ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <>
+                                <CreditCard className="w-4 h-4 mr-2" />
+                                {language === 'en' ? 'Buy' : 'Comprar'}
+                              </>
+                            )}
                           </Button>
-                        </Link>
+                        </div>
                       </div>
                     </div>
                   </Card>
