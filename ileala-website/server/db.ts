@@ -392,7 +392,18 @@ export async function getUserById(id: number) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-export async function createUser(data: { email: string; name: string; password: string }) {
+export async function createUser(data: { 
+  email: string; 
+  name: string; 
+  password: string;
+  phone?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  poBox?: string;
+  postalCode?: string;
+  country?: string;
+}) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
@@ -404,6 +415,13 @@ export async function createUser(data: { email: string; name: string; password: 
     email: data.email,
     name: data.name,
     password: hashedPassword,
+    phone: data.phone,
+    address: data.address,
+    city: data.city,
+    state: data.state,
+    poBox: data.poBox,
+    postalCode: data.postalCode,
+    country: data.country,
     loginMethod: 'local',
     role: 'user',
     lastSignedIn: new Date(),

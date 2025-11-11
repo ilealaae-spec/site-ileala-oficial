@@ -16,6 +16,14 @@ export const users = mysqlTable("users", {
   name: text("name"),
   email: varchar("email", { length: 320 }).notNull().unique(),
   password: varchar("password", { length: 255 }), // Hashed password for local auth
+  phone: varchar("phone", { length: 50 }),
+  // Address fields
+  address: text("address"), // Street address
+  city: varchar("city", { length: 100 }),
+  state: varchar("state", { length: 100 }), // State/Emirate
+  poBox: varchar("poBox", { length: 50 }), // PO Box
+  postalCode: varchar("postalCode", { length: 20 }), // ZIP/Postal code
+  country: varchar("country", { length: 100 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
   role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

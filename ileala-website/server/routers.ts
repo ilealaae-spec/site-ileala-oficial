@@ -28,6 +28,13 @@ export const appRouter = router({
         name: z.string().min(2),
         email: z.string().email(),
         password: z.string().min(6),
+        phone: z.string().optional(),
+        address: z.string().optional(),
+        city: z.string().optional(),
+        state: z.string().optional(),
+        poBox: z.string().optional(),
+        postalCode: z.string().optional(),
+        country: z.string().optional(),
       }))
       .mutation(async ({ input, ctx }) => {
         // Check if user already exists
@@ -41,6 +48,13 @@ export const appRouter = router({
           email: input.email,
           name: input.name,
           password: input.password, // Will be hashed in db.createUser
+          phone: input.phone,
+          address: input.address,
+          city: input.city,
+          state: input.state,
+          poBox: input.poBox,
+          postalCode: input.postalCode,
+          country: input.country,
         });
         
         // Get created user

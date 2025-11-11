@@ -35,6 +35,7 @@ import SanityCart from "./pages/SanityCart";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import Profile from "./pages/Profile";
 import AdminProducts from "./pages/admin/Products";
 import AdminOrders from "./pages/admin/Orders";
 import AdminCoupons from "./pages/admin/Coupons";
@@ -62,6 +63,7 @@ function Router() {
           <Route path="/checkout" component={Checkout} />
           <Route path="/login" component={Login} />
           <Route path="/register" component={Register} />
+          <Route path="/profile" component={Profile} />
           <Route path="/order-confirmation/:id" component={OrderConfirmation} />
           <Route path="/admin" component={Admin} />
           <Route path="/admin/products">
