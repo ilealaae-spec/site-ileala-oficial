@@ -43,8 +43,8 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-sage-50 px-4 py-12">
-      <Card className="w-full max-w-md p-8">
+    <div className="min-h-screen flex items-center justify-center bg-sage-50 px-4 py-8">
+      <Card className="w-full max-w-md p-6">
         <div className="text-center mb-8">
           <Link href="/">
             <img 

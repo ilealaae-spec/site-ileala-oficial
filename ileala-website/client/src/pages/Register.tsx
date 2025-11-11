@@ -96,9 +96,9 @@ export default function Register() {
   ];
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-sage-50 px-4 py-12">
-      <Card className="w-full max-w-2xl p-8">
-        <div className="text-center mb-8">
+    <div className="min-h-screen bg-sage-50 px-4 py-8">
+      <Card className="w-full max-w-2xl mx-auto p-6">
+        <div className="text-center mb-4">
           <Link href="/">
             <img 
               src="/images/logo_ile_ala.webp" 
@@ -116,7 +116,7 @@ export default function Register() {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4">
           {/* Personal Information */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-sage-900">
