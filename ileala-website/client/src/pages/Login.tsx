@@ -111,7 +111,7 @@ export default function Login() {
           <div className="pt-6 mt-6">
             <Button
               type="submit"
-              className="w-full bg-sage-600 hover:bg-sage-700 text-white font-semibold py-6 text-lg"
+              className="w-full bg-sage-600 hover:bg-sage-700 text-white font-semibold h-auto py-4 text-lg"
               size="lg"
               disabled={loginMutation.isPending}
             >

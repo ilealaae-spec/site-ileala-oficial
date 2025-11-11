@@ -347,7 +347,7 @@ export default function Register() {
           <div className="pt-8 mt-8 border-t">
             <Button
               type="submit"
-              className="w-full bg-sage-600 hover:bg-sage-700 text-white font-semibold py-6 text-lg"
+              className="w-full bg-sage-600 hover:bg-sage-700 text-white font-semibold h-auto py-4 text-lg"
               size="lg"
               disabled={registerMutation.isPending}
             >
