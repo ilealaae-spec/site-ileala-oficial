@@ -114,7 +114,7 @@ export default function Login() {
               disabled={loginMutation.isPending}
               style={{
                 width: '100%',
-                backgroundColor: '#6B7F6E',
+                backgroundColor: '#4A7C59',
                 color: '#FFFFFF',
                 fontWeight: '600',
                 borderRadius: '6px',
@@ -130,8 +130,8 @@ export default function Login() {
                 transition: 'all 0.2s',
                 minHeight: '56px'
               }}
-              onMouseEnter={(e) => !loginMutation.isPending && (e.currentTarget.style.backgroundColor = '#5A6E5D')}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#6B7F6E'}
+              onMouseEnter={(e) => !loginMutation.isPending && (e.currentTarget.style.backgroundColor = '#3D6A4A')}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#4A7C59'}
             >
               {loginMutation.isPending ? (
                 <>
