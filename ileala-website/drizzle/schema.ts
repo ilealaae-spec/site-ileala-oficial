@@ -23,6 +23,10 @@ export const users = mysqlTable("users", {
   state: varchar("state", { length: 100 }), // State/Emirate
   poBox: varchar("poBox", { length: 50 }), // PO Box
   country: varchar("country", { length: 100 }),
+  // Email verification
+  emailVerified: int("emailVerified").default(0).notNull(), // 0 = not verified, 1 = verified
+  emailVerificationToken: varchar("emailVerificationToken", { length: 255 }),
+  emailVerificationExpires: timestamp("emailVerificationExpires"),
   loginMethod: varchar("loginMethod", { length: 64 }),
   role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

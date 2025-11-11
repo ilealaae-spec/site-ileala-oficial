@@ -61,6 +61,13 @@ export const appRouter = router({
           throw new Error('Failed to create user');
         }
         
+        // Generate email verification token
+        const token = await db.generateEmailVerificationToken(user.id);
+        
+        // Send verification email
+        const { sendVerificationEmail } = await import('./email');
+        await sendVerificationEmail(user.email, token, user.name || 'Customer');
+        
         // Set session cookie
         const cookieOptions = getSessionCookieOptions(ctx.req);
         ctx.res.cookie(COOKIE_NAME, JSON.stringify({ id: user.id, email: user.email, name: user.name, role: user.role }), cookieOptions);
@@ -100,6 +107,52 @@ export const appRouter = router({
             role: user.role,
           },
         };
+      }),
+    verifyEmail: publicProcedure
+      .input(z.object({
+        token: z.string(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const user = await db.verifyEmailToken(input.token);
+        if (!user) {
+          throw new Error('Invalid or expired verification token');
+        }
+        
+        // Send welcome email
+        const { sendWelcomeEmail } = await import('./email');
+        await sendWelcomeEmail(user.email, user.name || 'Customer');
+        
+        return {
+          success: true,
+          user: {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+          },
+        };
+      }),
+    resendVerification: publicProcedure
+      .input(z.object({
+        email: z.string().email(),
+      }))
+      .mutation(async ({ input }) => {
+        const user = await db.getUserByEmail(input.email);
+        if (!user) {
+          throw new Error('User not found');
+        }
+        
+        if (user.emailVerified) {
+          throw new Error('Email already verified');
+        }
+        
+        // Generate new token
+        const token = await db.generateEmailVerificationToken(user.id);
+        
+        // Send verification email
+        const { sendVerificationEmail } = await import('./email');
+        await sendVerificationEmail(user.email, token, user.name || 'Customer');
+        
+        return { success: true };
       }),
   }),
 
