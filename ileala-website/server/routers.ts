@@ -4,6 +4,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, protectedProcedure } from "./_core/trpc";
 import { z } from "zod";
 import * as db from "./db";
+import { getUserByEmailRaw, createUserRaw } from "./db-raw";
 import Stripe from 'stripe';
 import { storagePut } from './storage';
 
@@ -38,13 +39,12 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         try {
           console.log('[Register] Starting registration for:', input.email);
-          const existingUser = await db.getUserByEmail(input.email);
+          const existingUser = await getUserByEmailRaw(input.email);
           console.log('[Register] User exists:', !!existingUser);
           if (existingUser) throw new Error('User with this email already exists');
           console.log('[Register] Creating user...');
-          const userId = await db.createUser({ email: input.email, name: input.name, password: input.password, phone: input.phone, address: input.address, city: input.city, state: input.state, poBox: input.poBox, country: input.country });
-          console.log('[Register] User created:', userId);
-          const user = await db.getUserById(userId);
+          const user = await createUserRaw({ email: input.email, name: input.name, password: input.password, phone: input.phone || '', address: input.address || '', city: input.city || '', state: input.state || '', poBox: input.poBox, country: input.country || '' });
+          console.log('[Register] User created:', user.id);
           if (!user) throw new Error('Failed to create user');
           const token = await db.generateEmailVerificationToken(user.id);
           const { sendVerificationEmail } = await import('./email');
