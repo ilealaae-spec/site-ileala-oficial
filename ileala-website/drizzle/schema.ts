@@ -22,7 +22,6 @@ export const users = mysqlTable("users", {
   city: varchar("city", { length: 100 }),
   state: varchar("state", { length: 100 }), // State/Emirate
   poBox: varchar("poBox", { length: 50 }), // PO Box
-  postalCode: varchar("postalCode", { length: 20 }), // ZIP/Postal code
   country: varchar("country", { length: 100 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
   role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),

@@ -30,7 +30,6 @@ export default function Register() {
     city: '',
     state: '',
     poBox: '',
-    postalCode: '',
     country: 'AE', // Default to UAE
   });
 
@@ -76,7 +75,6 @@ export default function Register() {
       city: formData.city,
       state: formData.state,
       poBox: formData.poBox,
-      postalCode: formData.postalCode,
       country: formData.country,
     });
   };
@@ -299,19 +297,6 @@ export default function Register() {
                 </div>
               </div>
 
-              <div>
-                <Label htmlFor="postalCode">
-                  {language === 'en' ? 'Postal Code' : 'CEP'}
-                </Label>
-                <Input
-                  id="postalCode"
-                  type="text"
-                  value={formData.postalCode}
-                  onChange={(e) => updateField('postalCode', e.target.value)}
-                  placeholder={language === 'en' ? 'Optional' : 'Opcional'}
-                  disabled={registerMutation.isPending}
-                />
-              </div>
             </div>
 
             <div>

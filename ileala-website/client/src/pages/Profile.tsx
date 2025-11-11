@@ -30,7 +30,6 @@ export default function Profile() {
     city: '',
     state: '',
     poBox: '',
-    postalCode: '',
     country: 'AE',
   });
 
@@ -58,7 +57,6 @@ export default function Profile() {
         city: user.city || '',
         state: user.state || '',
         poBox: user.poBox || '',
-        postalCode: user.postalCode || '',
         country: user.country || 'AE',
       });
     }
@@ -257,19 +255,6 @@ export default function Profile() {
                         className="pl-10"
                       />
                     </div>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="postalCode">
-                      {language === 'en' ? 'Postal Code' : 'CEP'}
-                    </Label>
-                    <Input
-                      id="postalCode"
-                      type="text"
-                      value={formData.postalCode}
-                      onChange={(e) => updateField('postalCode', e.target.value)}
-                      placeholder={language === 'en' ? 'Optional' : 'Opcional'}
-                    />
                   </div>
                 </div>
 

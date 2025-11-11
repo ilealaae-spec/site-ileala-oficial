@@ -33,7 +33,6 @@ export const appRouter = router({
         city: z.string().optional(),
         state: z.string().optional(),
         poBox: z.string().optional(),
-        postalCode: z.string().optional(),
         country: z.string().optional(),
       }))
       .mutation(async ({ input, ctx }) => {
@@ -53,7 +52,6 @@ export const appRouter = router({
           city: input.city,
           state: input.state,
           poBox: input.poBox,
-          postalCode: input.postalCode,
           country: input.country,
         });
         

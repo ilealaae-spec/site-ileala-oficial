@@ -401,7 +401,6 @@ export async function createUser(data: {
   city?: string;
   state?: string;
   poBox?: string;
-  postalCode?: string;
   country?: string;
 }) {
   const db = await getDb();
@@ -420,7 +419,6 @@ export async function createUser(data: {
     city: data.city,
     state: data.state,
     poBox: data.poBox,
-    postalCode: data.postalCode,
     country: data.country,
     loginMethod: 'local',
     role: 'user',
