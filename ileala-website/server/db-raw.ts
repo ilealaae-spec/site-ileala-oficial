@@ -6,8 +6,10 @@ let _client: ReturnType<typeof postgres> | null = null;
 export async function getClient() {
   if (!_client && process.env.DATABASE_URL) {
     try {
-      _client = postgres(process.env.DATABASE_URL);
-      console.log("[Database] Connected to PostgreSQL");
+      _client = postgres(process.env.DATABASE_URL, {
+        ssl: 'require'
+      });
+      console.log("[Database] Connected to PostgreSQL with SSL");
     } catch (error) {
       console.error("[Database] Failed to connect:", error);
       _client = null;
