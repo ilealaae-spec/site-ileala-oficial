@@ -345,10 +345,9 @@ export default function Register() {
 
           {/* Submit Button with extra spacing */}
           <div className="pt-8 mt-8 border-t">
-            <Button
+            <button
               type="submit"
-              className="w-full bg-sage-600 hover:bg-sage-700 text-white font-semibold h-auto py-4 text-lg"
-              size="lg"
+              className="w-full bg-sage-600 hover:bg-sage-700 text-white font-semibold rounded-md px-6 py-4 text-lg inline-flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:pointer-events-none"
               disabled={registerMutation.isPending}
             >
             {registerMutation.isPending ? (
@@ -362,7 +361,7 @@ export default function Register() {
                 {language === 'en' ? 'Create Account' : 'Criar Conta'}
               </>
             )}
-            </Button>
+            </button>
           </div>
         </form>
 

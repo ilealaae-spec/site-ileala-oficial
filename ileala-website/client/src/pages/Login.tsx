@@ -109,10 +109,9 @@ export default function Login() {
 
           {/* Submit Button with extra spacing */}
           <div className="pt-6 mt-6">
-            <Button
+            <button
               type="submit"
-              className="w-full bg-sage-600 hover:bg-sage-700 text-white font-semibold h-auto py-4 text-lg"
-              size="lg"
+              className="w-full bg-sage-600 hover:bg-sage-700 text-white font-semibold rounded-md px-6 py-4 text-lg inline-flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:pointer-events-none"
               disabled={loginMutation.isPending}
             >
             {loginMutation.isPending ? (
@@ -126,7 +125,7 @@ export default function Login() {
                 {language === 'en' ? 'Sign In' : 'Entrar'}
               </>
             )}
-            </Button>
+            </button>
           </div>
         </form>
 
