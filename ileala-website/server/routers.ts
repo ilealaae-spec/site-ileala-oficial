@@ -36,51 +36,28 @@ export const appRouter = router({
         country: z.string().optional(),
       }))
       .mutation(async ({ input, ctx }) => {
-        // Check if user already exists
-        const existingUser = await db.getUserByEmail(input.email);
-        if (existingUser) {
-          throw new Error('User with this email already exists');
+        try {
+          console.log('[Register] Starting registration for:', input.email);
+          const existingUser = await db.getUserByEmail(input.email);
+          console.log('[Register] User exists:', !!existingUser);
+          if (existingUser) throw new Error('User with this email already exists');
+          console.log('[Register] Creating user...');
+          const userId = await db.createUser({ email: input.email, name: input.name, password: input.password, phone: input.phone, address: input.address, city: input.city, state: input.state, poBox: input.poBox, country: input.country });
+          console.log('[Register] User created:', userId);
+          const user = await db.getUserById(userId);
+          if (!user) throw new Error('Failed to create user');
+          const token = await db.generateEmailVerificationToken(user.id);
+          const { sendVerificationEmail } = await import('./email');
+          await sendVerificationEmail(user.email, token, user.name || 'Customer');
+          const cookieOptions = getSessionCookieOptions(ctx.req);
+          ctx.res.cookie(COOKIE_NAME, JSON.stringify({ id: user.id, email: user.email, name: user.name, role: user.role }), cookieOptions);
+          console.log('[Register] Success!');
+          return { success: true, user: { id: user.id, email: user.email, name: user.name, role: user.role } };
+        } catch (error) {
+          console.error('[Register] ERROR:', error);
+          console.error('[Register] Stack:', error instanceof Error ? error.stack : 'No stack');
+          throw error;
         }
-        
-        // Create user
-        const userId = await db.createUser({
-          email: input.email,
-          name: input.name,
-          password: input.password, // Will be hashed in db.createUser
-          phone: input.phone,
-          address: input.address,
-          city: input.city,
-          state: input.state,
-          poBox: input.poBox,
-          country: input.country,
-        });
-        
-        // Get created user
-        const user = await db.getUserById(userId);
-        if (!user) {
-          throw new Error('Failed to create user');
-        }
-        
-        // Generate email verification token
-        const token = await db.generateEmailVerificationToken(user.id);
-        
-        // Send verification email
-        const { sendVerificationEmail } = await import('./email');
-        await sendVerificationEmail(user.email, token, user.name || 'Customer');
-        
-        // Set session cookie
-        const cookieOptions = getSessionCookieOptions(ctx.req);
-        ctx.res.cookie(COOKIE_NAME, JSON.stringify({ id: user.id, email: user.email, name: user.name, role: user.role }), cookieOptions);
-        
-        return {
-          success: true,
-          user: {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            role: user.role,
-          },
-        };
       }),
     login: publicProcedure
       .input(z.object({
