@@ -373,14 +373,25 @@ export async function deleteCoupon(id: number) {
 // ===== LOCAL AUTHENTICATION =====
 
 export async function getUserByEmail(email: string) {
+  console.log('[getUserByEmail] Called with email:', email);
   const db = await getDb();
   if (!db) {
     console.warn("[Database] Cannot get user: database not available");
     return undefined;
   }
 
-  const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
-  return result.length > 0 ? result[0] : undefined;
+  try {
+    console.log('[getUserByEmail] Executing query...');
+    const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
+    console.log('[getUserByEmail] Query successful, result count:', result.length);
+    return result.length > 0 ? result[0] : undefined;
+  } catch (error) {
+    console.error('[getUserByEmail] Query failed!');
+    console.error('[getUserByEmail] Error:', error);
+    console.error('[getUserByEmail] Error message:', error instanceof Error ? error.message : 'Unknown');
+    console.error('[getUserByEmail] Error stack:', error instanceof Error ? error.stack : 'No stack');
+    throw error;
+  }
 }
 
 export async function getUserById(id: number) {
