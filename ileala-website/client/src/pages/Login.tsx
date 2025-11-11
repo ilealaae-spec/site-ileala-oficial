@@ -111,20 +111,21 @@ export default function Login() {
           <div className="pt-6 mt-6">
             <button
               type="submit"
-              className="w-full bg-sage-600 hover:bg-sage-700 text-white font-semibold rounded-md px-6 py-4 text-lg inline-flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:pointer-events-none"
+              className="w-full bg-sage-600 hover:bg-sage-700 text-white font-semibold rounded-md px-6 py-4 text-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50"
               disabled={loginMutation.isPending}
+              style={{ minHeight: '48px', display: 'flex' }}
             >
-            {loginMutation.isPending ? (
-              <>
-                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                {language === 'en' ? 'Signing in...' : 'Entrando...'}
-              </>
-            ) : (
-              <>
-                <LogIn className="w-5 h-5 mr-2" />
-                {language === 'en' ? 'Sign In' : 'Entrar'}
-              </>
-            )}
+              {loginMutation.isPending ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span>{language === 'en' ? 'Signing in...' : 'Entrando...'}</span>
+                </>
+              ) : (
+                <>
+                  <LogIn className="w-5 h-5" />
+                  <span>{language === 'en' ? 'Sign In' : 'Entrar'}</span>
+                </>
+              )}
             </button>
           </div>
         </form>

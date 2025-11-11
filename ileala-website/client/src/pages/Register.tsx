@@ -347,20 +347,21 @@ export default function Register() {
           <div className="pt-8 mt-8 border-t">
             <button
               type="submit"
-              className="w-full bg-sage-600 hover:bg-sage-700 text-white font-semibold rounded-md px-6 py-4 text-lg inline-flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:pointer-events-none"
+              className="w-full bg-sage-600 hover:bg-sage-700 text-white font-semibold rounded-md px-6 py-4 text-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50"
               disabled={registerMutation.isPending}
+              style={{ minHeight: '48px', display: 'flex' }}
             >
-            {registerMutation.isPending ? (
-              <>
-                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                {language === 'en' ? 'Creating account...' : 'Criando conta...'}
-              </>
-            ) : (
-              <>
-                <UserPlus className="w-5 h-5 mr-2" />
-                {language === 'en' ? 'Create Account' : 'Criar Conta'}
-              </>
-            )}
+              {registerMutation.isPending ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span>{language === 'en' ? 'Creating account...' : 'Criando conta...'}</span>
+                </>
+              ) : (
+                <>
+                  <UserPlus className="w-5 h-5" />
+                  <span>{language === 'en' ? 'Create Account' : 'Criar Conta'}</span>
+                </>
+              )}
             </button>
           </div>
         </form>
