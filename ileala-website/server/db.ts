@@ -514,3 +514,89 @@ export async function verifyEmailToken(token: string) {
 
   return user;
 }
+
+// ===== PASSWORD RESET =====
+
+export async function generatePasswordResetToken(userId: number): Promise<string> {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  // Generate random token
+  const crypto = await import('crypto');
+  const token = crypto.randomBytes(32).toString('hex');
+  
+  // Token expires in 1 hour
+  const expiresAt = new Date();
+  expiresAt.setHours(expiresAt.getHours() + 1);
+
+  // Update user with token
+  await db.update(users)
+    .set({
+      passwordResetToken: token,
+      passwordResetExpires: expiresAt,
+    })
+    .where(eq(users.id, userId));
+
+  return token;
+}
+
+export async function verifyPasswordResetToken(token: string) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  // Find user with this token
+  const result = await db.select()
+    .from(users)
+    .where(eq(users.passwordResetToken, token))
+    .limit(1);
+
+  if (result.length === 0) {
+    return null;
+  }
+
+  const user = result[0];
+
+  // Check if token is expired
+  if (!user.passwordResetExpires || new Date() > user.passwordResetExpires) {
+    return null;
+  }
+
+  return user;
+}
+
+export async function invalidatePasswordResetToken(token: string) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  // Clear the token
+  await db.update(users)
+    .set({
+      passwordResetToken: null,
+      passwordResetExpires: null,
+    })
+    .where(eq(users.passwordResetToken, token));
+}
+
+export async function updateUserPassword(userId: number, newPassword: string) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  // Hash the new password
+  const bcrypt = await import('bcrypt');
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+  // Update user password
+  await db.update(users)
+    .set({
+      password: hashedPassword,
+    })
+    .where(eq(users.id, userId));
+}

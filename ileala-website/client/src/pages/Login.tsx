@@ -146,6 +146,13 @@ export default function Login() {
               )}
             </button>
           </div>
+
+          {/* Forgot Password Link */}
+          <div className="text-right mt-4">
+            <Link href="/forgot-password" className="text-sm text-sage-600 hover:text-sage-900">
+              {language === 'en' ? 'Forgot password?' : 'Esqueceu a senha?'}
+            </Link>
+          </div>
         </form>
 
         <div className="mt-6 text-center">

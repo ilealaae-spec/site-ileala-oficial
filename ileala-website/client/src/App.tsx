@@ -38,6 +38,8 @@ import Register from "./pages/Register";
 import Profile from "./pages/Profile";
 import Orders from "./pages/Orders";
 import VerifyEmail from "./pages/VerifyEmail";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import AdminProducts from "./pages/admin/Products";
 import AdminOrders from "./pages/admin/Orders";
 import AdminCoupons from "./pages/admin/Coupons";
@@ -68,6 +70,8 @@ function Router() {
           <Route path="/profile" component={Profile} />
           <Route path="/orders" component={Orders} />
           <Route path="/verify-email" component={VerifyEmail} />
+          <Route path="/forgot-password" component={ForgotPassword} />
+          <Route path="/reset-password" component={ResetPassword} />
           <Route path="/order-confirmation/:id" component={OrderConfirmation} />
           <Route path="/admin" component={Admin} />
           <Route path="/admin/products">

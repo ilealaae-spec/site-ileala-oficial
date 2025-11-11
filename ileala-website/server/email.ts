@@ -215,3 +215,68 @@ export async function sendOrderConfirmationEmail(
     return false;
   }
 }
+
+
+export async function sendPasswordResetEmail(email: string, token: string, name: string) {
+  const resetUrl = `${SITE_URL}/reset-password?token=${token}`;
+  
+  try {
+    await resend.emails.send({
+      from: FROM_EMAIL,
+      to: email,
+      subject: 'Reset your password - ILE ALA',
+      html: `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Reset your password</title>
+          </head>
+          <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="background: linear-gradient(135deg, #8B9D83 0%, #6B7D63 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+              <h1 style="color: white; margin: 0; font-size: 28px;">ILE ALA</h1>
+            </div>
+            
+            <div style="background: #ffffff; padding: 40px; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 10px 10px;">
+              <h2 style="color: #8B9D83; margin-top: 0;">Reset Your Password</h2>
+              
+              <p>Hello ${name},</p>
+              
+              <p>We received a request to reset your password for your ILE ALA account. Click the button below to create a new password:</p>
+              
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${resetUrl}" style="background: #8B9D83; color: white; padding: 14px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">
+                  Reset Password
+                </a>
+              </div>
+              
+              <p style="color: #666; font-size: 14px;">Or copy and paste this link into your browser:</p>
+              <p style="color: #8B9D83; font-size: 14px; word-break: break-all;">${resetUrl}</p>
+              
+              <p style="color: #e74c3c; font-size: 14px; background: #fef5f5; padding: 15px; border-radius: 5px; border-left: 4px solid #e74c3c;">
+                <strong>⚠️ Security Notice:</strong> This link will expire in 1 hour for your security.
+              </p>
+              
+              <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;">
+              
+              <p style="color: #999; font-size: 12px; margin-bottom: 0;">
+                If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged.
+              </p>
+            </div>
+            
+            <div style="text-align: center; padding: 20px; color: #999; font-size: 12px;">
+              <p>© ${new Date().getFullYear()} ILE ALA. All rights reserved.</p>
+              <p>Dubai, United Arab Emirates</p>
+            </div>
+          </body>
+        </html>
+      `,
+    });
+    
+    console.log(`Password reset email sent to ${email}`);
+  } catch (error) {
+    console.error('Failed to send password reset email:', error);
+    throw error;
+  }
+}
