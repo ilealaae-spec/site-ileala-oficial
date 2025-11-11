@@ -111,19 +111,37 @@ export default function Login() {
           <div className="pt-6 mt-6">
             <button
               type="submit"
-              className="w-full bg-sage-600 hover:bg-sage-700 text-white font-semibold rounded-md px-6 py-4 text-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50"
               disabled={loginMutation.isPending}
-              style={{ minHeight: '48px', display: 'flex' }}
+              style={{
+                width: '100%',
+                backgroundColor: '#6B7F6E',
+                color: '#FFFFFF',
+                fontWeight: '600',
+                borderRadius: '6px',
+                padding: '16px 24px',
+                fontSize: '18px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                border: 'none',
+                cursor: loginMutation.isPending ? 'not-allowed' : 'pointer',
+                opacity: loginMutation.isPending ? 0.5 : 1,
+                transition: 'all 0.2s',
+                minHeight: '56px'
+              }}
+              onMouseEnter={(e) => !loginMutation.isPending && (e.currentTarget.style.backgroundColor = '#5A6E5D')}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#6B7F6E'}
             >
               {loginMutation.isPending ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  <span>{language === 'en' ? 'Signing in...' : 'Entrando...'}</span>
+                  <span style={{ color: '#FFFFFF', fontSize: '18px' }}>{language === 'en' ? 'Signing in...' : 'Entrando...'}</span>
                 </>
               ) : (
                 <>
                   <LogIn className="w-5 h-5" />
-                  <span>{language === 'en' ? 'Sign In' : 'Entrar'}</span>
+                  <span style={{ color: '#FFFFFF', fontSize: '18px', fontWeight: '600' }}>{language === 'en' ? 'Sign In' : 'Entrar'}</span>
                 </>
               )}
             </button>

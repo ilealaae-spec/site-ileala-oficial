@@ -347,19 +347,37 @@ export default function Register() {
           <div className="pt-8 mt-8 border-t">
             <button
               type="submit"
-              className="w-full bg-sage-600 hover:bg-sage-700 text-white font-semibold rounded-md px-6 py-4 text-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50"
               disabled={registerMutation.isPending}
-              style={{ minHeight: '48px', display: 'flex' }}
+              style={{
+                width: '100%',
+                backgroundColor: '#6B7F6E',
+                color: '#FFFFFF',
+                fontWeight: '600',
+                borderRadius: '6px',
+                padding: '16px 24px',
+                fontSize: '18px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                border: 'none',
+                cursor: registerMutation.isPending ? 'not-allowed' : 'pointer',
+                opacity: registerMutation.isPending ? 0.5 : 1,
+                transition: 'all 0.2s',
+                minHeight: '56px'
+              }}
+              onMouseEnter={(e) => !registerMutation.isPending && (e.currentTarget.style.backgroundColor = '#5A6E5D')}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#6B7F6E'}
             >
               {registerMutation.isPending ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  <span>{language === 'en' ? 'Creating account...' : 'Criando conta...'}</span>
+                  <span style={{ color: '#FFFFFF', fontSize: '18px' }}>{language === 'en' ? 'Creating account...' : 'Criando conta...'}</span>
                 </>
               ) : (
                 <>
                   <UserPlus className="w-5 h-5" />
-                  <span>{language === 'en' ? 'Create Account' : 'Criar Conta'}</span>
+                  <span style={{ color: '#FFFFFF', fontSize: '18px', fontWeight: '600' }}>{language === 'en' ? 'Create Account' : 'Criar Conta'}</span>
                 </>
               )}
             </button>
