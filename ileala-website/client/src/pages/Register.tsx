@@ -13,11 +13,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { UserPlus, Mail, Lock, User, Phone, MapPin, Building2, Globe, Loader2 } from 'lucide-react';
+import { UserPlus, Mail, Lock, User, Phone, MapPin, Building2, Globe, Loader2, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function Register() {
   const { language } = useLanguage();
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [, setLocation] = useLocation();
   
   const [formData, setFormData] = useState({
@@ -189,14 +191,22 @@ export default function Register() {
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-sage-400" />
                   <Input
                     id="password"
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     value={formData.password}
                     onChange={(e) => updateField('password', e.target.value)}
                     placeholder={language === 'en' ? 'Min. 6 characters' : 'Mín. 6 caracteres'}
-                    className="pl-10"
+                    className="pl-10 pr-10"
                     required
                     disabled={registerMutation.isPending}
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-sage-400 hover:text-sage-600 transition-colors"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
                 </div>
               </div>
 
@@ -208,14 +218,22 @@ export default function Register() {
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-sage-400" />
                   <Input
                     id="confirmPassword"
-                    type="password"
+                    type={showConfirmPassword ? "text" : "password"}
                     value={formData.confirmPassword}
                     onChange={(e) => updateField('confirmPassword', e.target.value)}
                     placeholder={language === 'en' ? 'Re-enter password' : 'Digite a senha novamente'}
-                    className="pl-10"
+                    className="pl-10 pr-10"
                     required
                     disabled={registerMutation.isPending}
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-sage-400 hover:text-sage-600 transition-colors"
+                    tabIndex={-1}
+                  >
+                    {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
                 </div>
               </div>
             </div>
@@ -325,12 +343,14 @@ export default function Register() {
             </div>
           </div>
 
-          <Button
-            type="submit"
-            className="w-full bg-sage-600 hover:bg-sage-700"
-            size="lg"
-            disabled={registerMutation.isPending}
-          >
+          {/* Submit Button with extra spacing */}
+          <div className="pt-8 mt-8 border-t">
+            <Button
+              type="submit"
+              className="w-full bg-sage-600 hover:bg-sage-700 text-white font-semibold py-6 text-lg"
+              size="lg"
+              disabled={registerMutation.isPending}
+            >
             {registerMutation.isPending ? (
               <>
                 <Loader2 className="w-5 h-5 mr-2 animate-spin" />
@@ -342,7 +362,8 @@ export default function Register() {
                 {language === 'en' ? 'Create Account' : 'Criar Conta'}
               </>
             )}
-          </Button>
+            </Button>
+          </div>
         </form>
 
         <div className="mt-6 text-center">

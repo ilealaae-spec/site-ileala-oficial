@@ -6,13 +6,14 @@ import { Input } from '@/components/ui/input';
 import { Link, useLocation } from 'wouter';
 import { trpc } from '@/lib/trpc';
 import { toast } from 'sonner';
-import { Loader2, Mail, Lock, LogIn } from 'lucide-react';
+import { Loader2, Mail, Lock, LogIn, Eye, EyeOff } from 'lucide-react';
 
 export default function Login() {
   const { language } = useLanguage();
   const [, setLocation] = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const utils = trpc.useUtils();
   
@@ -88,22 +89,32 @@ export default function Login() {
               <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sage-400 w-5 h-5" />
               <Input
                 id="password"
-                type="password"
+                type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder={language === 'en' ? 'Enter your password' : 'Digite sua senha'}
-                className="pl-10"
+                className="pl-10 pr-10"
                 disabled={loginMutation.isPending}
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-sage-400 hover:text-sage-600 transition-colors"
+                tabIndex={-1}
+              >
+                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </button>
             </div>
           </div>
 
-          <Button
-            type="submit"
-            className="w-full bg-sage-600 hover:bg-sage-700"
-            size="lg"
-            disabled={loginMutation.isPending}
-          >
+          {/* Submit Button with extra spacing */}
+          <div className="pt-6 mt-6">
+            <Button
+              type="submit"
+              className="w-full bg-sage-600 hover:bg-sage-700 text-white font-semibold py-6 text-lg"
+              size="lg"
+              disabled={loginMutation.isPending}
+            >
             {loginMutation.isPending ? (
               <>
                 <Loader2 className="w-5 h-5 mr-2 animate-spin" />
@@ -115,7 +126,8 @@ export default function Login() {
                 {language === 'en' ? 'Sign In' : 'Entrar'}
               </>
             )}
-          </Button>
+            </Button>
+          </div>
         </form>
 
         <div className="mt-6 text-center">
