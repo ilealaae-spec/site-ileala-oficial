@@ -85,3 +85,35 @@ export async function createUserRaw(user: {
     throw error;
   }
 }
+
+// Generate email verification token (raw SQL)
+export async function generateEmailVerificationTokenRaw(userId: number): Promise<string> {
+  console.log('[generateEmailVerificationTokenRaw] Called for user:', userId);
+  const client = await getClient();
+  if (!client) {
+    console.warn("[Database] Cannot generate token: database not available");
+    throw new Error("Database not available");
+  }
+
+  try {
+    // Generate random token
+    const token = Math.random().toString(36).substring(2) + Date.now().toString(36);
+    // Set expiration to 24 hours from now
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    
+    console.log('[generateEmailVerificationTokenRaw] Updating user with token...');
+    await client`
+      UPDATE users 
+      SET "emailVerificationToken" = ${token}, 
+          "emailVerificationExpires" = ${expiresAt}
+      WHERE id = ${userId}
+    `;
+    
+    console.log('[generateEmailVerificationTokenRaw] Token generated successfully');
+    return token;
+  } catch (error) {
+    console.error('[generateEmailVerificationTokenRaw] Failed!');
+    console.error('[generateEmailVerificationTokenRaw] Error:', error);
+    throw error;
+  }
+}

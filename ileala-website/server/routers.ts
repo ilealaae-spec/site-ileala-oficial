@@ -4,7 +4,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, protectedProcedure } from "./_core/trpc";
 import { z } from "zod";
 import * as db from "./db";
-import { getUserByEmailRaw, createUserRaw } from "./db-raw";
+import { getUserByEmailRaw, createUserRaw, generateEmailVerificationTokenRaw } from "./db-raw";
 import Stripe from 'stripe';
 import { storagePut } from './storage';
 
@@ -46,7 +46,7 @@ export const appRouter = router({
           const user = await createUserRaw({ email: input.email, name: input.name, password: input.password, phone: input.phone || '', address: input.address || '', city: input.city || '', state: input.state || '', poBox: input.poBox, country: input.country || '' });
           console.log('[Register] User created:', user.id);
           if (!user) throw new Error('Failed to create user');
-          const token = await db.generateEmailVerificationToken(user.id);
+          const token = await generateEmailVerificationTokenRaw(user.id);
           const { sendVerificationEmail } = await import('./email');
           await sendVerificationEmail(user.email, token, user.name || 'Customer');
           const cookieOptions = getSessionCookieOptions(ctx.req);
