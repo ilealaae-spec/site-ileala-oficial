@@ -111,7 +111,7 @@ export async function sendWelcomeEmail(email: string, name: string) {
               
               <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;">
               
-              <p style="color: #666; font-size: 14px;">Need help? Contact us anytime at <a href="mailto:ileala.ae@gmail.com" style="color: #8B9D83;">ileala.ae@gmail.com</a></p>
+              <p style="color: #666; font-size: 14px;">Need help? Contact us anytime at <a href="mailto:contact@ileala.ae" style="color: #8B9D83;">contact@ileala.ae</a></p>
             </div>
             
             <div style="text-align: center; padding: 20px; color: #999; font-size: 12px;">
@@ -207,7 +207,7 @@ export async function sendOrderConfirmationEmail(
               
               <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;">
               
-              <p style="color: #666; font-size: 14px;">Questions? Contact us at <a href="mailto:ileala.ae@gmail.com" style="color: #8B9D83;">ileala.ae@gmail.com</a></p>
+              <p style="color: #666; font-size: 14px;">Questions? Contact us at <a href="mailto:contact@ileala.ae" style="color: #8B9D83;">contact@ileala.ae</a></p>
             </div>
             
             <div style="text-align: center; padding: 20px; color: #999; font-size: 12px;">
