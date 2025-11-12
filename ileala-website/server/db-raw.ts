@@ -276,30 +276,49 @@ export async function generatePasswordResetTokenRaw(userId: number): Promise<str
  */
 export async function resetPasswordWithTokenRaw(token: string, newPassword: string): Promise<boolean> {
   try {
+    console.log('[resetPasswordWithTokenRaw] Called with token:', token);
     const client = await getClient();
     if (!client) {
+      console.error('[resetPasswordWithTokenRaw] Database client not available');
       return false;
     }
     
     // Find user by token
+    console.log('[resetPasswordWithTokenRaw] Searching for user with token...');
     const users = await client`
       SELECT * FROM users 
       WHERE "passwordResetToken" = ${token}
       AND "passwordResetExpires" > NOW()
       LIMIT 1
     `;
+    console.log('[resetPasswordWithTokenRaw] Query result count:', users.length);
 
     if (users.length === 0) {
+      console.log('[resetPasswordWithTokenRaw] No user found with valid token');
+      // Check if token exists but is expired
+      const expiredCheck = await client`
+        SELECT id, email, "passwordResetExpires" 
+        FROM users 
+        WHERE "passwordResetToken" = ${token}
+        LIMIT 1
+      `;
+      if (expiredCheck.length > 0) {
+        console.log('[resetPasswordWithTokenRaw] Token exists but expired. Expires:', expiredCheck[0].passwordResetExpires);
+      } else {
+        console.log('[resetPasswordWithTokenRaw] Token not found in database');
+      }
       return false;
     }
 
     const user = users[0];
+    console.log('[resetPasswordWithTokenRaw] User found:', user.id, user.email);
 
     // Hash new password
     const bcrypt = await import('bcryptjs');
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
     // Update password and clear reset token
+    console.log('[resetPasswordWithTokenRaw] Updating password...');
     await client`
       UPDATE users 
       SET password = ${hashedPassword},
@@ -307,6 +326,7 @@ export async function resetPasswordWithTokenRaw(token: string, newPassword: stri
           "passwordResetExpires" = NULL
       WHERE id = ${user.id}
     `;
+    console.log('[resetPasswordWithTokenRaw] Password updated successfully!');
 
     return true;
   } catch (error) {
