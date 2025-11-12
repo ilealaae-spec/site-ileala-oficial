@@ -4,7 +4,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, protectedProcedure } from "./_core/trpc";
 import { z } from "zod";
 import * as db from "./db";
-import { getUserByEmailRaw, createUserRaw, generateEmailVerificationTokenRaw } from "./db-raw";
+import { getUserByEmailRaw, createUserRaw, generateEmailVerificationTokenRaw, verifyEmailTokenRaw } from "./db-raw";
 import Stripe from 'stripe';
 import { storagePut } from './storage';
 
@@ -90,7 +90,7 @@ export const appRouter = router({
         token: z.string(),
       }))
       .mutation(async ({ input, ctx }) => {
-        const user = await db.verifyEmailToken(input.token);
+        const user = await verifyEmailTokenRaw(input.token);
         if (!user) {
           throw new Error('Invalid or expired verification token');
         }

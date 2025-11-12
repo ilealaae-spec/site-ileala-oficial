@@ -118,3 +118,55 @@ export async function generateEmailVerificationTokenRaw(userId: number): Promise
     throw error;
   }
 }
+
+// Verify email token (raw SQL)
+export async function verifyEmailTokenRaw(token: string) {
+  console.log('[verifyEmailTokenRaw] Called with token:', token);
+  const client = await getClient();
+  if (!client) {
+    console.warn("[Database] Cannot verify token: database not available");
+    return null;
+  }
+
+  try {
+    // Find user with this token
+    console.log('[verifyEmailTokenRaw] Searching for user with token...');
+    const result = await client`
+      SELECT * FROM users 
+      WHERE "emailVerificationToken" = ${token}
+      LIMIT 1
+    `;
+    
+    if (result.length === 0) {
+      console.log('[verifyEmailTokenRaw] No user found with this token');
+      return null;
+    }
+
+    const user = result[0];
+    console.log('[verifyEmailTokenRaw] User found:', user.id, user.email);
+
+    // Check if token is expired
+    if (!user.emailVerificationExpires || new Date() > new Date(user.emailVerificationExpires)) {
+      console.log('[verifyEmailTokenRaw] Token is expired');
+      return null;
+    }
+
+    // Mark email as verified and clear token
+    console.log('[verifyEmailTokenRaw] Marking email as verified...');
+    await client`
+      UPDATE users 
+      SET "emailVerified" = 1,
+          "emailVerificationToken" = NULL,
+          "emailVerificationExpires" = NULL
+      WHERE id = ${user.id}
+    `;
+    
+    console.log('[verifyEmailTokenRaw] Email verified successfully!');
+    return user;
+  } catch (error) {
+    console.error('[verifyEmailTokenRaw] Failed!');
+    console.error('[verifyEmailTokenRaw] Error:', error);
+    console.error('[verifyEmailTokenRaw] Error message:', error instanceof Error ? error.message : 'Unknown');
+    throw error;
+  }
+}
