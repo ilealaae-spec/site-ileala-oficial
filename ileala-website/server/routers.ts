@@ -4,7 +4,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, protectedProcedure } from "./_core/trpc";
 import { z } from "zod";
 import * as db from "./db";
-import { getUserByEmailRaw, createUserRaw, generateEmailVerificationTokenRaw, verifyEmailTokenRaw, getAllUsersRaw } from "./db-raw";
+import { getUserByEmailRaw, createUserRaw, generateEmailVerificationTokenRaw, verifyEmailTokenRaw, getAllUsersRaw, verifyUserCredentialsRaw } from "./db-raw";
 import Stripe from 'stripe';
 import { storagePut } from './storage';
 
@@ -66,7 +66,7 @@ export const appRouter = router({
       }))
       .mutation(async ({ input, ctx }) => {
         // Verify user credentials
-        const user = await db.verifyUserCredentials(input.email, input.password);
+        const user = await verifyUserCredentialsRaw(input.email, input.password);
         if (!user) {
           throw new Error('Invalid email or password');
         }

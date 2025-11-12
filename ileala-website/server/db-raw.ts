@@ -202,3 +202,35 @@ export async function getAllUsersRaw() {
     throw error;
   }
 }
+
+/**
+ * Verify user credentials (for login)
+ */
+export async function verifyUserCredentialsRaw(email: string, password: string) {
+  try {
+    const user = await getUserByEmailRaw(email);
+    if (!user || !user.password) {
+      return null;
+    }
+
+    // Verify password with bcrypt
+    const bcrypt = await import('bcryptjs');
+    const isValid = await bcrypt.compare(password, user.password);
+
+    if (!isValid) {
+      return null;
+    }
+
+    // Update last signed in
+    await client`
+      UPDATE users 
+      SET "lastSignedIn" = NOW()
+      WHERE id = ${user.id}
+    `;
+
+    return user;
+  } catch (error) {
+    console.error('[verifyUserCredentialsRaw] Error:', error);
+    return null;
+  }
+}
