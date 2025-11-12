@@ -70,7 +70,8 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       updateSet.lastSignedIn = new Date();
     }
 
-    await db.insert(users).values(values).onDuplicateKeyUpdate({
+    await db.insert(users).values(values).onConflictDoUpdate({
+      target: users.openId,
       set: updateSet,
     });
   } catch (error) {
@@ -128,8 +129,8 @@ export async function getProductsByCollection(collection: string) {
 export async function createProduct(product: InsertProduct) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  const result = await db.insert(products).values(product);
-  return Number(result[0].insertId);
+  const result = await db.insert(products).values(product).returning({ id: products.id });
+  return result[0].id;
 }
 
 export async function updateProduct(id: number, product: Partial<InsertProduct>) {
@@ -187,8 +188,8 @@ export async function addToCart(userId: number, productId: number, quantity: num
       userId,
       productId,
       quantity,
-    });
-    return Number(result[0].insertId);
+    }).returning({ id: cartItems.id });
+    return result[0].id;
   }
 }
 
@@ -215,15 +216,15 @@ export async function clearCart(userId: number) {
 export async function createOrder(order: InsertOrder) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  const result = await db.insert(orders).values(order);
-  return Number(result[0].insertId);
+  const result = await db.insert(orders).values(order).returning({ id: orders.id });
+  return result[0].id;
 }
 
 export async function createOrderItem(item: InsertOrderItem) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  const result = await db.insert(orderItems).values(item);
-  return Number(result[0].insertId);
+  const result = await db.insert(orderItems).values(item).returning({ id: orderItems.id });
+  return result[0].id;
 }
 
 export async function getOrderById(id: number) {
@@ -354,8 +355,8 @@ export async function getAllCoupons() {
 export async function createCoupon(coupon: InsertCoupon) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  const result = await db.insert(coupons).values(coupon);
-  return Number(result[0].insertId);
+  const result = await db.insert(coupons).values(coupon).returning({ id: coupons.id });
+  return result[0].id;
 }
 
 export async function updateCoupon(id: number, coupon: Partial<InsertCoupon>) {
@@ -436,9 +437,9 @@ export async function createUser(data: {
     loginMethod: 'local',
     role: 'user',
     lastSignedIn: new Date(),
-  });
+  }).returning({ id: users.id });
 
-  return Number(result[0].insertId);
+  return result[0].id;
 }
 
 export async function verifyUserCredentials(email: string, password: string) {
