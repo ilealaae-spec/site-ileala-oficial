@@ -17,16 +17,21 @@ export function trpcRateLimiterMiddleware(
   next: NextFunction
 ) {
   // Extract procedure path from URL
-  // Format: /api/trpc/auth.register or /api/trpc/auth.login,auth.register (batch)
-  const path = req.path;
+  // tRPC format: /api/trpc/auth.register or /api/trpc/auth.login,auth.register (batch)
+  const url = req.url; // Full URL with query params
+  const path = req.path; // Path without query params
   
-  // Get procedure name from path
+  console.log(`[RateLimit] Checking URL: ${url}, Path: ${path}, Method: ${req.method}`);
+  
+  // Get procedure name from path (after /api/trpc/)
   const procedureMatch = path.match(/\/api\/trpc\/(.+)/);
   if (!procedureMatch) {
+    console.log(`[RateLimit] No procedure match, skipping`);
     return next();
   }
 
   const procedures = procedureMatch[1].split(',');
+  console.log(`[RateLimit] Detected procedures:`, procedures);
   
   // Check if any procedure needs rate limiting
   for (const procedure of procedures) {
@@ -35,28 +40,29 @@ export function trpcRateLimiterMiddleware(
     // Apply rate limiter based on procedure name
     switch (trimmedProcedure) {
       case 'auth.register':
-        console.log(`[RateLimit] Applying register limiter for ${req.ip}`);
+        console.log(`[RateLimit] ✅ Applying REGISTER limiter for IP: ${req.ip}`);
         return registerLimiter(req, res, next);
       
       case 'auth.verifyEmail':
-        console.log(`[RateLimit] Applying verify email limiter for ${req.ip}`);
+        console.log(`[RateLimit] ✅ Applying VERIFY EMAIL limiter for IP: ${req.ip}`);
         return verifyEmailLimiter(req, res, next);
       
       case 'auth.resendVerification':
-        console.log(`[RateLimit] Applying resend email limiter for ${req.ip}`);
+        console.log(`[RateLimit] ✅ Applying RESEND EMAIL limiter for IP: ${req.ip}`);
         return resendEmailLimiter(req, res, next);
       
       case 'auth.login':
-        console.log(`[RateLimit] Applying login limiter for ${req.ip}`);
+        console.log(`[RateLimit] ✅ Applying LOGIN limiter for IP: ${req.ip}`);
         return loginLimiter(req, res, next);
       
       case 'auth.requestPasswordReset':
       case 'auth.resetPassword':
-        console.log(`[RateLimit] Applying password reset limiter for ${req.ip}`);
+        console.log(`[RateLimit] ✅ Applying PASSWORD RESET limiter for IP: ${req.ip}`);
         return passwordResetLimiter(req, res, next);
     }
   }
   
+  console.log(`[RateLimit] No specific limiter for procedures:`, procedures);
   // No rate limiting needed for this procedure
   next();
 }

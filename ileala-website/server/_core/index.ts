@@ -38,9 +38,6 @@ async function startServer() {
   
   // Apply rate limiting to tRPC endpoints
   app.use("/api/trpc", trpcRateLimiterMiddleware);
-  
-  // Apply general API rate limiting
-  app.use("/api", apiLimiter);
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
   // tRPC API
