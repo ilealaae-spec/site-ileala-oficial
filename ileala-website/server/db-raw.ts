@@ -243,26 +243,32 @@ export async function verifyUserCredentialsRaw(email: string, password: string) 
  */
 export async function generatePasswordResetTokenRaw(userId: number): Promise<string> {
   try {
+    console.log('[generatePasswordResetTokenRaw] Called for user ID:', userId);
     // Generate random token
     const crypto = await import('crypto');
     const token = crypto.randomBytes(32).toString('hex');
+    console.log('[generatePasswordResetTokenRaw] Generated token:', token);
     
     // Token expires in 1 hour
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 1);
+    console.log('[generatePasswordResetTokenRaw] Token expires at:', expiresAt.toISOString());
 
     // Update user with token
     const client = await getClient();
     if (!client) {
+      console.error('[generatePasswordResetTokenRaw] Database client not available');
       throw new Error('Database not available');
     }
     
+    console.log('[generatePasswordResetTokenRaw] Updating user with token...');
     await client`
       UPDATE users 
       SET "passwordResetToken" = ${token},
           "passwordResetExpires" = ${expiresAt}
       WHERE id = ${userId}
     `;
+    console.log('[generatePasswordResetTokenRaw] Token saved successfully!');
 
     return token;
   } catch (error) {
