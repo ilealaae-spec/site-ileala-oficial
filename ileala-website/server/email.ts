@@ -228,7 +228,10 @@ export async function sendOrderConfirmationEmail(
 
 
 export async function sendPasswordResetEmail(email: string, token: string, name: string) {
+  console.log('[sendPasswordResetEmail] Called with token:', token);
+  console.log('[sendPasswordResetEmail] Token length:', token.length);
   const resetUrl = `${SITE_URL}/reset-password?token=${token}`;
+  console.log('[sendPasswordResetEmail] Reset URL:', resetUrl);
   
   try {
     await resend.emails.send({
