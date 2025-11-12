@@ -8,8 +8,12 @@ const SITE_URL = process.env.SITE_URL || 'https://site-ileala-oficial.onrender.c
 export async function sendVerificationEmail(email: string, token: string, name: string) {
   const verificationUrl = `${SITE_URL}/verify-email?token=${token}`;
   
+  console.log(`[Email] Attempting to send verification email to ${email}`);
+  console.log(`[Email] FROM: ${FROM_EMAIL}`);
+  console.log(`[Email] Resend API Key configured: ${!!process.env.RESEND_API_KEY}`);
+  
   try {
-    await resend.emails.send({
+    const result = await resend.emails.send({
       from: FROM_EMAIL,
       to: email,
       subject: 'Verify your email - ILE ALA',
@@ -59,10 +63,16 @@ export async function sendVerificationEmail(email: string, token: string, name: 
       `,
     });
     
-    console.log(`[Email] Verification email sent to ${email}`);
+    console.log(`[Email] Resend API response:`, JSON.stringify(result));
+    console.log(`[Email] Verification email sent successfully to ${email}`);
     return true;
   } catch (error) {
-    console.error('[Email] Failed to send verification email:', error);
+    console.error('[Email] ERROR sending verification email:', error);
+    console.error('[Email] Error details:', JSON.stringify(error, null, 2));
+    if (error instanceof Error) {
+      console.error('[Email] Error message:', error.message);
+      console.error('[Email] Error stack:', error.stack);
+    }
     return false;
   }
 }

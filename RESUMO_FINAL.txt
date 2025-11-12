@@ -1,0 +1,21 @@
+RESUMO FINAL - Correção de Envio de Emails
+============================================
+
+TODAS AS CORREÇÕES FORAM APLICADAS:
+
+1. Email Sender Domain (server/email.ts)
+   - Mudança: noreply@ileala.ae → noreply@send.ileala.ae
+   - Commit: 2d094b0
+
+2. API Route Fallback (server/_core/vite.ts)
+   - Adicionado filtro para excluir rotas /api/* do fallback SPA
+   - Commit: ba7767b1
+
+PRÓXIMOS PASSOS:
+
+1. Verificar deploy no Render (commit ba7767b1 deve estar Live)
+2. Testar criação de conta em https://ileala.ae/register
+3. Verificar email na caixa de entrada
+4. Confirmar no Resend (https://resend.com/emails)
+
+Tudo pronto para o teste final!
