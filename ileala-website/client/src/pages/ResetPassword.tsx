@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useLocation, useRouter } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import { Card } from '@/components/ui/card';
 import { Lock, Eye, EyeOff, CheckCircle } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
@@ -7,8 +7,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function ResetPassword() {
   const { language } = useLanguage();
-  const [location] = useLocation();
-  const [, setLocation] = useRouter();
+  const [location, setLocation] = useLocation();
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
