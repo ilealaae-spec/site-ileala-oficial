@@ -43,6 +43,7 @@ import ResetPassword from "./pages/ResetPassword";
 import AdminProducts from "./pages/admin/Products";
 import AdminOrders from "./pages/admin/Orders";
 import AdminCoupons from "./pages/admin/Coupons";
+import AdminCustomers from "./pages/admin/Customers";
 import AdminLayout from "./components/AdminLayout";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
@@ -87,6 +88,11 @@ function Router() {
           <Route path="/admin/coupons">
             <AdminLayout>
               <AdminCoupons />
+            </AdminLayout>
+          </Route>
+          <Route path="/admin/customers">
+            <AdminLayout>
+              <AdminCustomers />
             </AdminLayout>
           </Route>
           <Route path="/about" component={About} />

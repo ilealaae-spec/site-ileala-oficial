@@ -170,3 +170,35 @@ export async function verifyEmailTokenRaw(token: string) {
     throw error;
   }
 }
+
+/**
+ * Get all users (for admin panel)
+ */
+export async function getAllUsersRaw() {
+  try {
+    const result = await client`
+      SELECT 
+        id,
+        name,
+        email,
+        phone,
+        address,
+        city,
+        state,
+        "poBox",
+        country,
+        "emailVerified",
+        "loginMethod",
+        role,
+        "createdAt",
+        "lastSignedIn"
+      FROM users
+      ORDER BY "createdAt" DESC
+    `;
+    
+    return result;
+  } catch (error) {
+    console.error('[getAllUsersRaw] Error:', error);
+    throw error;
+  }
+}

@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'wouter';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Package, ShoppingCart, Ticket, Home, LogOut } from 'lucide-react';
+import { Package, ShoppingCart, Ticket, Users, Home, LogOut } from 'lucide-react';
 import { Button } from './ui/button';
 import { trpc } from '@/lib/trpc';
 import { toast } from 'sonner';
@@ -72,6 +72,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       path: '/admin/coupons',
       icon: Ticket,
       label: language === 'en' ? 'Coupons' : 'Cupons',
+    },
+    {
+      path: '/admin/customers',
+      icon: Users,
+      label: language === 'en' ? 'Customers' : 'Clientes',
     },
   ];
 

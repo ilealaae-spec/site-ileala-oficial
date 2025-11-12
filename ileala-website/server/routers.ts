@@ -4,7 +4,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, protectedProcedure } from "./_core/trpc";
 import { z } from "zod";
 import * as db from "./db";
-import { getUserByEmailRaw, createUserRaw, generateEmailVerificationTokenRaw, verifyEmailTokenRaw } from "./db-raw";
+import { getUserByEmailRaw, createUserRaw, generateEmailVerificationTokenRaw, verifyEmailTokenRaw, getAllUsersRaw } from "./db-raw";
 import Stripe from 'stripe';
 import { storagePut } from './storage';
 
@@ -508,6 +508,14 @@ export const appRouter = router({
         
         return { url: result.url, key: result.key };
       }),
+    
+    // Customers management
+    customers: router({
+      list: protectedProcedure.query(async ({ ctx }) => {
+        if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+        return await getAllUsersRaw();
+      }),
+    }),
     
     // Coupons management
     coupons: router({
