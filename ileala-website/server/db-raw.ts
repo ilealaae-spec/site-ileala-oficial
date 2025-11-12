@@ -222,11 +222,14 @@ export async function verifyUserCredentialsRaw(email: string, password: string) 
     }
 
     // Update last signed in
-    await client`
-      UPDATE users 
-      SET "lastSignedIn" = NOW()
-      WHERE id = ${user.id}
-    `;
+    const client = await getClient();
+    if (client) {
+      await client`
+        UPDATE users 
+        SET "lastSignedIn" = NOW()
+        WHERE id = ${user.id}
+      `;
+    }
 
     return user;
   } catch (error) {
@@ -249,6 +252,11 @@ export async function generatePasswordResetTokenRaw(userId: number): Promise<str
     expiresAt.setHours(expiresAt.getHours() + 1);
 
     // Update user with token
+    const client = await getClient();
+    if (!client) {
+      throw new Error('Database not available');
+    }
+    
     await client`
       UPDATE users 
       SET "passwordResetToken" = ${token},
@@ -268,6 +276,11 @@ export async function generatePasswordResetTokenRaw(userId: number): Promise<str
  */
 export async function resetPasswordWithTokenRaw(token: string, newPassword: string): Promise<boolean> {
   try {
+    const client = await getClient();
+    if (!client) {
+      return false;
+    }
+    
     // Find user by token
     const users = await client`
       SELECT * FROM users 
