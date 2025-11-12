@@ -4,7 +4,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, protectedProcedure } from "./_core/trpc";
 import { z } from "zod";
 import * as db from "./db";
-import { getUserByEmailRaw, createUserRaw, generateEmailVerificationTokenRaw, verifyEmailTokenRaw, getAllUsersRaw, verifyUserCredentialsRaw } from "./db-raw";
+import { getUserByEmailRaw, createUserRaw, generateEmailVerificationTokenRaw, verifyEmailTokenRaw, getAllUsersRaw, verifyUserCredentialsRaw, generatePasswordResetTokenRaw, resetPasswordWithTokenRaw } from "./db-raw";
 import Stripe from 'stripe';
 import { storagePut } from './storage';
 
@@ -136,14 +136,14 @@ export const appRouter = router({
         email: z.string().email(),
       }))
       .mutation(async ({ input }) => {
-        const user = await db.getUserByEmail(input.email);
+        const user = await getUserByEmailRaw(input.email);
         if (!user) {
           // Don't reveal if email exists for security
           return { success: true, message: 'If an account exists with this email, you will receive a password reset link.' };
         }
         
         // Generate password reset token
-        const token = await db.generatePasswordResetToken(user.id);
+        const token = await generatePasswordResetTokenRaw(user.id);
         
         // Send password reset email
         const { sendPasswordResetEmail } = await import('./email');
@@ -157,16 +157,10 @@ export const appRouter = router({
         newPassword: z.string().min(6),
       }))
       .mutation(async ({ input }) => {
-        const user = await db.verifyPasswordResetToken(input.token);
-        if (!user) {
+        const success = await resetPasswordWithTokenRaw(input.token, input.newPassword);
+        if (!success) {
           throw new Error('Invalid or expired reset token');
         }
-        
-        // Update password
-        await db.updateUserPassword(user.id, input.newPassword);
-        
-        // Invalidate the token
-        await db.invalidatePasswordResetToken(input.token);
         
         return { success: true, message: 'Password updated successfully' };
       }),

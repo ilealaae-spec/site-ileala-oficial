@@ -234,3 +234,70 @@ export async function verifyUserCredentialsRaw(email: string, password: string) 
     return null;
   }
 }
+
+/**
+ * Generate password reset token
+ */
+export async function generatePasswordResetTokenRaw(userId: number): Promise<string> {
+  try {
+    // Generate random token
+    const crypto = await import('crypto');
+    const token = crypto.randomBytes(32).toString('hex');
+    
+    // Token expires in 1 hour
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 1);
+
+    // Update user with token
+    await client`
+      UPDATE users 
+      SET "passwordResetToken" = ${token},
+          "passwordResetExpires" = ${expiresAt}
+      WHERE id = ${userId}
+    `;
+
+    return token;
+  } catch (error) {
+    console.error('[generatePasswordResetTokenRaw] Error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Verify password reset token and reset password
+ */
+export async function resetPasswordWithTokenRaw(token: string, newPassword: string): Promise<boolean> {
+  try {
+    // Find user by token
+    const users = await client`
+      SELECT * FROM users 
+      WHERE "passwordResetToken" = ${token}
+      AND "passwordResetExpires" > NOW()
+      LIMIT 1
+    `;
+
+    if (users.length === 0) {
+      return false;
+    }
+
+    const user = users[0];
+
+    // Hash new password
+    const bcrypt = await import('bcryptjs');
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update password and clear reset token
+    await client`
+      UPDATE users 
+      SET password = ${hashedPassword},
+          "passwordResetToken" = NULL,
+          "passwordResetExpires" = NULL
+      WHERE id = ${user.id}
+    `;
+
+    return true;
+  } catch (error) {
+    console.error('[resetPasswordWithTokenRaw] Error:', error);
+    return false;
+  }
+}
