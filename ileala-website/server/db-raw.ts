@@ -96,8 +96,9 @@ export async function generateEmailVerificationTokenRaw(userId: number): Promise
   }
 
   try {
-    // Generate random token
-    const token = Math.random().toString(36).substring(2) + Date.now().toString(36);
+    // Generate random token using crypto for security
+    const crypto = await import('crypto');
+    const token = crypto.randomBytes(32).toString('hex');
     // Set expiration to 24 hours from now
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
     
