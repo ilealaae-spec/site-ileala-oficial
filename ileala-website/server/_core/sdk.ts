@@ -265,11 +265,31 @@ class SDKServer {
     try {
       const sessionData = JSON.parse(sessionCookie || '{}');
       if (sessionData.id && sessionData.email) {
-        // Traditional login session
-        const user = await db.getUserByEmail(sessionData.email);
-        if (user && user.id === sessionData.id) {
-          return user;
-        }
+        // Traditional login session - return user data from cookie directly
+        // This avoids database query issues and improves performance
+        return {
+          id: sessionData.id,
+          email: sessionData.email,
+          name: sessionData.name || null,
+          role: sessionData.role || 'user',
+          openId: null,
+          password: null,
+          phone: null,
+          address: null,
+          city: null,
+          state: null,
+          poBox: null,
+          country: null,
+          emailVerified: 0,
+          emailVerificationToken: null,
+          emailVerificationExpires: null,
+          passwordResetToken: null,
+          passwordResetExpires: null,
+          loginMethod: 'email',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          lastSignedIn: new Date(),
+        } as User;
       }
     } catch (e) {
       // Not a JSON session, continue to JWT verification
