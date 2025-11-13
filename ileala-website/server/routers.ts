@@ -749,6 +749,34 @@ export const appRouter = router({
         return await db.getNewsletterStats();
       }),
   }),
+
+  // Temporary endpoint to promote user to admin
+  admin: router({
+    promoteToAdmin: publicProcedure
+      .input(z.object({
+        email: z.string().email(),
+        secret: z.string(),
+      }))
+      .mutation(async ({ input }) => {
+        // Simple secret to prevent unauthorized access
+        if (input.secret !== 'PROMOTE_ME_NOW_2024') {
+          throw new Error('Invalid secret');
+        }
+        
+        const user = await getUserByEmailRaw(input.email);
+        if (!user) {
+          throw new Error('User not found');
+        }
+        
+        // Update user role to admin
+        await db.updateUser(user.id, { role: 'admin' });
+        
+        return {
+          success: true,
+          message: `User ${input.email} promoted to admin successfully!`,
+        };
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;
