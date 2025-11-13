@@ -128,3 +128,16 @@ export const coupons = pgTable("coupons", {
 
 export type Coupon = typeof coupons.$inferSelect;
 export type InsertCoupon = typeof coupons.$inferInsert;
+
+// Newsletter table
+export const newsletter = pgTable("newsletter", {
+  id: serial("id").primaryKey(),
+  email: varchar("email", { length: 255 }).notNull().unique(),
+  name: varchar("name", { length: 255 }),
+  subscribedAt: timestamp("subscribedAt").defaultNow().notNull(),
+  active: integer("active").default(1).notNull(), // 0 = unsubscribed, 1 = active
+  source: varchar("source", { length: 50 }).default("website").notNull(), // where they subscribed from
+});
+
+export type Newsletter = typeof newsletter.$inferSelect;
+export type InsertNewsletter = typeof newsletter.$inferInsert;

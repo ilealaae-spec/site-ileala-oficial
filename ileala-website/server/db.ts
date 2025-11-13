@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import { InsertUser, users, products, Product, InsertProduct, orders, Order, InsertOrder, orderItems, OrderItem, InsertOrderItem, cartItems, CartItem, InsertCartItem, coupons, Coupon, InsertCoupon } from "../drizzle/schema";
+import { InsertUser, users, products, Product, InsertProduct, orders, Order, InsertOrder, orderItems, OrderItem, InsertOrderItem, cartItems, CartItem, InsertCartItem, coupons, Coupon, InsertCoupon, newsletter, Newsletter, InsertNewsletter } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -617,4 +617,81 @@ export async function updateUserPassword(userId: number, newPassword: string) {
       password: hashedPassword,
     })
     .where(eq(users.id, userId));
+}
+
+
+// ===== NEWSLETTER =====
+
+export async function subscribeToNewsletter(email: string, name?: string, source: string = 'website') {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  try {
+    await db.insert(newsletter).values({
+      email,
+      name: name || null,
+      source,
+      active: 1,
+    });
+    return { success: true };
+  } catch (error: any) {
+    // Check if it's a duplicate email error
+    if (error.code === '23505') {
+      throw new Error('Email already subscribed');
+    }
+    throw error;
+  }
+}
+
+export async function unsubscribeFromNewsletter(email: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db.update(newsletter)
+    .set({ active: 0 })
+    .where(eq(newsletter.email, email));
+  
+  return { success: true };
+}
+
+export async function getAllNewsletterSubscribers(activeOnly: boolean = true) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  if (activeOnly) {
+    return db.select().from(newsletter).where(eq(newsletter.active, 1));
+  }
+  
+  return db.select().from(newsletter);
+}
+
+export async function getNewsletterSubscriberByEmail(email: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  
+  const result = await db.select().from(newsletter).where(eq(newsletter.email, email)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function deleteNewsletterSubscriber(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db.delete(newsletter).where(eq(newsletter.id, id));
+  return { success: true };
+}
+
+export async function getNewsletterStats() {
+  const db = await getDb();
+  if (!db) return { total: 0, active: 0, inactive: 0 };
+  
+  const all = await db.select().from(newsletter);
+  const active = all.filter(s => s.active === 1);
+  const inactive = all.filter(s => s.active === 0);
+  
+  return {
+    total: all.length,
+    active: active.length,
+    inactive: inactive.length,
+  };
 }

@@ -699,6 +699,56 @@ export const appRouter = router({
         return { sessionId: session.id, url: session.url || '' };
       }),
   }),
+  
+  // Newsletter router
+  newsletter: router({
+    subscribe: publicProcedure
+      .input(z.object({
+        email: z.string().email(),
+        name: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        return await db.subscribeToNewsletter(input.email, input.name);
+      }),
+    
+    unsubscribe: publicProcedure
+      .input(z.object({
+        email: z.string().email(),
+      }))
+      .mutation(async ({ input }) => {
+        return await db.unsubscribeFromNewsletter(input.email);
+      }),
+    
+    list: protectedProcedure
+      .input(z.object({
+        activeOnly: z.boolean().default(true),
+      }))
+      .query(async ({ input, ctx }) => {
+        if (ctx.user?.role !== 'admin') {
+          throw new Error('Unauthorized');
+        }
+        return await db.getAllNewsletterSubscribers(input.activeOnly);
+      }),
+    
+    delete: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        if (ctx.user?.role !== 'admin') {
+          throw new Error('Unauthorized');
+        }
+        return await db.deleteNewsletterSubscriber(input.id);
+      }),
+    
+    stats: protectedProcedure
+      .query(async ({ ctx }) => {
+        if (ctx.user?.role !== 'admin') {
+          throw new Error('Unauthorized');
+        }
+        return await db.getNewsletterStats();
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;
