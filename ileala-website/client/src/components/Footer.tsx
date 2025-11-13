@@ -1,5 +1,5 @@
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Instagram, Facebook, MessageCircle } from 'lucide-react';
+import { Instagram, Facebook } from 'lucide-react';
 import { Link } from 'wouter';
 
 export default function Footer() {
@@ -38,7 +38,7 @@ export default function Footer() {
               <p>www.ileala.ae</p>
               <div className="flex gap-4 mt-4">
                 <a 
-                  href="https://instagram.com/ileala" 
+                  href="https://instagram.com/ileala.ae" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="hover:text-primary transition-colors"
@@ -47,22 +47,13 @@ export default function Footer() {
                   <Instagram className="h-5 w-5" />
                 </a>
                 <a 
-                  href="https://facebook.com/ileala" 
+                  href="https://www.facebook.com/share/17f63HzTAk/?mibextid=wwXIfr" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="hover:text-primary transition-colors"
                   aria-label="Facebook"
                 >
                   <Facebook className="h-5 w-5" />
-                </a>
-                <a 
-                  href="https://wa.me/971501234567" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="hover:text-primary transition-colors"
-                  aria-label="WhatsApp"
-                >
-                  <MessageCircle className="h-5 w-5" />
                 </a>
               </div>
             </div>

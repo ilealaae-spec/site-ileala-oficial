@@ -27,9 +27,8 @@ export default function SchemaOrg() {
         "availableLanguage": ["English", "Portuguese"]
       },
       "sameAs": [
-        "https://www.instagram.com/ileala",
-        "https://www.facebook.com/ileala",
-        "https://www.pinterest.com/ileala"
+        "https://www.instagram.com/ileala.ae",
+        "https://www.facebook.com/share/17f63HzTAk/?mibextid=wwXIfr"
       ],
       "brand": {
         "@type": "Brand",
