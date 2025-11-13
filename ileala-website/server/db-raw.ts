@@ -282,7 +282,10 @@ export async function generatePasswordResetTokenRaw(userId: number): Promise<str
  */
 export async function resetPasswordWithTokenRaw(token: string, newPassword: string): Promise<boolean> {
   try {
-    console.log('[resetPasswordWithTokenRaw] Called with token:', token);
+    const tokenPreview = token ? `${token.substring(0, 8)}...${token.substring(token.length - 8)}` : 'EMPTY';
+    console.log('[resetPasswordWithTokenRaw] Called with token preview:', tokenPreview);
+    console.log('[resetPasswordWithTokenRaw] Token length:', token ? token.length : 0);
+    console.log('[resetPasswordWithTokenRaw] Token type:', typeof token);
     const client = await getClient();
     if (!client) {
       console.error('[resetPasswordWithTokenRaw] Database client not available');
@@ -291,33 +294,34 @@ export async function resetPasswordWithTokenRaw(token: string, newPassword: stri
     
     // Find user by token
     console.log('[resetPasswordWithTokenRaw] Searching for user with token...');
+    console.log('[resetPasswordWithTokenRaw] Current server time:', new Date().toISOString());
     const users = await client`
-      SELECT * FROM users 
+      SELECT *, "passwordResetExpires", NOW() as current_time FROM users 
       WHERE "passwordResetToken" = ${token}
-      AND "passwordResetExpires" > NOW()
       LIMIT 1
     `;
     console.log('[resetPasswordWithTokenRaw] Query result count:', users.length);
+    
+    if (users.length > 0) {
+      const user = users[0];
+      console.log('[resetPasswordWithTokenRaw] User found! ID:', user.id);
+      console.log('[resetPasswordWithTokenRaw] Token expires at:', user.passwordResetExpires);
+      console.log('[resetPasswordWithTokenRaw] Current DB time:', user.current_time);
+      console.log('[resetPasswordWithTokenRaw] Is expired?', new Date() > new Date(user.passwordResetExpires));
+      
+      // Check if token is expired
+      if (new Date() > new Date(user.passwordResetExpires)) {
+        console.log('[resetPasswordWithTokenRaw] Token is expired!');
+        return false;
+      }
+    }
 
     if (users.length === 0) {
-      console.log('[resetPasswordWithTokenRaw] No user found with valid token');
-      // Check if token exists but is expired
-      const expiredCheck = await client`
-        SELECT id, email, "passwordResetExpires" 
-        FROM users 
-        WHERE "passwordResetToken" = ${token}
-        LIMIT 1
-      `;
-      if (expiredCheck.length > 0) {
-        console.log('[resetPasswordWithTokenRaw] Token exists but expired. Expires:', expiredCheck[0].passwordResetExpires);
-      } else {
-        console.log('[resetPasswordWithTokenRaw] Token not found in database');
-      }
+      console.log('[resetPasswordWithTokenRaw] No user found with token');
       return false;
     }
 
     const user = users[0];
-    console.log('[resetPasswordWithTokenRaw] User found:', user.id, user.email);
 
     // Hash new password
     const bcrypt = await import('bcryptjs');
