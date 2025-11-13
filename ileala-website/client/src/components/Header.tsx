@@ -96,7 +96,7 @@ export default function Header() {
               </Button>
             </Link>
             <Link href="/register">
-              <Button variant="default" size="sm" className="bg-sage-600 hover:bg-sage-700">
+              <Button variant="default" size="sm" className="bg-sage-800 hover:bg-sage-900 text-white">
                 {language === 'en' ? 'Sign Up' : 'Criar Conta'}
               </Button>
             </Link>
