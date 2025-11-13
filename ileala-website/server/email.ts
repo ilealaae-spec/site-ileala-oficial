@@ -230,7 +230,10 @@ export async function sendOrderConfirmationEmail(
 export async function sendPasswordResetEmail(email: string, token: string, name: string) {
   console.log('[sendPasswordResetEmail] Called with token:', token);
   console.log('[sendPasswordResetEmail] Token length:', token.length);
-  const resetUrl = `${SITE_URL}/reset-password?token=${token}`;
+  // Use encodeURIComponent to protect token from being corrupted by email clients
+  const encodedToken = encodeURIComponent(token);
+  const resetUrl = `${SITE_URL}/reset-password?token=${encodedToken}`;
+  console.log('[sendPasswordResetEmail] Encoded token:', encodedToken);
   console.log('[sendPasswordResetEmail] Reset URL:', resetUrl);
   
   try {
