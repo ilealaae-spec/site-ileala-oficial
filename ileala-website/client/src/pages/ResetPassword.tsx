@@ -15,8 +15,13 @@ export default function ResetPassword() {
   const [success, setSuccess] = useState(false);
 
   // Get token from URL query params
-  const searchParams = new URLSearchParams(location.split('?')[1]);
+  // Use window.location.search instead of location from wouter to ensure we get the full query string
+  const searchParams = new URLSearchParams(window.location.search);
   const token = searchParams.get('token') || '';
+  
+  console.log('[ResetPassword] window.location.search:', window.location.search);
+  console.log('[ResetPassword] Token extracted:', token ? `${token.substring(0, 8)}...${token.substring(token.length - 8)}` : 'EMPTY');
+  console.log('[ResetPassword] Token length:', token.length);
 
   const resetPasswordMutation = trpc.auth.resetPassword.useMutation({
     onSuccess: () => {
