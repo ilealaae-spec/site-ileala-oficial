@@ -383,6 +383,10 @@ export async function getUserByEmail(email: string) {
 
   try {
     console.log('[getUserByEmail] Executing query...');
+    console.log('[getUserByEmail] Database object type:', typeof db);
+    console.log('[getUserByEmail] Database object keys:', Object.keys(db).slice(0, 5));
+    console.log('[getUserByEmail] Users table:', typeof users);
+    console.log('[getUserByEmail] Email to search:', email);
     const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
     console.log('[getUserByEmail] Query successful, result count:', result.length);
     return result.length > 0 ? result[0] : undefined;
