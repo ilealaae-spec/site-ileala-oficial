@@ -134,7 +134,7 @@ export const newsletter = pgTable("newsletter", {
   id: serial("id").primaryKey(),
   email: varchar("email", { length: 255 }).notNull().unique(),
   name: varchar("name", { length: 255 }),
-  subscribedAt: timestamp("subscribedAt").defaultNow().notNull(),
+  subscribedAt: timestamp("subscribed_at").defaultNow().notNull(),
   active: integer("active").default(1).notNull(), // 0 = unsubscribed, 1 = active
   source: varchar("source", { length: 50 }).default("website").notNull(), // where they subscribed from
 });
