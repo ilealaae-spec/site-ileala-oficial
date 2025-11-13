@@ -34,7 +34,7 @@ export default function Home() {
       toast.error(language === 'en' ? 'Please enter a valid email' : 'Por favor, insira um email válido');
       return;
     }
-    subscribeMutation.mutate({ email: newsletterEmail, name: null });
+    subscribeMutation.mutate({ email: newsletterEmail });
   };
 
   return (
