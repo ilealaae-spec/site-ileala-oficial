@@ -260,6 +260,22 @@ class SDKServer {
     // Regular authentication flow
     const cookies = this.parseCookies(req.headers.cookie);
     const sessionCookie = cookies.get(COOKIE_NAME);
+    
+    // Try to parse as traditional login JSON first (for email/password login)
+    try {
+      const sessionData = JSON.parse(sessionCookie || '{}');
+      if (sessionData.id && sessionData.email) {
+        // Traditional login session
+        const user = await db.getUserByEmail(sessionData.email);
+        if (user && user.id === sessionData.id) {
+          return user;
+        }
+      }
+    } catch (e) {
+      // Not a JSON session, continue to JWT verification
+    }
+    
+    // Try OAuth JWT session
     const session = await this.verifySession(sessionCookie);
 
     if (!session) {
