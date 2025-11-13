@@ -629,7 +629,7 @@ export async function subscribeToNewsletter(email: string, name?: string, source
   try {
     await db.insert(newsletter).values({
       email,
-      name: name || null,
+      ...(name ? { name } : {}),
       source,
       active: 1,
     });
