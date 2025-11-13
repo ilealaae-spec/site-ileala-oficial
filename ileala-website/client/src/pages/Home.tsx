@@ -6,6 +6,9 @@ import { useAuth } from '@/_core/hooks/useAuth';
 import WelcomePopup from '@/components/WelcomePopup';
 import SEO from '@/components/SEO';
 import Testimonials from '@/components/Testimonials';
+import { useState } from 'react';
+import { trpc } from '@/_core/trpc';
+import { toast } from 'sonner';
 
 export default function Home() {
   // The userAuth hooks provides authentication state
@@ -13,6 +16,26 @@ export default function Home() {
   let { user, loading, error, isAuthenticated, logout } = useAuth();
 
   const { t, language } = useLanguage();
+  const [newsletterEmail, setNewsletterEmail] = useState('');
+  
+  const subscribeMutation = trpc.newsletter.subscribe.useMutation({
+    onSuccess: () => {
+      toast.success(language === 'en' ? 'Successfully subscribed to newsletter!' : 'Inscrito com sucesso na newsletter!');
+      setNewsletterEmail('');
+    },
+    onError: (error) => {
+      toast.error(error.message || (language === 'en' ? 'Failed to subscribe' : 'Falha ao se inscrever'));
+    },
+  });
+  
+  const handleNewsletterSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newsletterEmail || !newsletterEmail.includes('@')) {
+      toast.error(language === 'en' ? 'Please enter a valid email' : 'Por favor, insira um email válido');
+      return;
+    }
+    subscribeMutation.mutate({ email: newsletterEmail });
+  };
 
   return (
     <div className="w-full">
@@ -219,16 +242,24 @@ export default function Home() {
             <p className="text-lg mb-8 opacity-90">
               {t.home.subscribeText}
             </p>
-            <div className="flex gap-4 max-w-md mx-auto">
+            <form onSubmit={handleNewsletterSubmit} className="flex gap-4 max-w-md mx-auto">
               <input 
                 type="email" 
-                placeholder="Your email address"
+                placeholder={language === 'en' ? 'Your email address' : 'Seu endereço de email'}
+                value={newsletterEmail}
+                onChange={(e) => setNewsletterEmail(e.target.value)}
+                disabled={subscribeMutation.isPending}
                 className="flex-1 px-4 py-3 rounded-md text-foreground"
               />
-              <Button variant="secondary" size="lg">
-                Submit
+              <Button 
+                type="submit" 
+                variant="secondary" 
+                size="lg"
+                disabled={subscribeMutation.isPending}
+              >
+                {subscribeMutation.isPending ? (language === 'en' ? 'Sending...' : 'Enviando...') : (language === 'en' ? 'Submit' : 'Enviar')}
               </Button>
-            </div>
+            </form>
           </div>
         </div>
       </section>
