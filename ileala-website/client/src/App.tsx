@@ -14,6 +14,7 @@ import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
 import OrderConfirmation from "./pages/OrderConfirmation";
 import Admin from "./pages/Admin";
+import PromoteAdmin from "./pages/PromoteAdmin";
 import About from "./pages/About";
 import Collections from "./pages/Collections";
 import CollectionPage from "./pages/CollectionPage";
@@ -74,6 +75,7 @@ function Router() {
           <Route path="/forgot-password" component={ForgotPassword} />
           <Route path="/reset-password" component={ResetPassword} />
           <Route path="/order-confirmation/:id" component={OrderConfirmation} />
+          <Route path="/promote-admin" component={PromoteAdmin} />
           <Route path="/admin" component={Admin} />
           <Route path="/admin/products">
             <AdminLayout>
