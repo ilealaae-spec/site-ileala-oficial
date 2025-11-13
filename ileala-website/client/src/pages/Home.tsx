@@ -7,7 +7,7 @@ import WelcomePopup from '@/components/WelcomePopup';
 import SEO from '@/components/SEO';
 import Testimonials from '@/components/Testimonials';
 import { useState } from 'react';
-import { trpc } from '@/_core/trpc';
+import { trpc } from '@/lib/trpc';
 import { toast } from 'sonner';
 
 export default function Home() {
