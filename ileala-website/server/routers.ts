@@ -596,6 +596,13 @@ export const appRouter = router({
         const session = await stripe.checkout.sessions.create({
           line_items: lineItems,
           mode: 'payment',
+          currency_options: {
+            aed: {
+              custom_unit_amount: {
+                enabled: false,
+              },
+            },
+          },
           success_url: `${baseUrl}/order-confirmation/${input.orderId}?session_id={CHECKOUT_SESSION_ID}`,
           cancel_url: `${baseUrl}/checkout`,
           metadata: {
@@ -649,6 +656,7 @@ export const appRouter = router({
             },
           ],
           mode: 'payment',
+          locale: 'en',
           success_url: `${baseUrl}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
           cancel_url: `${baseUrl}/products`,
           metadata: {
@@ -688,6 +696,7 @@ export const appRouter = router({
         const session = await stripe.checkout.sessions.create({
           line_items: lineItems,
           mode: 'payment',
+          locale: 'en',
           success_url: `${baseUrl}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
           cancel_url: `${baseUrl}/cart`,
           metadata: {
