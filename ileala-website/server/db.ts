@@ -628,22 +628,30 @@ export async function subscribeToNewsletter(email: string, name?: string, source
   if (!db) throw new Error("Database not available");
   
   try {
+    console.log('[Newsletter] Attempting to subscribe:', { email, name, source });
     // Use raw SQL to avoid Drizzle including all schema fields
     if (name && name.trim()) {
       // If name is provided, include it in the query
+      console.log('[Newsletter] Inserting with name');
       await db.execute(sql`
         INSERT INTO newsletter (email, name, source, active)
         VALUES (${email}, ${name.trim()}, ${source}, 1)
       `);
     } else {
       // If name is not provided, don't include it in the query
+      console.log('[Newsletter] Inserting without name');
       await db.execute(sql`
         INSERT INTO newsletter (email, source, active)
         VALUES (${email}, ${source}, 1)
       `);
     }
+    console.log('[Newsletter] Successfully inserted');
     return { success: true };
   } catch (error: any) {
+    console.error('[Newsletter] Error inserting:', error);
+    console.error('[Newsletter] Error code:', error.code);
+    console.error('[Newsletter] Error message:', error.message);
+    console.error('[Newsletter] Error detail:', error.detail);
     // Check if it's a duplicate email error
     if (error.code === '23505') {
       throw new Error('Email already subscribed');
