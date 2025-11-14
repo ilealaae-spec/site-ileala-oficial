@@ -713,7 +713,7 @@ export const appRouter = router({
         name: z.string().optional(),
       }))
       .mutation(async ({ input }) => {
-        return await db.subscribeToNewsletter(input.email, input.name);
+        return await db.subscribeToNewsletter(input.email, input.name && input.name.trim() ? input.name : undefined);
       }),
     
     unsubscribe: publicProcedure
