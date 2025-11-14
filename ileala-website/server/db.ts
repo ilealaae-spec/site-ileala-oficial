@@ -628,14 +628,20 @@ export async function subscribeToNewsletter(email: string, name?: string, source
   if (!db) throw new Error("Database not available");
   
   try {
-    const values = {
-      email,
-      ...(name && name.trim() ? { name: name.trim() } : {}),
-      source,
-      active: 1,
-    };
-    console.log('[Newsletter Subscribe] Values:', JSON.stringify(values));
-    await db.insert(newsletter).values(values);
+    // Use raw SQL to avoid Drizzle including all schema fields
+    if (name && name.trim()) {
+      // If name is provided, include it in the query
+      await db.execute(sql`
+        INSERT INTO newsletter (email, name, source, active)
+        VALUES (${email}, ${name.trim()}, ${source}, 1)
+      `);
+    } else {
+      // If name is not provided, don't include it in the query
+      await db.execute(sql`
+        INSERT INTO newsletter (email, source, active)
+        VALUES (${email}, ${source}, 1)
+      `);
+    }
     return { success: true };
   } catch (error: any) {
     // Check if it's a duplicate email error
