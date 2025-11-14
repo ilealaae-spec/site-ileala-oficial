@@ -631,19 +631,20 @@ export async function subscribeToNewsletter(email: string, name?: string, source
     console.log('[Newsletter] Attempting to subscribe:', { email, name, source });
     // Use raw SQL to avoid Drizzle including all schema fields
     const now = new Date();
+    const active = 1;
     if (name && name.trim()) {
       // If name is provided, include it in the query
       console.log('[Newsletter] Inserting with name');
       await db.execute(sql`
         INSERT INTO newsletter (email, name, source, active, subscribed_at)
-        VALUES (${email}, ${name.trim()}, ${source}, 1, ${now})
+        VALUES (${email}, ${name.trim()}, ${source}, ${active}, ${now})
       `);
     } else {
       // If name is not provided, don't include it in the query
       console.log('[Newsletter] Inserting without name');
       await db.execute(sql`
         INSERT INTO newsletter (email, source, active, subscribed_at)
-        VALUES (${email}, ${source}, 1, ${now})
+        VALUES (${email}, ${source}, ${active}, ${now})
       `);
     }
     console.log('[Newsletter] Successfully inserted');
