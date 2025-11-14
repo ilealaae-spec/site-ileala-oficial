@@ -634,15 +634,15 @@ export async function subscribeToNewsletter(email: string, name?: string, source
       // If name is provided, include it in the query
       console.log('[Newsletter] Inserting with name');
       await db.execute(sql`
-        INSERT INTO newsletter (email, name, source, active)
-        VALUES (${email}, ${name.trim()}, ${source}, 1)
+        INSERT INTO newsletter (email, name, source, active, subscribed_at)
+        VALUES (${email}, ${name.trim()}, ${source}, 1, NOW())
       `);
     } else {
       // If name is not provided, don't include it in the query
       console.log('[Newsletter] Inserting without name');
       await db.execute(sql`
-        INSERT INTO newsletter (email, source, active)
-        VALUES (${email}, ${source}, 1)
+        INSERT INTO newsletter (email, source, active, subscribed_at)
+        VALUES (${email}, ${source}, 1, NOW())
       `);
     }
     console.log('[Newsletter] Successfully inserted');
