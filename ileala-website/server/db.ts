@@ -628,12 +628,14 @@ export async function subscribeToNewsletter(email: string, name?: string, source
   if (!db) throw new Error("Database not available");
   
   try {
-    await db.insert(newsletter).values({
+    const values = {
       email,
       ...(name && name.trim() ? { name: name.trim() } : {}),
       source,
       active: 1,
-    });
+    };
+    console.log('[Newsletter Subscribe] Values:', JSON.stringify(values));
+    await db.insert(newsletter).values(values);
     return { success: true };
   } catch (error: any) {
     // Check if it's a duplicate email error
