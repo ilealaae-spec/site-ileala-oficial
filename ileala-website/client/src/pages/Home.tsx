@@ -28,6 +28,7 @@ export default function Home() {
     },
   });
   
+  // Newsletter subscription handler - Fixed v2
   const handleNewsletterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newsletterEmail || !newsletterEmail.includes('@')) {
