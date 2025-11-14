@@ -17,7 +17,9 @@ async function runMigrations() {
   console.log("[Migration] Starting database migrations...");
   
   try {
-    const sql = postgres(databaseUrl);
+    const sql = postgres(databaseUrl, {
+      ssl: 'require'
+    });
     
     // Get all migration files in order
     const migrationsDir = join(__dirname, "../drizzle/migrations");
