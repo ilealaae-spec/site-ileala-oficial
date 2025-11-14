@@ -1,5 +1,0 @@
-{
-  "buildCommand": "cd ileala-website && npm run build",
-  "outputDirectory": "ileala-website/dist/public",
-  "installCommand": "cd ileala-website && npm install"
-}
