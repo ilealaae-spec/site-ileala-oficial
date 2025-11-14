@@ -1,5 +1,5 @@
 import postgres from "postgres";
-import { readFileSync } from "fs";
+import { readFileSync, readdirSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 
@@ -19,21 +19,33 @@ async function runMigrations() {
   try {
     const sql = postgres(databaseUrl);
     
-    // Read and execute migration file
-    const migrationPath = join(__dirname, "../drizzle/migrations/0000_initial_schema.sql");
-    const migrationSQL = readFileSync(migrationPath, "utf-8");
+    // Get all migration files in order
+    const migrationsDir = join(__dirname, "../drizzle/migrations");
+    const migrationFiles = readdirSync(migrationsDir)
+      .filter(file => file.endsWith('.sql'))
+      .sort(); // Sort to ensure migrations run in order
     
-    // Split by semicolon and execute each statement
-    const statements = migrationSQL
-      .split(";")
-      .map(s => s.trim())
-      .filter(s => s.length > 0);
+    console.log(`[Migration] Found ${migrationFiles.length} migration files`);
     
-    for (const statement of statements) {
-      await sql.unsafe(statement);
+    for (const file of migrationFiles) {
+      console.log(`[Migration] Running ${file}...`);
+      const migrationPath = join(migrationsDir, file);
+      const migrationSQL = readFileSync(migrationPath, "utf-8");
+      
+      // Split by semicolon and execute each statement
+      const statements = migrationSQL
+        .split(";")
+        .map(s => s.trim())
+        .filter(s => s.length > 0);
+      
+      for (const statement of statements) {
+        await sql.unsafe(statement);
+      }
+      
+      console.log(`[Migration] ✓ ${file} completed`);
     }
     
-    console.log("[Migration] Database migrations completed successfully!");
+    console.log("[Migration] All database migrations completed successfully!");
     await sql.end();
   } catch (error) {
     console.error("[Migration] Failed to run migrations:", error);
