@@ -1,4 +1,5 @@
 // Application constants
+// Last updated: 2025-11-17 11:42 UTC - Force rebuild with env vars
 export { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 
 export const APP_TITLE = import.meta.env.VITE_APP_TITLE || "App";
