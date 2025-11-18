@@ -11,5 +11,17 @@
       "source": "/api/oauth/callback",
       "destination": "/api/oauth/callback.ts"
     }
-  ]
+  ],
+  "functions": {
+    "api/trpc.ts": {
+      "runtime": "nodejs18.x",
+      "memory": 2048,
+      "maxDuration": 30
+    },
+    "api/oauth/callback.ts": {
+      "runtime": "nodejs18.x",
+      "memory": 1024,
+      "maxDuration": 10
+    }
+  }
 }
