@@ -2,7 +2,11 @@
   "rewrites": [
     {
       "source": "/api/trpc/(.*)",
-      "destination": "/server/trpc/$1"
+      "destination": "/api/trpc/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ],
   "headers": [
