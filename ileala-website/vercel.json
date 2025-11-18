@@ -1,7 +1,7 @@
 {
   "version": 2,
   "buildCommand": "pnpm run build",
-  "outputDirectory": "dist",
+  "outputDirectory": "dist/public",
   "rewrites": [
     {
       "source": "/api/trpc/:path*",
