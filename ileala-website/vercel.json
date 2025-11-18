@@ -1,7 +1,9 @@
 {
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/api/trpc/(.*)",
+      "destination": "/server/trpc/$1"
+    }
   ],
   "headers": [
     {
