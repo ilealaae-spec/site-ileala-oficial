@@ -1,9 +1,6 @@
 {
   "rewrites": [
-    { "source": "/comprar", "destination": "/index.html" },
-    { "source": "/registrar", "destination": "/index.html" },
-    { "source": "/conta", "destination": "/index.html" },
-    { "source": "/conecte-se", "destination": "/index.html" },
+    { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [
