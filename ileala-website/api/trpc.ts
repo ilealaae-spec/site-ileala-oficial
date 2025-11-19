@@ -328,48 +328,69 @@ function createSafeRequest(rawRequest: any): Request {
 // Vercel handler - must export default
 // CRITICAL: We must intercept the request IMMEDIATELY and convert it to a proper Request
 // before ANY code (including Vercel's internal code) tries to access request.headers.get
-export default async function handler(request: Request | any) {
-  // NEVER try to access request.headers.get() directly - always create a safe Request first
-  // Even if it looks like a Request, it may not have properly bound methods
-  let safeRequest: Request;
-  
+export default async function handler(...args: any[]) {
+  // Wrap everything in try-catch to catch errors that happen before we can process
   try {
-    // ALWAYS create a new Request object - don't trust the incoming request
-    // This ensures all methods (including headers.get) are properly bound
-    safeRequest = createSafeRequest(request);
-  } catch (conversionError) {
-    console.error('[Vercel tRPC] Failed to create safe Request:', conversionError);
+    // Get the request from arguments - Vercel may pass it in different ways
+    const rawRequest = args[0] || args;
+    
+    // IMMEDIATELY create a safe Request without accessing any properties of rawRequest
+    // This must happen before ANY code tries to access rawRequest.headers.get
+    let safeRequest: Request;
+    try {
+      safeRequest = createSafeRequest(rawRequest);
+    } catch (conversionError) {
+      console.error('[Vercel tRPC] Failed to create safe Request:', conversionError);
+      return new Response(
+        JSON.stringify({
+          error: {
+            message: 'Failed to process request',
+            code: 'REQUEST_CONVERSION_ERROR',
+          },
+        }),
+        {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    }
+    
+    // Now use the safe request
+    try {
+      return await handleRequest(safeRequest);
+    } catch (error) {
+      // Log the error with as much info as possible
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : 'No stack';
+      
+      console.error('[Vercel tRPC] Fatal error in handler:', errorMessage);
+      console.error('[Vercel tRPC] Error stack:', errorStack);
+      
+      return new Response(
+        JSON.stringify({
+          error: {
+            message: errorMessage.includes('headers.get') 
+              ? 'Request headers are not accessible in the expected format'
+              : errorMessage,
+            code: 'FATAL_ERROR',
+          },
+        }),
+        {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    }
+  } catch (fatalError) {
+    // Catch any errors that happen even before we can process the request
+    const errorMessage = fatalError instanceof Error ? fatalError.message : String(fatalError);
+    console.error('[Vercel tRPC] Fatal error before processing:', errorMessage);
+    console.error('[Vercel tRPC] Fatal error stack:', fatalError instanceof Error ? fatalError.stack : 'No stack');
+    
     return new Response(
       JSON.stringify({
         error: {
-          message: 'Failed to process request',
-          code: 'REQUEST_CONVERSION_ERROR',
-        },
-      }),
-      {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      }
-    );
-  }
-  
-  // Now use the safe request
-  try {
-    return await handleRequest(safeRequest);
-  } catch (error) {
-    // Log the error with as much info as possible without accessing request properties
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    const errorStack = error instanceof Error ? error.stack : 'No stack';
-    
-    console.error('[Vercel tRPC] Fatal error in handler:', errorMessage);
-    console.error('[Vercel tRPC] Error stack:', errorStack);
-    
-    return new Response(
-      JSON.stringify({
-        error: {
-          message: errorMessage.includes('headers.get') 
-            ? 'Request headers are not accessible in the expected format'
-            : errorMessage,
+          message: 'Internal server error',
           code: 'FATAL_ERROR',
         },
       }),
