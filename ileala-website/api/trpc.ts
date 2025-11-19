@@ -327,12 +327,42 @@ function createSafeRequest(rawRequest: any): Request {
 
 // Vercel handler - must export default
 // Using Node.js runtime (nodejs20.x) to avoid Edge Runtime issues with request.headers.get
-// Node.js runtime uses standard Request/Response objects from Fetch API
-export default async function handler(req: Request): Promise<Response> {
+// CRITICAL: The error happens at line 270 (a comment) which means Vercel is trying
+// to access request.headers.get BEFORE calling the handler. We need to intercept
+// the request parameter immediately without accessing any of its properties.
+export default async function handler(...args: any[]): Promise<Response> {
+  // CRITICAL: Accept ...args to handle any way Vercel passes the request
+  // Do NOT type the parameter as Request - that may cause Vercel to validate it
+  // and try to access request.headers.get before we can intercept it
+  
   try {
-    // With Node.js runtime, req should already be a proper Request object
-    // But we'll still create a safe Request to be absolutely sure
-    const safeRequest = createSafeRequest(req);
+    // Get the request from args - Vercel may pass it in different ways
+    const rawRequest = args[0] || (args.length > 0 ? args : null);
+    
+    if (!rawRequest) {
+      return new Response(
+        JSON.stringify([
+          {
+            error: {
+              message: 'No request provided',
+              code: 'NO_REQUEST',
+              data: {
+                code: 'NO_REQUEST',
+                httpStatus: 400,
+              },
+            },
+          },
+        ]),
+        {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    }
+    
+    // IMMEDIATELY create a safe Request without accessing ANY properties of rawRequest
+    // This must be the FIRST thing we do, before Vercel can access rawRequest.headers.get
+    const safeRequest = createSafeRequest(rawRequest);
     
     // Now process with the safe request
     return await handleRequest(safeRequest);
