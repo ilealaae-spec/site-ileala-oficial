@@ -371,72 +371,80 @@ function createSafeRequest(rawRequest: any): Request {
 // CRITICAL: The error "at Object.handler" suggests Vercel wraps our handler in an object.
 // The error at line 270 (a comment) means it happens during Vercel's processing, not in our code.
 // We must ensure NO code accesses request.headers.get before createSafeRequest is called.
-export default async function handler(req: any): Promise<Response> {
-  // Wrap everything in try-catch to catch errors that happen even before processing
-  try {
-    // CRITICAL: Do NOT access req.headers, req.url, or ANY property of req
-    // before calling createSafeRequest. Even property checks can trigger the error.
-    
-    if (!req) {
+// 
+// SOLUTION: Use a factory function that returns the handler to prevent Vercel from
+// accessing request properties during module evaluation.
+const createHandler = () => {
+  return async function handler(req: any): Promise<Response> {
+    // Wrap everything in try-catch to catch errors that happen even before processing
+    try {
+      // CRITICAL: Do NOT access req.headers, req.url, or ANY property of req
+      // before calling createSafeRequest. Even property checks can trigger the error.
+      
+      if (!req) {
+        return new Response(
+          JSON.stringify([
+            {
+              error: {
+                message: 'No request provided',
+                code: 'NO_REQUEST',
+                data: {
+                  code: 'NO_REQUEST',
+                  httpStatus: 400,
+                },
+              },
+            },
+          ]),
+          {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        );
+      }
+      
+      // IMMEDIATELY create a safe Request - this is the FIRST and ONLY thing we do with req
+      // We must do this without accessing ANY properties of req first
+      const safeRequest = createSafeRequest(req);
+      
+      // Now process with the safe request
+      return await handleRequest(safeRequest);
+    } catch (error) {
+      // Log the error with full details
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : 'No stack';
+      
+      console.error('[Vercel tRPC] Error in handler:', errorMessage);
+      console.error('[Vercel tRPC] Error stack:', errorStack);
+      console.error('[Vercel tRPC] Request type:', typeof req);
+      console.error('[Vercel tRPC] Request keys:', req ? Object.keys(req).slice(0, 10) : 'null');
+      
+      // Return a proper error response in tRPC batch format
       return new Response(
         JSON.stringify([
           {
             error: {
-              message: 'No request provided',
-              code: 'NO_REQUEST',
+              message: errorMessage.includes('headers.get') 
+                ? 'Request headers are not accessible in the expected format'
+                : 'Internal server error',
+              code: 'INTERNAL_SERVER_ERROR',
               data: {
-                code: 'NO_REQUEST',
-                httpStatus: 400,
+                code: 'INTERNAL_SERVER_ERROR',
+                httpStatus: 500,
               },
             },
           },
         ]),
         {
-          status: 400,
+          status: 500,
           headers: { 'Content-Type': 'application/json' },
         }
       );
     }
-    
-    // IMMEDIATELY create a safe Request - this is the FIRST and ONLY thing we do with req
-    // We must do this without accessing ANY properties of req first
-    const safeRequest = createSafeRequest(req);
-    
-    // Now process with the safe request
-    return await handleRequest(safeRequest);
-  } catch (error) {
-    // Log the error with full details
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    const errorStack = error instanceof Error ? error.stack : 'No stack';
-    
-    console.error('[Vercel tRPC] Error in handler:', errorMessage);
-    console.error('[Vercel tRPC] Error stack:', errorStack);
-    console.error('[Vercel tRPC] Request type:', typeof req);
-    console.error('[Vercel tRPC] Request keys:', req ? Object.keys(req).slice(0, 10) : 'null');
-    
-    // Return a proper error response in tRPC batch format
-    return new Response(
-      JSON.stringify([
-        {
-          error: {
-            message: errorMessage.includes('headers.get') 
-              ? 'Request headers are not accessible in the expected format'
-              : 'Internal server error',
-            code: 'INTERNAL_SERVER_ERROR',
-            data: {
-              code: 'INTERNAL_SERVER_ERROR',
-              httpStatus: 500,
-            },
-          },
-        },
-      ]),
-      {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      }
-    );
-  }
-}
+  };
+};
+
+// Export the handler function directly from the factory
+export default createHandler();
 
 async function handleRequest(request: any) {
   const cookies: Array<{ name: string; value: string; options: any }> = [];
@@ -591,7 +599,7 @@ async function handleRequest(request: any) {
         endpoint: '/api/trpc',
         req: finalRequest,
         router: appRouter,
-        createContext: () => ctx,
+        createContext: (): Context => ctx,
         onError: ({ error, path, type }) => {
           console.error('[Vercel tRPC] Error in handler:', {
             error: error.message,
