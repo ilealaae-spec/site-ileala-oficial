@@ -27,6 +27,15 @@ const t = initTRPC.context<Context>().create();
 const router = t.router;
 const publicProcedure = t.procedure;
 
+// Middleware to check if user is admin
+const adminProcedure = publicProcedure.use(async ({ ctx, next }) => {
+  const user = (ctx as Context).user;
+  if (!user || user.role !== 'admin') {
+    throw new Error('Unauthorized: Admin access required');
+  }
+  return next({ ctx });
+});
+
 // ============================================================================
 // DATABASE FUNCTIONS
 // ============================================================================
@@ -405,6 +414,243 @@ const appRouter = router({
           throw new Error('Failed to subscribe to newsletter');
         }
       }),
+  }),
+  
+  // Admin router (protected - only for admin users)
+  admin: router({
+    // Products management
+    products: router({
+      list: adminProcedure.query(async () => {
+        const products = await sql`
+          SELECT * FROM products ORDER BY "createdAt" DESC
+        `;
+        return products;
+      }),
+      
+      create: adminProcedure
+        .input(z.object({
+          nameEN: z.string(),
+          namePT: z.string(),
+          descriptionEN: z.string().optional(),
+          descriptionPT: z.string().optional(),
+          price: z.number(),
+          imageUrl: z.string().optional(),
+          collection: z.string().optional(),
+          category: z.string().optional(),
+          stock: z.number().default(0),
+          featured: z.number().default(0),
+        }))
+        .mutation(async ({ input }) => {
+          // Generate slug from nameEN
+          const slug = input.nameEN.toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-|-$/g, '') + '-' + Date.now();
+          
+          const result = await sql`
+            INSERT INTO products (
+              name, "nameEN", "namePT", "descriptionEN", "descriptionPT",
+              price, "imageUrl", collection, category, stock, featured,
+              slug, active, "createdAt", "updatedAt"
+            )
+            VALUES (
+              ${input.nameEN}, ${input.nameEN}, ${input.namePT || input.nameEN},
+              ${input.descriptionEN || null}, ${input.descriptionPT || null},
+              ${input.price}, ${input.imageUrl || null}, ${input.collection || null},
+              ${input.category || null}, ${input.stock || 0}, ${input.featured || 0},
+              ${slug}, 1, NOW(), NOW()
+            )
+            RETURNING id
+          `;
+          
+          return { id: result[0].id };
+        }),
+      
+      update: adminProcedure
+        .input(z.object({
+          id: z.number(),
+          nameEN: z.string().optional(),
+          namePT: z.string().optional(),
+          descriptionEN: z.string().optional(),
+          descriptionPT: z.string().optional(),
+          price: z.number().optional(),
+          imageUrl: z.string().optional(),
+          collection: z.string().optional(),
+          category: z.string().optional(),
+          stock: z.number().optional(),
+          featured: z.number().optional(),
+          active: z.number().optional(),
+        }))
+        .mutation(async ({ input }) => {
+          const { id, ...updates } = input;
+          
+          // Update each field individually if provided
+          if (updates.nameEN !== undefined) {
+            await sql`UPDATE products SET name = ${updates.nameEN}, "nameEN" = ${updates.nameEN}, "updatedAt" = NOW() WHERE id = ${id}`;
+          }
+          if (updates.namePT !== undefined) {
+            await sql`UPDATE products SET "namePT" = ${updates.namePT}, "updatedAt" = NOW() WHERE id = ${id}`;
+          }
+          if (updates.descriptionEN !== undefined) {
+            await sql`UPDATE products SET "descriptionEN" = ${updates.descriptionEN}, "updatedAt" = NOW() WHERE id = ${id}`;
+          }
+          if (updates.descriptionPT !== undefined) {
+            await sql`UPDATE products SET "descriptionPT" = ${updates.descriptionPT}, "updatedAt" = NOW() WHERE id = ${id}`;
+          }
+          if (updates.price !== undefined) {
+            await sql`UPDATE products SET price = ${updates.price}, "updatedAt" = NOW() WHERE id = ${id}`;
+          }
+          if (updates.imageUrl !== undefined) {
+            await sql`UPDATE products SET "imageUrl" = ${updates.imageUrl}, "updatedAt" = NOW() WHERE id = ${id}`;
+          }
+          if (updates.collection !== undefined) {
+            await sql`UPDATE products SET collection = ${updates.collection}, "updatedAt" = NOW() WHERE id = ${id}`;
+          }
+          if (updates.category !== undefined) {
+            await sql`UPDATE products SET category = ${updates.category}, "updatedAt" = NOW() WHERE id = ${id}`;
+          }
+          if (updates.stock !== undefined) {
+            await sql`UPDATE products SET stock = ${updates.stock}, "updatedAt" = NOW() WHERE id = ${id}`;
+          }
+          if (updates.featured !== undefined) {
+            await sql`UPDATE products SET featured = ${updates.featured}, "updatedAt" = NOW() WHERE id = ${id}`;
+          }
+          if (updates.active !== undefined) {
+            await sql`UPDATE products SET active = ${updates.active}, "updatedAt" = NOW() WHERE id = ${id}`;
+          }
+          
+          return { success: true };
+        }),
+      
+      delete: adminProcedure
+        .input(z.object({ id: z.number() }))
+        .mutation(async ({ input }) => {
+          await sql`DELETE FROM products WHERE id = ${input.id}`;
+          return { success: true };
+        }),
+    }),
+    
+    // Orders management
+    orders: router({
+      list: adminProcedure.query(async () => {
+        const orders = await sql`
+          SELECT * FROM orders ORDER BY "createdAt" DESC
+        `;
+        return orders;
+      }),
+      
+      updateStatus: adminProcedure
+        .input(z.object({
+          id: z.number(),
+          status: z.enum(['pending', 'processing', 'shipped', 'delivered', 'cancelled']),
+        }))
+        .mutation(async ({ input }) => {
+          await sql`
+            UPDATE orders
+            SET status = ${input.status}, "updatedAt" = NOW()
+            WHERE id = ${input.id}
+          `;
+          return { success: true };
+        }),
+    }),
+    
+    // Customers management
+    customers: router({
+      list: adminProcedure.query(async () => {
+        const users = await sql`
+          SELECT 
+            id, name, email, phone, address, city, state, "poBox", country,
+            "emailVerified", "loginMethod", role, "createdAt", "lastSignedIn"
+          FROM users
+          ORDER BY "createdAt" DESC
+        `;
+        return users;
+      }),
+    }),
+    
+    // Coupons management
+    coupons: router({
+      list: adminProcedure.query(async () => {
+        const coupons = await sql`
+          SELECT * FROM coupons ORDER BY "createdAt" DESC
+        `;
+        return coupons;
+      }),
+      
+      create: adminProcedure
+        .input(z.object({
+          code: z.string(),
+          discountType: z.enum(['percentage', 'fixed']),
+          discountValue: z.number(),
+          minPurchaseAmount: z.number().default(0),
+          maxUses: z.number().default(0),
+          active: z.number().default(1),
+          validFrom: z.date().optional(),
+          validUntil: z.date().optional(),
+        }))
+        .mutation(async ({ input }) => {
+          const result = await sql`
+            INSERT INTO coupons (
+              code, "discountType", "discountValue", "minPurchaseAmount",
+              "maxUses", active, "validFrom", "validUntil", "createdAt", "updatedAt"
+            )
+            VALUES (
+              ${input.code}, ${input.discountType}, ${input.discountValue},
+              ${input.minPurchaseAmount || 0}, ${input.maxUses || 0},
+              ${input.active || 1}, ${input.validFrom || null}, ${input.validUntil || null},
+              NOW(), NOW()
+            )
+            RETURNING id
+          `;
+          return { id: result[0].id };
+        }),
+      
+      update: adminProcedure
+        .input(z.object({
+          id: z.number(),
+          code: z.string().optional(),
+          discountType: z.enum(['percentage', 'fixed']).optional(),
+          discountValue: z.number().optional(),
+          minPurchaseAmount: z.number().optional(),
+          maxUses: z.number().optional(),
+          active: z.number().optional(),
+          validUntil: z.date().optional(),
+        }))
+        .mutation(async ({ input }) => {
+          const { id, ...updates } = input;
+          
+          // Update each field individually if provided
+          if (updates.code !== undefined) {
+            await sql`UPDATE coupons SET code = ${updates.code}, "updatedAt" = NOW() WHERE id = ${id}`;
+          }
+          if (updates.discountType !== undefined) {
+            await sql`UPDATE coupons SET "discountType" = ${updates.discountType}, "updatedAt" = NOW() WHERE id = ${id}`;
+          }
+          if (updates.discountValue !== undefined) {
+            await sql`UPDATE coupons SET "discountValue" = ${updates.discountValue}, "updatedAt" = NOW() WHERE id = ${id}`;
+          }
+          if (updates.minPurchaseAmount !== undefined) {
+            await sql`UPDATE coupons SET "minPurchaseAmount" = ${updates.minPurchaseAmount}, "updatedAt" = NOW() WHERE id = ${id}`;
+          }
+          if (updates.maxUses !== undefined) {
+            await sql`UPDATE coupons SET "maxUses" = ${updates.maxUses}, "updatedAt" = NOW() WHERE id = ${id}`;
+          }
+          if (updates.active !== undefined) {
+            await sql`UPDATE coupons SET active = ${updates.active}, "updatedAt" = NOW() WHERE id = ${id}`;
+          }
+          if (updates.validUntil !== undefined) {
+            await sql`UPDATE coupons SET "validUntil" = ${updates.validUntil}, "updatedAt" = NOW() WHERE id = ${id}`;
+          }
+          
+          return { success: true };
+        }),
+      
+      delete: adminProcedure
+        .input(z.object({ id: z.number() }))
+        .mutation(async ({ input }) => {
+          await sql`DELETE FROM coupons WHERE id = ${input.id}`;
+          return { success: true };
+        }),
+    }),
   }),
 });
 
