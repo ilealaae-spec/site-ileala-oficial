@@ -1,7 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { db } from '../server/db';
-import { users } from '../server/db/schema';
-import { eq } from 'drizzle-orm';
+import { neon } from '@neondatabase/serverless';
 import bcrypt from 'bcryptjs';
 
 export default async function handler(
@@ -14,44 +12,64 @@ export default async function handler(
   }
 
   try {
+    // Get database connection string from environment
+    const DATABASE_URL = process.env.DATABASE_URL;
+    
+    if (!DATABASE_URL) {
+      return res.status(500).json({ 
+        success: false,
+        error: 'Database connection not configured' 
+      });
+    }
+
+    // Create database connection
+    const sql = neon(DATABASE_URL);
+
     // Emergency admin credentials
     const EMERGENCY_EMAIL = 'ceo@ileala.ae';
     const EMERGENCY_PASSWORD = 'IleAla2025!Admin#Emergency';
     const EMERGENCY_NAME = 'Emergency Admin';
 
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(EMERGENCY_PASSWORD, 10);
+
     // Check if user already exists
-    const existingUser = await db
-      .select()
-      .from(users)
-      .where(eq(users.email, EMERGENCY_EMAIL))
-      .limit(1);
+    const existingUser = await sql`
+      SELECT id, email, role FROM users WHERE email = ${EMERGENCY_EMAIL} LIMIT 1
+    `;
 
     if (existingUser.length > 0) {
-      // User exists, update to admin role
-      await db
-        .update(users)
-        .set({ 
-          role: 'admin',
-          password: await bcrypt.hash(EMERGENCY_PASSWORD, 10)
-        })
-        .where(eq(users.email, EMERGENCY_EMAIL));
+      // User exists, update to admin role and password
+      await sql`
+        UPDATE users 
+        SET role = 'admin', password = ${hashedPassword}
+        WHERE email = ${EMERGENCY_EMAIL}
+      `;
 
       return res.status(200).json({
         success: true,
         message: 'Emergency admin user updated successfully!',
         email: EMERGENCY_EMAIL,
-      });
+        instructions: [
+          'You can now login at: https://ileala.ae/admin-emergency-login',
+          `Email: ${EMERGENCY_EMAIL}`,
+          'Password: IleAla2025!Admin#Emergency',
+          'After login, you will be redirected to the admin panel.',
+        ],
+      } );
     }
 
     // Create new emergency admin user
-    const hashedPassword = await bcrypt.hash(EMERGENCY_PASSWORD, 10);
-
-    await db.insert(users).values({
-      email: EMERGENCY_EMAIL,
-      password: hashedPassword,
-      name: EMERGENCY_NAME,
-      role: 'admin',
-    });
+    await sql`
+      INSERT INTO users (email, password, name, role, "createdAt")
+      VALUES (
+        ${EMERGENCY_EMAIL},
+        ${hashedPassword},
+        ${EMERGENCY_NAME},
+        'admin',
+        NOW()
+      )
+    `;
 
     return res.status(201).json({
       success: true,
@@ -60,10 +78,11 @@ export default async function handler(
       instructions: [
         'You can now login at: https://ileala.ae/admin-emergency-login',
         `Email: ${EMERGENCY_EMAIL}`,
-        'Password: (the emergency password you set )',
-        'IMPORTANT: Delete this API route after creating the user for security!',
+        'Password: IleAla2025!Admin#Emergency',
+        'After login, you will be redirected to the admin panel.',
+        'IMPORTANT: Consider deleting this API route after creating the user for security!',
       ],
-    });
+    } );
   } catch (error: any) {
     console.error('Error creating emergency admin:', error);
     return res.status(500).json({
