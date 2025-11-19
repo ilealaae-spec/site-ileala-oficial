@@ -378,86 +378,11 @@ function createSafeRequest(rawRequest: any): Request {
 // The solution is to ensure the handler function itself never accesses request.headers.get
 // until we've created a safe Request object.
 
-// CRITICAL FINDING: The error happens BEFORE the handler is called (logs don't appear).
-// The stack trace "at Object.handler" means Vercel wraps our handler in an object.
-// This happens during module processing, not during execution.
-//
-// SOLUTION: Export handler as a getter function that returns the handler only when called.
-// This prevents Vercel from accessing request properties during module evaluation.
-function createHandler() {
-  return async function(req: any): Promise<Response> {
-    // Wrap everything in try-catch to catch errors that happen even before processing
-    try {
-      if (!req) {
-        return new Response(
-          JSON.stringify([
-            {
-              error: {
-                message: 'No request provided',
-                code: 'NO_REQUEST',
-                data: {
-                  code: 'NO_REQUEST',
-                  httpStatus: 400,
-                },
-              },
-            },
-          ]),
-          {
-            status: 400,
-            headers: { 'Content-Type': 'application/json' },
-          }
-        );
-      }
-      
-      // CRITICAL: Create safe Request IMMEDIATELY - this is the FIRST thing we do
-      // We must do this without accessing ANY properties of req first
-      // The createSafeRequest function uses only safe property access (obj?.prop)
-      // and never calls methods on the original request object
-      const safeRequest = createSafeRequest(req);
-      
-      // Now process with the safe request
-      return await handleRequest(safeRequest);
-    } catch (error) {
-      // Log the error with full details
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      const errorStack = error instanceof Error ? error.stack : 'No stack';
-      
-      console.error('[Vercel tRPC] Error in handler:', errorMessage);
-      console.error('[Vercel tRPC] Error stack:', errorStack);
-      console.error('[Vercel tRPC] Request type:', typeof req);
-      console.error('[Vercel tRPC] Request keys:', req ? Object.keys(req).slice(0, 10) : 'null');
-      
-      // Return a proper error response in tRPC batch format
-      return new Response(
-        JSON.stringify([
-          {
-            error: {
-              message: errorMessage.includes('headers.get') 
-                ? 'Request headers are not accessible in the expected format'
-                : 'Internal server error',
-              code: 'INTERNAL_SERVER_ERROR',
-              data: {
-                code: 'INTERNAL_SERVER_ERROR',
-                httpStatus: 500,
-              },
-            },
-          },
-        ]),
-        {
-          status: 500,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      );
-    }
-  };
-}
-
 // CRITICAL: The error "at Object.handler" means Vercel wraps our handler in an object.
 // The error happens at line 270 (a comment), which means it happens during module processing.
 // 
-// SOLUTION: Export handler as a direct async function declaration.
-// This is the simplest form that Vercel expects and may prevent Object.handler wrapping.
-// We inline the handler logic to avoid any intermediate function calls that might trigger processing.
+// SOLUTION: Export handler as a direct async function declaration - the simplest form.
+// This is the most basic form that Vercel expects and may prevent Object.handler wrapping.
 export default async function handler(req: any): Promise<Response> {
   // Wrap everything in try-catch to catch errors that happen even before processing
   try {
