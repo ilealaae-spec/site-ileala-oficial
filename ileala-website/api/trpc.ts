@@ -103,42 +103,87 @@ async function verifyUserCredentials(email: string, password: string) {
   return user;
 }
 
+async function verifyEmailToken(token: string) {
+  const users = await sql`
+    SELECT * FROM users
+    WHERE "emailVerificationToken" = ${token}
+      AND "emailVerificationExpires" > NOW()
+    LIMIT 1
+  `;
+  
+  if (users.length === 0) {
+    return null;
+  }
+  
+  const user = users[0];
+  
+  // Mark email as verified and clear token
+  await sql`
+    UPDATE users
+    SET "emailVerified" = 1,
+        "emailVerificationToken" = NULL,
+        "emailVerificationExpires" = NULL
+    WHERE id = ${user.id}
+  `;
+  
+  return user;
+}
+
 // ============================================================================
-// EMAIL SENDING (Simplified - using Resend)
+// EMAIL SENDING (using Resend)
 // ============================================================================
 async function sendVerificationEmail(email: string, token: string, name: string) {
   try {
-    const verifyUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://ileala.ae'}/verify-email?token=${token}`;
-    
-    // If Resend is configured, send email
-    if (process.env.RESEND_API_KEY ) {
-      const response = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: 'Ile Ala <noreply@ileala.ae>',
-          to: email,
-          subject: 'Verify your email address',
-          html: `
-            <h1>Welcome ${name}!</h1>
-            <p>Please verify your email address by clicking the link below:</p>
-            <a href="${verifyUrl}">Verify Email</a>
-            <p>This link will expire in 24 hours.</p>
-          `,
-        } ),
-      });
-      
-      if (!response.ok) {
-        console.error('[Email] Failed to send verification email:', await response.text());
-      }
-    } else {
-      console.log('[Email] Verification URL (email not sent):', verifyUrl);
-    }
+    // Import the email module dynamically to avoid issues in serverless
+    const { sendVerificationEmail: sendEmail } = await import('../server/email');
+    await sendEmail(email, token, name);
+    console.log('[Email] Verification email sent to:', email);
   } catch (error) {
     console.error('[Email] Error sending verification email:', error);
+    // Fallback: try direct Resend API call
+    try {
+      const verifyUrl = `${process.env.SITE_URL || 'https://ileala.ae'}/verify-email?token=${token}`;
+      
+      if (process.env.RESEND_API_KEY) {
+        const response = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: 'ILE ALA <noreply@ileala.ae>',
+            to: email,
+            subject: 'Verify your email - ILE ALA',
+            html: `
+              <h1>Welcome ${name}!</h1>
+              <p>Please verify your email address by clicking the link below:</p>
+              <a href="${verifyUrl}">Verify Email</a>
+              <p>This link will expire in 24 hours.</p>
+            `,
+          }),
+        });
+        
+        if (!response.ok) {
+          console.error('[Email] Failed to send verification email:', await response.text());
+        }
+      } else {
+        console.log('[Email] RESEND_API_KEY not configured. Verification URL:', verifyUrl);
+      }
+    } catch (fallbackError) {
+      console.error('[Email] Fallback email sending also failed:', fallbackError);
+    }
+  }
+}
+
+async function sendWelcomeEmail(email: string, name: string) {
+  try {
+    // Import the email module dynamically
+    const { sendWelcomeEmail: sendEmail } = await import('../server/email');
+    await sendEmail(email, name);
+    console.log('[Email] Welcome email sent to:', email);
+  } catch (error) {
+    console.error('[Email] Error sending welcome email:', error);
   }
 }
 
@@ -272,6 +317,30 @@ const appRouter = router({
       (ctx as Context).clearCookie(COOKIE_NAME);
       return { success: true };
     }),
+    
+    verifyEmail: publicProcedure
+      .input(z.object({
+        token: z.string(),
+      }))
+      .mutation(async ({ input }) => {
+        const user = await verifyEmailToken(input.token);
+        if (!user) {
+          throw new Error('Invalid or expired verification token');
+        }
+        
+        // Send welcome email after verification
+        await sendWelcomeEmail(user.email, user.name || 'Customer');
+        
+        return {
+          success: true,
+          user: {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+          },
+        };
+      }),
   }),
 });
 
