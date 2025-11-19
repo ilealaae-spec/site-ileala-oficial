@@ -2202,41 +2202,46 @@ function createSafeRequest(rawRequest: any): Request {
 // SOLUTION: Create a protected request wrapper that intercepts any access to headers.get
 // BEFORE the handler is even called. This prevents Vercel's validation from failing.
 function createProtectedRequest(rawReq: any): any {
-  // If it's already a proper Request, return it
-  if (rawReq instanceof Request && typeof rawReq.headers?.get === 'function') {
-    return rawReq;
-  }
+  // CRITICAL: Never check instanceof Request or access headers.get directly
+  // This can trigger the error before we can handle it
   
-  // Create a Proxy that intercepts access to headers.get
+  // Create a Proxy that intercepts ALL property access
   // This prevents errors when Vercel tries to validate the handler
   return new Proxy(rawReq || {}, {
     get(target, prop) {
-      // If accessing 'headers', return a safe Headers-like object
+      // If accessing 'headers', return a safe Headers-like object IMMEDIATELY
+      // Don't check anything about the original headers first
       if (prop === 'headers') {
-        // Return a Headers object that has a get method
+        // Return a Headers object that ALWAYS has a get method
         // This prevents "headers.get is not a function" errors
         const headers = new Headers();
         
         // Try to extract headers from the original request safely
+        // Use only property access, never method calls
         try {
-          const originalHeaders = target.headers;
-          if (originalHeaders) {
-            if (typeof originalHeaders.forEach === 'function') {
-              // It's a Headers object
-              originalHeaders.forEach((value: string, key: string) => {
-                headers.set(key, value);
-              });
-            } else if (typeof originalHeaders === 'object' && !Array.isArray(originalHeaders)) {
-              // It's a plain object
-              Object.entries(originalHeaders).forEach(([key, value]) => {
-                if (typeof value === 'string') {
-                  headers.set(key, value);
-                } else if (Array.isArray(value)) {
-                  value.forEach((v: any) => headers.append(key, String(v)));
-                } else if (value != null) {
-                  headers.set(key, String(value));
+          const originalHeaders = target?.headers;
+          if (originalHeaders && typeof originalHeaders === 'object' && !Array.isArray(originalHeaders)) {
+            // Use Object.keys to avoid calling any methods
+            try {
+              const keys = Object.keys(originalHeaders);
+              for (const key of keys) {
+                try {
+                  const value = originalHeaders[key];
+                  if (typeof value === 'string') {
+                    headers.set(key, value);
+                  } else if (Array.isArray(value)) {
+                    for (const v of value) {
+                      headers.append(key, String(v));
+                    }
+                  } else if (value != null) {
+                    headers.set(key, String(value));
+                  }
+                } catch (e) {
+                  // Skip this header
                 }
-              });
+              }
+            } catch (e) {
+              // If Object.keys fails, continue with empty headers
             }
           }
         } catch (e) {
@@ -2247,8 +2252,20 @@ function createProtectedRequest(rawReq: any): any {
         return headers;
       }
       
-      // For all other properties, return the original value
-      return target[prop];
+      // For all other properties, use safe property access
+      try {
+        return target?.[prop];
+      } catch (e) {
+        return undefined;
+      }
+    },
+    has(target, prop) {
+      // Support 'in' operator
+      return prop in (target || {});
+    },
+    ownKeys(target) {
+      // Support Object.keys
+      return Object.keys(target || {});
     },
   });
 }
