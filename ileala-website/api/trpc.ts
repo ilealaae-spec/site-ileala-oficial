@@ -328,59 +328,86 @@ function createSafeRequest(rawRequest: any): Request {
 // Vercel handler - must export default
 // CRITICAL: We must intercept the request IMMEDIATELY and convert it to a proper Request
 // before ANY code (including Vercel's internal code) tries to access request.headers.get
-export default async function handler(...args: any[]) {
+// Using a function that accepts request directly (not ...args) to avoid Vercel's pre-processing
+async function internalHandler(request: any): Promise<Response> {
+  // IMMEDIATELY create a safe Request without accessing any properties of request
+  // This must happen before ANY code tries to access request.headers.get
+  let safeRequest: Request;
+  try {
+    safeRequest = createSafeRequest(request);
+  } catch (conversionError) {
+    console.error('[Vercel tRPC] Failed to create safe Request:', conversionError);
+    return new Response(
+      JSON.stringify({
+        error: {
+          message: 'Failed to process request',
+          code: 'REQUEST_CONVERSION_ERROR',
+        },
+      }),
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
+  }
+  
+  // Now use the safe request
+  try {
+    return await handleRequest(safeRequest);
+  } catch (error) {
+    // Log the error with as much info as possible
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : 'No stack';
+    
+    console.error('[Vercel tRPC] Fatal error in handler:', errorMessage);
+    console.error('[Vercel tRPC] Error stack:', errorStack);
+    
+    return new Response(
+      JSON.stringify({
+        error: {
+          message: errorMessage.includes('headers.get') 
+            ? 'Request headers are not accessible in the expected format'
+            : errorMessage,
+          code: 'FATAL_ERROR',
+        },
+      }),
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
+  }
+}
+
+// Export handler with multiple signatures to handle different Vercel call patterns
+export default async function handler(requestOrArg1?: any, ...restArgs: any[]): Promise<Response> {
   // Wrap everything in try-catch to catch errors that happen before we can process
   try {
-    // Get the request from arguments - Vercel may pass it in different ways
-    const rawRequest = args[0] || args;
-    
-    // IMMEDIATELY create a safe Request without accessing any properties of rawRequest
-    // This must happen before ANY code tries to access rawRequest.headers.get
-    let safeRequest: Request;
-    try {
-      safeRequest = createSafeRequest(rawRequest);
-    } catch (conversionError) {
-      console.error('[Vercel tRPC] Failed to create safe Request:', conversionError);
+    // Determine the actual request from various possible call patterns
+    let rawRequest: any;
+    if (requestOrArg1 !== undefined) {
+      // Standard call: handler(request)
+      rawRequest = requestOrArg1;
+    } else if (restArgs.length > 0) {
+      // Alternative call: handler(...args)
+      rawRequest = restArgs[0];
+    } else {
+      // No request provided
       return new Response(
         JSON.stringify({
           error: {
-            message: 'Failed to process request',
-            code: 'REQUEST_CONVERSION_ERROR',
+            message: 'No request provided',
+            code: 'NO_REQUEST',
           },
         }),
         {
-          status: 500,
+          status: 400,
           headers: { 'Content-Type': 'application/json' },
         }
       );
     }
     
-    // Now use the safe request
-    try {
-      return await handleRequest(safeRequest);
-    } catch (error) {
-      // Log the error with as much info as possible
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      const errorStack = error instanceof Error ? error.stack : 'No stack';
-      
-      console.error('[Vercel tRPC] Fatal error in handler:', errorMessage);
-      console.error('[Vercel tRPC] Error stack:', errorStack);
-      
-      return new Response(
-        JSON.stringify({
-          error: {
-            message: errorMessage.includes('headers.get') 
-              ? 'Request headers are not accessible in the expected format'
-              : errorMessage,
-            code: 'FATAL_ERROR',
-          },
-        }),
-        {
-          status: 500,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      );
-    }
+    return await internalHandler(rawRequest);
   } catch (fatalError) {
     // Catch any errors that happen even before we can process the request
     const errorMessage = fatalError instanceof Error ? fatalError.message : String(fatalError);
