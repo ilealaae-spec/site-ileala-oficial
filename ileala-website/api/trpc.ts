@@ -326,99 +326,35 @@ function createSafeRequest(rawRequest: any): Request {
 }
 
 // Vercel handler - must export default
-// CRITICAL: We must intercept the request IMMEDIATELY and convert it to a proper Request
-// before ANY code (including Vercel's internal code) tries to access request.headers.get
-// Using a function that accepts request directly (not ...args) to avoid Vercel's pre-processing
-async function internalHandler(request: any): Promise<Response> {
-  // IMMEDIATELY create a safe Request without accessing any properties of request
-  // This must happen before ANY code tries to access request.headers.get
-  let safeRequest: Request;
+// CRITICAL: The error happens at line 270 (a comment) which means Vercel is trying
+// to access request.headers.get BEFORE calling the handler. This suggests Vercel
+// is doing some pre-processing or validation. We need to ensure the handler signature
+// matches exactly what Vercel expects for Edge Runtime.
+export default async function handler(req: Request): Promise<Response> {
+  // Wrap in try-catch to catch ANY error, including those that happen before processing
   try {
-    safeRequest = createSafeRequest(request);
-  } catch (conversionError) {
-    console.error('[Vercel tRPC] Failed to create safe Request:', conversionError);
-    return new Response(
-      JSON.stringify({
-        error: {
-          message: 'Failed to process request',
-          code: 'REQUEST_CONVERSION_ERROR',
-        },
-      }),
-      {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      }
-    );
-  }
-  
-  // Now use the safe request
-  try {
+    // IMMEDIATELY create a safe Request - don't access ANY properties of req
+    // This must be the FIRST thing we do
+    const safeRequest = createSafeRequest(req);
+    
+    // Now process with the safe request
     return await handleRequest(safeRequest);
   } catch (error) {
-    // Log the error with as much info as possible
+    // Log the error
     const errorMessage = error instanceof Error ? error.message : String(error);
     const errorStack = error instanceof Error ? error.stack : 'No stack';
     
-    console.error('[Vercel tRPC] Fatal error in handler:', errorMessage);
+    console.error('[Vercel tRPC] Error in handler:', errorMessage);
     console.error('[Vercel tRPC] Error stack:', errorStack);
     
+    // Return a proper error response
     return new Response(
       JSON.stringify({
         error: {
           message: errorMessage.includes('headers.get') 
             ? 'Request headers are not accessible in the expected format'
-            : errorMessage,
-          code: 'FATAL_ERROR',
-        },
-      }),
-      {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      }
-    );
-  }
-}
-
-// Export handler with multiple signatures to handle different Vercel call patterns
-export default async function handler(requestOrArg1?: any, ...restArgs: any[]): Promise<Response> {
-  // Wrap everything in try-catch to catch errors that happen before we can process
-  try {
-    // Determine the actual request from various possible call patterns
-    let rawRequest: any;
-    if (requestOrArg1 !== undefined) {
-      // Standard call: handler(request)
-      rawRequest = requestOrArg1;
-    } else if (restArgs.length > 0) {
-      // Alternative call: handler(...args)
-      rawRequest = restArgs[0];
-    } else {
-      // No request provided
-      return new Response(
-        JSON.stringify({
-          error: {
-            message: 'No request provided',
-            code: 'NO_REQUEST',
-          },
-        }),
-        {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      );
-    }
-    
-    return await internalHandler(rawRequest);
-  } catch (fatalError) {
-    // Catch any errors that happen even before we can process the request
-    const errorMessage = fatalError instanceof Error ? fatalError.message : String(fatalError);
-    console.error('[Vercel tRPC] Fatal error before processing:', errorMessage);
-    console.error('[Vercel tRPC] Fatal error stack:', fatalError instanceof Error ? fatalError.stack : 'No stack');
-    
-    return new Response(
-      JSON.stringify({
-        error: {
-          message: 'Internal server error',
-          code: 'FATAL_ERROR',
+            : 'Internal server error',
+          code: 'INTERNAL_SERVER_ERROR',
         },
       }),
       {
