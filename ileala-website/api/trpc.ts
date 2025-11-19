@@ -21,6 +21,7 @@ type Context = {
   user: any | null;
   setCookie: (name: string, value: string) => void;
   clearCookie: (name: string) => void;
+  clientIp?: string;
 };
 
 const t = initTRPC.context<Context>().create();
@@ -37,11 +38,87 @@ const adminProcedure = publicProcedure.use(async ({ ctx, next }) => {
 });
 
 // ============================================================================
+// SECURITY UTILITIES
+// ============================================================================
+
+// Password strength validation
+function validatePasswordStrength(password: string): { valid: boolean; message?: string } {
+  if (password.length < 8) {
+    return { valid: false, message: 'Password must be at least 8 characters long' };
+  }
+  if (!/[a-z]/.test(password)) {
+    return { valid: false, message: 'Password must contain at least one lowercase letter' };
+  }
+  if (!/[A-Z]/.test(password)) {
+    return { valid: false, message: 'Password must contain at least one uppercase letter' };
+  }
+  if (!/[0-9]/.test(password)) {
+    return { valid: false, message: 'Password must contain at least one number' };
+  }
+  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+    return { valid: false, message: 'Password must contain at least one special character' };
+  }
+  return { valid: true };
+}
+
+// Sanitize string input to prevent XSS
+function sanitizeString(input: string): string {
+  if (typeof input !== 'string') return '';
+  return input
+    .replace(/[<>]/g, '') // Remove < and >
+    .replace(/javascript:/gi, '') // Remove javascript: protocol
+    .replace(/on\w+=/gi, '') // Remove event handlers
+    .trim()
+    .slice(0, 1000); // Limit length
+}
+
+// Sanitize email
+function sanitizeEmail(email: string): string {
+  return email.toLowerCase().trim().slice(0, 255);
+}
+
+// Security logging
+function logSecurityEvent(type: string, details: any, ip?: string) {
+  const timestamp = new Date().toISOString();
+  const logEntry = {
+    timestamp,
+    type,
+    details,
+    ip: ip || 'unknown',
+  };
+  console.warn('[SECURITY]', JSON.stringify(logEntry));
+  
+  // In production, you might want to send this to a logging service
+  // For now, we just log to console
+}
+
+// Rate limiting tracking (in-memory, for serverless this is per-instance)
+const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
+
+function checkRateLimit(key: string, maxAttempts: number, windowMs: number): boolean {
+  const now = Date.now();
+  const record = rateLimitStore.get(key);
+  
+  if (!record || now > record.resetAt) {
+    rateLimitStore.set(key, { count: 1, resetAt: now + windowMs });
+    return true;
+  }
+  
+  if (record.count >= maxAttempts) {
+    return false;
+  }
+  
+  record.count++;
+  return true;
+}
+
+// ============================================================================
 // DATABASE FUNCTIONS
 // ============================================================================
 async function getUserByEmail(email: string) {
+  const sanitizedEmail = sanitizeEmail(email);
   const users = await sql`
-    SELECT * FROM users WHERE email = ${email} LIMIT 1
+    SELECT * FROM users WHERE email = ${sanitizedEmail} LIMIT 1
   `;
   return users[0] || null;
 }
@@ -57,6 +134,22 @@ async function createUser(data: {
   poBox?: string;
   country?: string;
 }) {
+  // Sanitize all inputs
+  const sanitizedEmail = sanitizeEmail(data.email);
+  const sanitizedName = sanitizeString(data.name);
+  const sanitizedPhone = data.phone ? sanitizeString(data.phone) : '';
+  const sanitizedAddress = data.address ? sanitizeString(data.address) : '';
+  const sanitizedCity = data.city ? sanitizeString(data.city) : '';
+  const sanitizedState = data.state ? sanitizeString(data.state) : '';
+  const sanitizedCountry = data.country ? sanitizeString(data.country) : '';
+  
+  // Validate password strength
+  const passwordValidation = validatePasswordStrength(data.password);
+  if (!passwordValidation.valid) {
+    throw new Error(passwordValidation.message || 'Password does not meet security requirements');
+  }
+  
+  // Hash password with bcrypt (10 rounds)
   const hashedPassword = await bcrypt.hash(data.password, 10);
   
   const users = await sql`
@@ -65,9 +158,9 @@ async function createUser(data: {
       role, "emailVerified", "loginMethod", "createdAt", "updatedAt", "lastSignedIn"
     )
     VALUES (
-      ${data.email}, ${data.name}, ${hashedPassword},
-      ${data.phone || ''}, ${data.address || ''}, ${data.city || ''},
-      ${data.state || ''}, ${data.poBox || null}, ${data.country || ''},
+      ${sanitizedEmail}, ${sanitizedName}, ${hashedPassword},
+      ${sanitizedPhone}, ${sanitizedAddress}, ${sanitizedCity},
+      ${sanitizedState}, ${data.poBox || null}, ${sanitizedCountry},
       'user', 0, 'email', NOW(), NOW(), NOW()
     )
     RETURNING *
@@ -247,28 +340,50 @@ const appRouter = router({
   auth: router({
     register: publicProcedure
       .input(z.object({
-        name: z.string().min(2),
-        email: z.string().email(),
-        password: z.string().min(6),
-        phone: z.string().optional(),
-        address: z.string().optional(),
-        city: z.string().optional(),
-        state: z.string().optional(),
-        poBox: z.string().optional(),
-        country: z.string().optional(),
+        name: z.string().min(2).max(100),
+        email: z.string().email().max(255),
+        password: z.string().min(8).max(128),
+        phone: z.string().max(50).optional(),
+        address: z.string().max(255).optional(),
+        city: z.string().max(100).optional(),
+        state: z.string().max(100).optional(),
+        poBox: z.string().max(50).optional(),
+        country: z.string().max(100).optional(),
       }))
       .mutation(async ({ input, ctx }) => {
         try {
+          // Get client IP for rate limiting and logging
+          const clientIp = ctx.req?.headers?.['x-forwarded-for'] || 
+                          ctx.req?.headers?.['x-real-ip'] || 
+                          'unknown';
+          
+          // Rate limiting: max 3 registrations per IP per 15 minutes
+          const rateLimitKey = `register:${clientIp}`;
+          if (!checkRateLimit(rateLimitKey, 3, 15 * 60 * 1000)) {
+            logSecurityEvent('RATE_LIMIT_EXCEEDED', { action: 'register', email: input.email }, clientIp);
+            throw new Error('Too many registration attempts. Please try again later.');
+          }
+          
           console.log('[Register] Starting registration for:', input.email);
+          
+          // Validate password strength
+          const passwordValidation = validatePasswordStrength(input.password);
+          if (!passwordValidation.valid) {
+            logSecurityEvent('WEAK_PASSWORD_ATTEMPT', { email: input.email }, clientIp);
+            throw new Error(passwordValidation.message || 'Password does not meet security requirements');
+          }
           
           const existingUser = await getUserByEmail(input.email);
           if (existingUser) {
+            logSecurityEvent('DUPLICATE_REGISTRATION_ATTEMPT', { email: input.email }, clientIp);
             throw new Error('User with this email already exists');
           }
           
           console.log('[Register] Creating user...');
           const user = await createUser(input);
           console.log('[Register] User created:', user.id);
+          
+          logSecurityEvent('USER_REGISTERED', { userId: user.id, email: user.email }, clientIp);
           
           const token = await generateEmailVerificationToken(user.id);
           await sendVerificationEmail(user.email, token, user.name || 'Customer');
@@ -295,14 +410,32 @@ const appRouter = router({
     
     login: publicProcedure
       .input(z.object({
-        email: z.string().email(),
-        password: z.string(),
+        email: z.string().email().max(255),
+        password: z.string().max(128),
       }))
       .mutation(async ({ input, ctx }) => {
-        const user = await verifyUserCredentials(input.email, input.password);
+        // Get client IP for rate limiting and logging
+        const clientIp = ctx.req?.headers?.['x-forwarded-for'] || 
+                        ctx.req?.headers?.['x-real-ip'] || 
+                        'unknown';
+        
+        // Rate limiting: max 5 login attempts per IP per 15 minutes
+        const rateLimitKey = `login:${clientIp}`;
+        if (!checkRateLimit(rateLimitKey, 5, 15 * 60 * 1000)) {
+          logSecurityEvent('RATE_LIMIT_EXCEEDED', { action: 'login', email: input.email }, clientIp);
+          throw new Error('Too many login attempts. Please try again in 15 minutes.');
+        }
+        
+        // Sanitize email
+        const sanitizedEmail = sanitizeEmail(input.email);
+        
+        const user = await verifyUserCredentials(sanitizedEmail, input.password);
         if (!user) {
+          logSecurityEvent('FAILED_LOGIN_ATTEMPT', { email: sanitizedEmail }, clientIp);
           throw new Error('Invalid email or password');
         }
+        
+        logSecurityEvent('SUCCESSFUL_LOGIN', { userId: user.id, email: user.email }, clientIp);
         
         const sessionValue = createSessionCookie(user);
         (ctx as Context).setCookie(COOKIE_NAME, sessionValue);
@@ -355,16 +488,30 @@ const appRouter = router({
   newsletter: router({
     subscribe: publicProcedure
       .input(z.object({
-        email: z.string().email(),
-        name: z.string().optional(),
+        email: z.string().email().max(255),
+        name: z.string().max(100).optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         try {
-          console.log('[Newsletter] Subscribing:', input.email);
+          // Get client IP for rate limiting
+          const clientIp = (ctx as Context).clientIp || 'unknown';
+          
+          // Rate limiting: max 5 subscriptions per IP per hour
+          const rateLimitKey = `newsletter:${clientIp}`;
+          if (!checkRateLimit(rateLimitKey, 5, 60 * 60 * 1000)) {
+            logSecurityEvent('RATE_LIMIT_EXCEEDED', { action: 'newsletter_subscribe' }, clientIp);
+            throw new Error('Too many subscription attempts. Please try again later.');
+          }
+          
+          // Sanitize inputs
+          const sanitizedEmail = sanitizeEmail(input.email);
+          const sanitizedName = input.name ? sanitizeString(input.name) : undefined;
+          
+          console.log('[Newsletter] Subscribing:', sanitizedEmail);
           
           // Check if email already exists
           const existing = await sql`
-            SELECT id FROM newsletter WHERE email = ${input.email} LIMIT 1
+            SELECT id FROM newsletter WHERE email = ${sanitizedEmail} LIMIT 1
           `;
           
           if (existing.length > 0) {
@@ -372,22 +519,22 @@ const appRouter = router({
             await sql`
               UPDATE newsletter
               SET active = 1, subscribed_at = NOW()
-              WHERE email = ${input.email}
+              WHERE email = ${sanitizedEmail}
             `;
             console.log('[Newsletter] Reactivated existing subscription');
             return { success: true, message: 'Email already subscribed - reactivated' };
           }
           
           // Insert new subscription
-          if (input.name && input.name.trim()) {
+          if (sanitizedName && sanitizedName.trim()) {
             await sql`
               INSERT INTO newsletter (email, name, source, active, subscribed_at)
-              VALUES (${input.email}, ${input.name.trim()}, 'website', 1, NOW())
+              VALUES (${sanitizedEmail}, ${sanitizedName.trim()}, 'website', 1, NOW())
             `;
           } else {
             await sql`
               INSERT INTO newsletter (email, source, active, subscribed_at)
-              VALUES (${input.email}, 'website', 1, NOW())
+              VALUES (${sanitizedEmail}, 'website', 1, NOW())
             `;
           }
           
@@ -400,10 +547,11 @@ const appRouter = router({
           if (error.code === '23505' || error.message?.includes('unique') || error.message?.includes('duplicate')) {
             // Try to reactivate
             try {
+              const sanitizedEmail = sanitizeEmail(input.email);
               await sql`
                 UPDATE newsletter
                 SET active = 1, subscribed_at = NOW()
-                WHERE email = ${input.email}
+                WHERE email = ${sanitizedEmail}
               `;
               return { success: true, message: 'Email already subscribed - reactivated' };
             } catch (updateError) {
@@ -976,6 +1124,11 @@ async function handleRequest(request: any) {
   }
   
   // Now we can safely use validRequest
+  // Extract client IP for security logging and rate limiting
+  const forwardedFor = validRequest.headers.get('x-forwarded-for');
+  const realIp = validRequest.headers.get('x-real-ip');
+  const clientIp = forwardedFor?.split(',')[0]?.trim() || realIp || 'unknown';
+  
   // Parse cookies from request
   const cookieHeader = validRequest.headers.get('cookie');
   const parsedCookies = parseCookie(cookieHeader);
@@ -993,6 +1146,7 @@ async function handleRequest(request: any) {
   // Create context with explicit type
   const ctx: Context = {
     user,
+    clientIp,
     setCookie(name: string, value: string) {
       cookies.push({
         name,
@@ -1051,6 +1205,7 @@ async function handleRequest(request: any) {
         // Return the context object with explicit type
         return {
           user: ctx.user,
+          clientIp: ctx.clientIp,
           setCookie: ctx.setCookie,
           clearCookie: ctx.clearCookie,
         };
