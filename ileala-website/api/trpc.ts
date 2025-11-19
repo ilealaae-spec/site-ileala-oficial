@@ -462,13 +462,29 @@ const appRouter = router({
     
     verifyEmail: publicProcedure
       .input(z.object({
-        token: z.string(),
+        token: z.string().min(10).max(100),
       }))
-      .mutation(async ({ input }) => {
-        const user = await verifyEmailToken(input.token);
+      .mutation(async ({ input, ctx }) => {
+        // Get client IP for rate limiting
+        const clientIp = (ctx as Context).clientIp || 'unknown';
+        
+        // Rate limiting: max 10 verification attempts per IP per 5 minutes
+        const rateLimitKey = `verify:${clientIp}`;
+        if (!checkRateLimit(rateLimitKey, 10, 5 * 60 * 1000)) {
+          logSecurityEvent('RATE_LIMIT_EXCEEDED', { action: 'verify_email' }, clientIp);
+          throw new Error('Too many verification attempts. Please try again later.');
+        }
+        
+        // Sanitize token (only alphanumeric and hyphens)
+        const sanitizedToken = input.token.replace(/[^a-zA-Z0-9\-_]/g, '');
+        
+        const user = await verifyEmailToken(sanitizedToken);
         if (!user) {
+          logSecurityEvent('INVALID_VERIFICATION_TOKEN', { tokenLength: input.token.length }, clientIp);
           throw new Error('Invalid or expired verification token');
         }
+        
+        logSecurityEvent('EMAIL_VERIFIED', { userId: user.id, email: user.email }, clientIp);
         
         // Send welcome email after verification
         await sendWelcomeEmail(user.email, user.name || 'Customer');
@@ -577,22 +593,44 @@ const appRouter = router({
       
       create: adminProcedure
         .input(z.object({
-          nameEN: z.string(),
-          namePT: z.string(),
-          descriptionEN: z.string().optional(),
-          descriptionPT: z.string().optional(),
-          price: z.number(),
-          imageUrl: z.string().optional(),
-          collection: z.string().optional(),
-          category: z.string().optional(),
-          stock: z.number().default(0),
-          featured: z.number().default(0),
+          nameEN: z.string().min(1).max(255),
+          namePT: z.string().min(1).max(255),
+          descriptionEN: z.string().max(5000).optional(),
+          descriptionPT: z.string().max(5000).optional(),
+          price: z.number().min(0).max(999999.99),
+          imageUrl: z.string().url().max(500).optional(),
+          collection: z.string().max(100).optional(),
+          category: z.string().max(100).optional(),
+          stock: z.number().min(0).max(999999).default(0),
+          featured: z.number().min(0).max(1).default(0),
         }))
-        .mutation(async ({ input }) => {
+        .mutation(async ({ input, ctx }) => {
+          // Sanitize all string inputs
+          const sanitizedNameEN = sanitizeString(input.nameEN);
+          const sanitizedNamePT = sanitizeString(input.namePT);
+          const sanitizedDescEN = input.descriptionEN ? sanitizeString(input.descriptionEN) : null;
+          const sanitizedDescPT = input.descriptionPT ? sanitizeString(input.descriptionPT) : null;
+          const sanitizedCollection = input.collection ? sanitizeString(input.collection) : null;
+          const sanitizedCategory = input.category ? sanitizeString(input.category) : null;
+          
+          // Validate imageUrl is a valid URL if provided
+          let sanitizedImageUrl = null;
+          if (input.imageUrl) {
+            try {
+              new URL(input.imageUrl);
+              sanitizedImageUrl = input.imageUrl.slice(0, 500);
+            } catch (e) {
+              throw new Error('Invalid image URL');
+            }
+          }
+          
           // Generate slug from nameEN
-          const slug = input.nameEN.toLowerCase()
+          const slug = sanitizedNameEN.toLowerCase()
             .replace(/[^a-z0-9]+/g, '-')
             .replace(/^-|-$/g, '') + '-' + Date.now();
+          
+          const clientIp = (ctx as Context).clientIp || 'unknown';
+          logSecurityEvent('PRODUCT_CREATED', { productName: sanitizedNameEN }, clientIp);
           
           const result = await sql`
             INSERT INTO products (
@@ -601,10 +639,10 @@ const appRouter = router({
               slug, active, "createdAt", "updatedAt"
             )
             VALUES (
-              ${input.nameEN}, ${input.nameEN}, ${input.namePT || input.nameEN},
-              ${input.descriptionEN || null}, ${input.descriptionPT || null},
-              ${input.price}, ${input.imageUrl || null}, ${input.collection || null},
-              ${input.category || null}, ${input.stock || 0}, ${input.featured || 0},
+              ${sanitizedNameEN}, ${sanitizedNameEN}, ${sanitizedNamePT || sanitizedNameEN},
+              ${sanitizedDescEN}, ${sanitizedDescPT},
+              ${input.price}, ${sanitizedImageUrl}, ${sanitizedCollection},
+              ${sanitizedCategory}, ${input.stock || 0}, ${input.featured || 0},
               ${slug}, 1, NOW(), NOW()
             )
             RETURNING id
@@ -670,8 +708,10 @@ const appRouter = router({
         }),
       
       delete: adminProcedure
-        .input(z.object({ id: z.number() }))
-        .mutation(async ({ input }) => {
+        .input(z.object({ id: z.number().int().positive() }))
+        .mutation(async ({ input, ctx }) => {
+          const clientIp = (ctx as Context).clientIp || 'unknown';
+          logSecurityEvent('PRODUCT_DELETED', { productId: input.id }, clientIp);
           await sql`DELETE FROM products WHERE id = ${input.id}`;
           return { success: true };
         }),
@@ -726,23 +766,34 @@ const appRouter = router({
       
       create: adminProcedure
         .input(z.object({
-          code: z.string(),
+          code: z.string().min(3).max(50).regex(/^[A-Z0-9-_]+$/i),
           discountType: z.enum(['percentage', 'fixed']),
-          discountValue: z.number(),
-          minPurchaseAmount: z.number().default(0),
-          maxUses: z.number().default(0),
-          active: z.number().default(1),
+          discountValue: z.number().min(0).max(100),
+          minPurchaseAmount: z.number().min(0).max(999999.99).default(0),
+          maxUses: z.number().min(0).max(999999).default(0),
+          active: z.number().min(0).max(1).default(1),
           validFrom: z.date().optional(),
           validUntil: z.date().optional(),
         }))
-        .mutation(async ({ input }) => {
+        .mutation(async ({ input, ctx }) => {
+          // Sanitize coupon code (uppercase, alphanumeric + hyphens/underscores)
+          const sanitizedCode = input.code.toUpperCase().replace(/[^A-Z0-9-_]/g, '');
+          
+          // Validate discount value based on type
+          if (input.discountType === 'percentage' && input.discountValue > 100) {
+            throw new Error('Percentage discount cannot exceed 100%');
+          }
+          
+          const clientIp = (ctx as Context).clientIp || 'unknown';
+          logSecurityEvent('COUPON_CREATED', { code: sanitizedCode }, clientIp);
+          
           const result = await sql`
             INSERT INTO coupons (
               code, "discountType", "discountValue", "minPurchaseAmount",
               "maxUses", active, "validFrom", "validUntil", "createdAt", "updatedAt"
             )
             VALUES (
-              ${input.code}, ${input.discountType}, ${input.discountValue},
+              ${sanitizedCode}, ${input.discountType}, ${input.discountValue},
               ${input.minPurchaseAmount || 0}, ${input.maxUses || 0},
               ${input.active || 1}, ${input.validFrom || null}, ${input.validUntil || null},
               NOW(), NOW()
@@ -754,21 +805,28 @@ const appRouter = router({
       
       update: adminProcedure
         .input(z.object({
-          id: z.number(),
-          code: z.string().optional(),
+          id: z.number().int().positive(),
+          code: z.string().min(3).max(50).regex(/^[A-Z0-9-_]+$/i).optional(),
           discountType: z.enum(['percentage', 'fixed']).optional(),
-          discountValue: z.number().optional(),
-          minPurchaseAmount: z.number().optional(),
-          maxUses: z.number().optional(),
-          active: z.number().optional(),
+          discountValue: z.number().min(0).max(100).optional(),
+          minPurchaseAmount: z.number().min(0).max(999999.99).optional(),
+          maxUses: z.number().min(0).max(999999).optional(),
+          active: z.number().min(0).max(1).optional(),
           validUntil: z.date().optional(),
         }))
-        .mutation(async ({ input }) => {
+        .mutation(async ({ input, ctx }) => {
           const { id, ...updates } = input;
+          const clientIp = (ctx as Context).clientIp || 'unknown';
+          
+          // Validate discount value if provided
+          if (updates.discountType === 'percentage' && updates.discountValue !== undefined && updates.discountValue > 100) {
+            throw new Error('Percentage discount cannot exceed 100%');
+          }
           
           // Update each field individually if provided
           if (updates.code !== undefined) {
-            await sql`UPDATE coupons SET code = ${updates.code}, "updatedAt" = NOW() WHERE id = ${id}`;
+            const sanitized = updates.code.toUpperCase().replace(/[^A-Z0-9-_]/g, '');
+            await sql`UPDATE coupons SET code = ${sanitized}, "updatedAt" = NOW() WHERE id = ${id}`;
           }
           if (updates.discountType !== undefined) {
             await sql`UPDATE coupons SET "discountType" = ${updates.discountType}, "updatedAt" = NOW() WHERE id = ${id}`;
@@ -789,12 +847,16 @@ const appRouter = router({
             await sql`UPDATE coupons SET "validUntil" = ${updates.validUntil}, "updatedAt" = NOW() WHERE id = ${id}`;
           }
           
+          logSecurityEvent('COUPON_UPDATED', { couponId: id }, clientIp);
+          
           return { success: true };
         }),
       
       delete: adminProcedure
-        .input(z.object({ id: z.number() }))
-        .mutation(async ({ input }) => {
+        .input(z.object({ id: z.number().int().positive() }))
+        .mutation(async ({ input, ctx }) => {
+          const clientIp = (ctx as Context).clientIp || 'unknown';
+          logSecurityEvent('COUPON_DELETED', { couponId: input.id }, clientIp);
           await sql`DELETE FROM coupons WHERE id = ${input.id}`;
           return { success: true };
         }),
