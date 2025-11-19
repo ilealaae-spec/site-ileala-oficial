@@ -330,10 +330,11 @@ function createSafeRequest(rawRequest: any): Request {
 // CRITICAL: The error happens at line 270 (a comment) which means Vercel is trying
 // to access request.headers.get BEFORE calling the handler. We need to use a wrapper
 // that prevents Vercel from validating the handler signature before it's called.
-const handlerFunction = async (...args: any[]): Promise<Response> => {
+// Wrapper function to intercept request before Vercel can access it
+const handlerFunction = async (req?: any, ...restArgs: any[]): Promise<Response> => {
   try {
-    // Get the request from args - Vercel may pass it in different ways
-    const rawRequest = args[0] || (args.length > 0 ? args : null);
+    // Get the request - handle both direct parameter and args array
+    const rawRequest = req || restArgs[0] || (restArgs.length > 0 ? restArgs : null);
     
     if (!rawRequest) {
       return new Response(
