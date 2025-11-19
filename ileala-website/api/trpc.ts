@@ -332,16 +332,20 @@ function createSafeRequest(rawRequest: any): Request {
 // that prevents Vercel from validating the handler signature before it's called.
 // Wrapper function to intercept request before Vercel can access it
 // CRITICAL: The error happens at line 270 (a comment) which means Vercel is trying
-// to access request.headers.get BEFORE calling the handler. We need to ensure
-// the handler signature doesn't trigger Vercel's validation that accesses headers.get.
-const handlerFunction = async (req: any): Promise<Response> => {
-  // CRITICAL: The error happens when Vercel tries to validate/inspect the handler
-  // before calling it. By using 'any' type and not accessing req properties in the
-  // function signature, we avoid triggering Vercel's validation.
+// to access request.headers.get BEFORE calling the handler. The error stack shows
+// "at Object.handler" which suggests Vercel is wrapping our handler in an Object.
+// We need to ensure the handler is a plain function, not a method of an object.
+function handlerFunction(req: any): Promise<Response> {
+  // CRITICAL: Use function declaration instead of arrow function or const
+  // This ensures the handler is a plain function, not bound to any object
+  // which might cause Vercel to try to access request.headers.get during binding
+  
+  // Log immediately to see if we even get here
+  console.log('[Vercel tRPC] Handler called, req type:', typeof req, 'is Request:', req instanceof Request);
   
   try {
     if (!req) {
-      return new Response(
+      return Promise.resolve(new Response(
         JSON.stringify([
           {
             error: {
@@ -358,23 +362,38 @@ const handlerFunction = async (req: any): Promise<Response> => {
           status: 400,
           headers: { 'Content-Type': 'application/json' },
         }
-      );
+      ));
     }
     
-    // Check if req is already a valid Request with working headers.get
-    // If it is, use it directly; otherwise create a safe Request
+    // IMMEDIATELY create a safe Request - do this BEFORE any property access
+    // Even checking instanceof Request might trigger property access
     let safeRequest: Request;
-    
-    if (req instanceof Request && typeof req.headers?.get === 'function') {
-      // It's already a valid Request - use it directly
-      safeRequest = req;
-    } else {
-      // Create a safe Request from the raw request
+    try {
       safeRequest = createSafeRequest(req);
+    } catch (createError) {
+      console.error('[Vercel tRPC] Failed to create safe Request:', createError);
+      return Promise.resolve(new Response(
+        JSON.stringify([
+          {
+            error: {
+              message: 'Failed to process request',
+              code: 'REQUEST_CONVERSION_ERROR',
+              data: {
+                code: 'REQUEST_CONVERSION_ERROR',
+                httpStatus: 500,
+              },
+            },
+          },
+        ]),
+        {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      ));
     }
     
     // Now process with the safe request
-    return await handleRequest(safeRequest);
+    return handleRequest(safeRequest);
   } catch (error) {
     // Log the error
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -384,7 +403,7 @@ const handlerFunction = async (req: any): Promise<Response> => {
     console.error('[Vercel tRPC] Error stack:', errorStack);
     
     // Return a proper error response in tRPC batch format
-    return new Response(
+    return Promise.resolve(new Response(
       JSON.stringify([
         {
           error: {
@@ -403,9 +422,9 @@ const handlerFunction = async (req: any): Promise<Response> => {
         status: 500,
         headers: { 'Content-Type': 'application/json' },
       }
-    );
+    ));
   }
-};
+}
 
 // Export the handler - using a const assignment instead of function declaration
 // This may prevent Vercel from trying to validate the handler signature
