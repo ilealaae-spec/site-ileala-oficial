@@ -371,9 +371,9 @@ function createSafeRequest(rawRequest: any): Request {
 // CRITICAL: The error "at Object.handler" suggests Vercel wraps our handler in an object.
 // The error happens when Vercel tries to process the handler before calling it.
 // 
-// SOLUTION: Export handler as a simple async function without any wrapper.
-// The key is to ensure createSafeRequest is called IMMEDIATELY without any property access.
-export default async function handler(req: any): Promise<Response> {
+// SOLUTION: Use a function expression assigned to a const, then export it.
+// This prevents Vercel from wrapping it in an Object.handler structure.
+const handler = async function(req: any): Promise<Response> {
   // Wrap everything in try-catch to catch errors that happen even before processing
   try {
     if (!req) {
@@ -437,7 +437,9 @@ export default async function handler(req: any): Promise<Response> {
       }
     );
   }
-}
+};
+
+export default handler;
 
 async function handleRequest(request: any) {
   const cookies: Array<{ name: string; value: string; options: any }> = [];
