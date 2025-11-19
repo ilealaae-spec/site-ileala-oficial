@@ -2482,12 +2482,27 @@ async function handleRequest(request: any) {
     // This ensures no reference to the original request object remains
     // Extract all header values first to create a completely new Headers object
     const finalHeaders = new Headers();
-    validRequest.headers.forEach((value, key) => {
-      finalHeaders.set(key, value);
-    });
+    try {
+      // Use forEach safely - validRequest is already a proper Request object
+      validRequest.headers.forEach((value, key) => {
+        finalHeaders.set(key, value);
+      });
+    } catch (e) {
+      // If forEach fails, try to extract headers manually
+      try {
+        const headerEntries = Array.from(validRequest.headers.entries());
+        for (const [key, value] of headerEntries) {
+          finalHeaders.set(key, value);
+        }
+      } catch (e2) {
+        // If all else fails, continue with empty headers
+        structuredLog('warn', 'Could not extract headers for final request', { error: e instanceof Error ? e.message : String(e) });
+      }
+    }
     
     // Create a completely isolated Request object
     // This prevents any access to the original request's headers.get method
+    // CRITICAL: Create Request from scratch with only primitive values
     const finalRequest = new Request(validRequest.url, {
       method: validRequest.method,
       headers: finalHeaders, // Use the new Headers object, not the original
@@ -2503,7 +2518,14 @@ async function handleRequest(request: any) {
       signal: validRequest.signal,
     });
     
-    console.log('[Vercel tRPC] FinalRequest headers.get type:', typeof finalRequest.headers.get);
+    // Verify the final request is completely isolated
+    if (typeof finalRequest.headers.get !== 'function') {
+      structuredLog('error', 'Final request headers.get is not a function', {
+        headersType: typeof finalRequest.headers,
+        isHeaders: finalRequest.headers instanceof Headers,
+      });
+      throw new Error('Failed to create valid Request object');
+    }
     
     let response: Response;
     try {
