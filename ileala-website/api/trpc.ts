@@ -27,7 +27,10 @@ type Context = {
 
 const t = initTRPC.context<Context>().create();
 const router = t.router;
-const publicProcedure = t.procedure;
+const publicProcedure = t.procedure.use(({ ctx, next }) => {
+  // This middleware ensures ctx is properly typed as Context
+  return next({ ctx: ctx as Context });
+});
 
 // ============================================================================
 // DATABASE FUNCTIONS
