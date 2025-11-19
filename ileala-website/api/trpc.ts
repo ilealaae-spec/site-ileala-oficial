@@ -5,7 +5,7 @@ import { z } from 'zod';
 import postgres from 'postgres';
 import bcrypt from 'bcryptjs';
 import { nanoid } from 'nanoid';
-import type { IncomingMessage } from 'http';
+import type { IncomingMessage, ServerResponse } from 'http';
 
 type PossibleRequest =
   | Request
@@ -49,6 +49,10 @@ async function streamToBuffer(stream: NodeJS.ReadableStream): Promise<Buffer> {
     }
   }
   return Buffer.concat(chunks);
+}
+
+function bufferToArrayBuffer(buffer: Buffer): ArrayBuffer {
+  return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
 }
 
 function createHeadersFromObject(
@@ -128,18 +132,18 @@ async function normalizeRequest(rawRequest: PossibleRequest): Promise<Request> {
   const method = (rawRequest as any)?.method || 'GET';
   const url = buildAbsoluteUrl(rawRequest, headers);
 
-  let body: Buffer | undefined;
+  let body: BodyInit | null = null;
   if (method !== 'GET' && method !== 'HEAD') {
     const buffered = await readBodyFromPossibleRequest(rawRequest);
     if (buffered && buffered.length > 0) {
-      body = buffered;
+      body = bufferToArrayBuffer(buffered);
     }
   }
 
   return new Request(url, {
     method,
     headers,
-    body,
+    body: body ?? undefined,
   });
 }
 
@@ -266,6 +270,12 @@ async function sendVerificationEmail(email: string, token: string, name: string)
 // COOKIE HELPERS
 // ============================================================================
 const COOKIE_NAME = 'session';
+
+type RequestContext = {
+  user: any;
+  setCookie: (name: string, value: string) => void;
+  clearCookie: (name: string) => void;
+};
 
 function createSessionCookie(user: any): string {
   return JSON.stringify({
@@ -400,7 +410,7 @@ export type AppRouter = typeof appRouter;
 // ============================================================================
 // VERCEL HANDLER
 // ============================================================================
-export default async function handler(rawRequest: PossibleRequest) {
+export default async function handler(rawRequest: PossibleRequest, rawResponse?: ServerResponse) {
   const request = await normalizeRequest(rawRequest);
   const cookies: Array<{ name: string; value: string; options: any }> = [];
   
@@ -419,7 +429,7 @@ export default async function handler(rawRequest: PossibleRequest) {
   }
   
   // Create context
-  const ctx = {
+  const ctx: RequestContext = {
     user,
     setCookie(name: string, value: string) {
       cookies.push({
@@ -432,7 +442,7 @@ export default async function handler(rawRequest: PossibleRequest) {
           sameSite: 'Lax',
           maxAge: 365 * 24 * 60 * 60, // 1 year
         },
-      } );
+      });
     },
     clearCookie(name: string) {
       cookies.push({
@@ -456,10 +466,12 @@ export default async function handler(rawRequest: PossibleRequest) {
       createContext: () => ctx,
     });
     
-    // Add cookies to response
-    if (cookies.length > 0) {
-      const newHeaders = new Headers(response.headers);
+    const finalResponse = (() => {
+      if (cookies.length === 0) {
+        return response;
+      }
       
+      const newHeaders = new Headers(response.headers);
       for (const { name, value, options } of cookies) {
         const cookieString = createSetCookieHeader(name, value, options);
         newHeaders.append('Set-Cookie', cookieString);
@@ -470,15 +482,21 @@ export default async function handler(rawRequest: PossibleRequest) {
         statusText: response.statusText,
         headers: newHeaders,
       });
-    }
+    })();
     
     console.log('[Vercel tRPC] Request handled successfully');
-    return response;
+    
+    if (rawResponse && typeof rawResponse.setHeader === 'function') {
+      await sendNodeResponse(rawResponse, finalResponse);
+      return;
+    }
+    
+    return finalResponse;
     
   } catch (error) {
     console.error('[Vercel tRPC] Error:', error);
     
-    return new Response(
+    const errorResponse = new Response(
       JSON.stringify({
         error: {
           message: error instanceof Error ? error.message : 'Internal server error',
@@ -492,5 +510,28 @@ export default async function handler(rawRequest: PossibleRequest) {
         },
       }
     );
+
+    if (rawResponse && typeof rawResponse.setHeader === 'function') {
+      await sendNodeResponse(rawResponse, errorResponse);
+      return;
+    }
+
+    return errorResponse;
+  }
+}
+
+async function sendNodeResponse(res: ServerResponse, response: Response) {
+  res.statusCode = response.status;
+  res.statusMessage = response.statusText;
+
+  response.headers.forEach((value, key) => {
+    res.setHeader(key, value);
+  });
+
+  if (response.body) {
+    const buffer = Buffer.from(await response.arrayBuffer());
+    res.end(buffer);
+  } else {
+    res.end();
   }
 }
