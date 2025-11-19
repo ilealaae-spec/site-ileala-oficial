@@ -499,6 +499,622 @@ const appRouter = router({
           },
         };
       }),
+    
+    resendVerification: publicProcedure
+      .input(z.object({
+        email: z.string().email().max(255),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const clientIp = (ctx as Context).clientIp || 'unknown';
+        
+        // Rate limiting: max 3 reenvios por hora
+        const rateLimitKey = `resend:${input.email}`;
+        if (!checkRateLimit(rateLimitKey, 3, 60 * 60 * 1000)) {
+          logSecurityEvent('RATE_LIMIT_EXCEEDED', { action: 'resend_verification', email: input.email }, clientIp);
+          throw new Error('Too many verification email requests. Please try again later.');
+        }
+        
+        const sanitizedEmail = sanitizeEmail(input.email);
+        const user = await getUserByEmail(sanitizedEmail);
+        
+        if (!user) {
+          // Don't reveal if user exists for security
+          return { success: true };
+        }
+        
+        if (user.emailVerified) {
+          throw new Error('Email already verified');
+        }
+        
+        const token = await generateEmailVerificationToken(user.id);
+        await sendVerificationEmail(user.email, token, user.name || 'Customer');
+        
+        logSecurityEvent('VERIFICATION_EMAIL_RESENT', { userId: user.id, email: user.email }, clientIp);
+        
+        return { success: true };
+      }),
+    
+    forgotPassword: publicProcedure
+      .input(z.object({
+        email: z.string().email().max(255),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const clientIp = (ctx as Context).clientIp || 'unknown';
+        
+        // Rate limiting: max 3 tentativas por hora
+        const rateLimitKey = `forgot:${input.email}`;
+        if (!checkRateLimit(rateLimitKey, 3, 60 * 60 * 1000)) {
+          logSecurityEvent('RATE_LIMIT_EXCEEDED', { action: 'forgot_password', email: input.email }, clientIp);
+          // Don't reveal rate limit for security
+          return { success: true, message: 'If an account exists with this email, you will receive a password reset link.' };
+        }
+        
+        const sanitizedEmail = sanitizeEmail(input.email);
+        const user = await getUserByEmail(sanitizedEmail);
+        
+        if (!user) {
+          // Don't reveal if email exists for security
+          return { success: true, message: 'If an account exists with this email, you will receive a password reset link.' };
+        }
+        
+        // Generate password reset token (using nanoid for consistency)
+        const resetToken = nanoid(32);
+        const expiresAt = new Date();
+        expiresAt.setHours(expiresAt.getHours() + 1);
+        
+        // Update user with token
+        await sql`
+          UPDATE users
+          SET "passwordResetToken" = ${resetToken},
+              "passwordResetExpires" = ${expiresAt.toISOString()},
+              "updatedAt" = NOW()
+          WHERE id = ${user.id}
+        `;
+        
+        // Send password reset email
+        const { sendPasswordResetEmail } = await import('../server/email');
+        await sendPasswordResetEmail(user.email, resetToken, user.name || 'Customer');
+        
+        logSecurityEvent('PASSWORD_RESET_REQUESTED', { userId: user.id, email: user.email }, clientIp);
+        
+        return { success: true, message: 'If an account exists with this email, you will receive a password reset link.' };
+      }),
+    
+    resetPassword: publicProcedure
+      .input(z.object({
+        token: z.string().min(10).max(100),
+        newPassword: z.string().min(8).max(128),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const clientIp = (ctx as Context).clientIp || 'unknown';
+        
+        // Rate limiting: max 5 tentativas por IP por 15 minutos
+        const rateLimitKey = `reset:${clientIp}`;
+        if (!checkRateLimit(rateLimitKey, 5, 15 * 60 * 1000)) {
+          logSecurityEvent('RATE_LIMIT_EXCEEDED', { action: 'reset_password' }, clientIp);
+          throw new Error('Too many password reset attempts. Please try again later.');
+        }
+        
+        // Validate password strength
+        const passwordValidation = validatePasswordStrength(input.newPassword);
+        if (!passwordValidation.valid) {
+          logSecurityEvent('WEAK_PASSWORD_ATTEMPT', { action: 'reset_password' }, clientIp);
+          throw new Error(passwordValidation.message || 'Password does not meet security requirements');
+        }
+        
+        // Sanitize token
+        const sanitizedToken = input.token.replace(/[^a-zA-Z0-9\-_]/g, '');
+        
+        // Find user with valid token
+        const users = await sql`
+          SELECT id, "passwordResetExpires"
+          FROM users
+          WHERE "passwordResetToken" = ${sanitizedToken}
+            AND "passwordResetExpires" > NOW()
+          LIMIT 1
+        `;
+        
+        if (users.length === 0) {
+          logSecurityEvent('INVALID_RESET_TOKEN', { tokenLength: input.token.length }, clientIp);
+          throw new Error('Invalid or expired reset token');
+        }
+        
+        const userId = users[0].id;
+        
+        // Hash new password
+        const hashedPassword = await bcrypt.hash(input.newPassword, 10);
+        
+        // Update user password and clear reset token
+        await sql`
+          UPDATE users
+          SET password = ${hashedPassword},
+              "passwordResetToken" = NULL,
+              "passwordResetExpires" = NULL,
+              "updatedAt" = NOW()
+          WHERE id = ${userId}
+        `;
+        
+        logSecurityEvent('PASSWORD_RESET_SUCCESS', { userId: user_id }, clientIp);
+        
+        return { success: true, message: 'Password updated successfully' };
+      }),
+  }),
+  
+  // Products router
+  products: router({
+    list: publicProcedure.query(async () => {
+      const products = await sql`
+        SELECT * FROM products
+        WHERE active = 1
+        ORDER BY "createdAt" DESC
+      `;
+      return products;
+    }),
+    
+    featured: publicProcedure.query(async () => {
+      const products = await sql`
+        SELECT * FROM products
+        WHERE active = 1 AND featured = 1
+        ORDER BY "createdAt" DESC
+      `;
+      return products;
+    }),
+    
+    byId: publicProcedure
+      .input(z.object({ id: z.number().int().positive() }))
+      .query(async ({ input }) => {
+        const products = await sql`
+          SELECT * FROM products
+          WHERE id = ${input.id} AND active = 1
+          LIMIT 1
+        `;
+        if (products.length === 0) {
+          throw new Error('Product not found');
+        }
+        return products[0];
+      }),
+    
+    bySlug: publicProcedure
+      .input(z.object({ slug: z.string().max(255) }))
+      .query(async ({ input }) => {
+        const sanitizedSlug = sanitizeString(input.slug);
+        const products = await sql`
+          SELECT * FROM products
+          WHERE slug = ${sanitizedSlug} AND active = 1
+          LIMIT 1
+        `;
+        if (products.length === 0) {
+          throw new Error('Product not found');
+        }
+        return products[0];
+      }),
+    
+    byCollection: publicProcedure
+      .input(z.object({ collection: z.string().max(100) }))
+      .query(async ({ input }) => {
+        const sanitizedCollection = sanitizeString(input.collection);
+        const products = await sql`
+          SELECT * FROM products
+          WHERE collection = ${sanitizedCollection} AND active = 1
+          ORDER BY "createdAt" DESC
+        `;
+        return products;
+      }),
+  }),
+  
+  // Cart router
+  cart: router({
+    items: publicProcedure.query(async ({ ctx }) => {
+      const user = (ctx as Context).user;
+      if (!user) {
+        throw new Error('Not authenticated');
+      }
+      
+      const items = await sql`
+        SELECT 
+          ci.id,
+          ci.quantity,
+          ci."createdAt",
+          ci."updatedAt",
+          p.id as "productId",
+          p.name,
+          p."nameEN",
+          p."namePT",
+          p.slug,
+          p.price,
+          p."imageUrl",
+          p.stock,
+          p.active
+        FROM "cartItems" ci
+        JOIN products p ON ci."productId" = p.id
+        WHERE ci."userId" = ${user.id}
+        ORDER BY ci."createdAt" DESC
+      `;
+      
+      return items.map(item => ({
+        id: item.id,
+        quantity: item.quantity,
+        product: {
+          id: item.productId,
+          name: item.name,
+          nameEN: item.nameEN,
+          namePT: item.namePT,
+          slug: item.slug,
+          price: item.price,
+          imageUrl: item.imageUrl,
+          stock: item.stock,
+          active: item.active,
+        },
+      }));
+    }),
+    
+    add: publicProcedure
+      .input(z.object({
+        productId: z.number().int().positive(),
+        quantity: z.number().int().min(1).max(999),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const user = (ctx as Context).user;
+        if (!user) {
+          throw new Error('Not authenticated');
+        }
+        
+        // Check if product exists and is active
+        const products = await sql`
+          SELECT id, stock FROM products
+          WHERE id = ${input.productId} AND active = 1
+          LIMIT 1
+        `;
+        
+        if (products.length === 0) {
+          throw new Error('Product not found');
+        }
+        
+        const product = products[0];
+        
+        // Check if item already exists in cart
+        const existing = await sql`
+          SELECT id, quantity FROM "cartItems"
+          WHERE "userId" = ${user.id} AND "productId" = ${input.productId}
+          LIMIT 1
+        `;
+        
+        if (existing.length > 0) {
+          // Update quantity
+          const newQuantity = existing[0].quantity + input.quantity;
+          await sql`
+            UPDATE "cartItems"
+            SET quantity = ${newQuantity}, "updatedAt" = NOW()
+            WHERE id = ${existing[0].id}
+          `;
+          return { id: existing[0].id };
+        } else {
+          // Insert new item
+          const result = await sql`
+            INSERT INTO "cartItems" ("userId", "productId", quantity, "createdAt", "updatedAt")
+            VALUES (${user.id}, ${input.productId}, ${input.quantity}, NOW(), NOW())
+            RETURNING id
+          `;
+          return { id: result[0].id };
+        }
+      }),
+    
+    update: publicProcedure
+      .input(z.object({
+        id: z.number().int().positive(),
+        quantity: z.number().int().min(0).max(999),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const user = (ctx as Context).user;
+        if (!user) {
+          throw new Error('Not authenticated');
+        }
+        
+        // Verify cart item belongs to user
+        const items = await sql`
+          SELECT id FROM "cartItems"
+          WHERE id = ${input.id} AND "userId" = ${user.id}
+          LIMIT 1
+        `;
+        
+        if (items.length === 0) {
+          throw new Error('Cart item not found');
+        }
+        
+        if (input.quantity === 0) {
+          await sql`DELETE FROM "cartItems" WHERE id = ${input.id}`;
+        } else {
+          await sql`
+            UPDATE "cartItems"
+            SET quantity = ${input.quantity}, "updatedAt" = NOW()
+            WHERE id = ${input.id}
+          `;
+        }
+        
+        return { success: true };
+      }),
+    
+    remove: publicProcedure
+      .input(z.object({ id: z.number().int().positive() }))
+      .mutation(async ({ input, ctx }) => {
+        const user = (ctx as Context).user;
+        if (!user) {
+          throw new Error('Not authenticated');
+        }
+        
+        // Verify cart item belongs to user
+        const items = await sql`
+          SELECT id FROM "cartItems"
+          WHERE id = ${input.id} AND "userId" = ${user.id}
+          LIMIT 1
+        `;
+        
+        if (items.length === 0) {
+          throw new Error('Cart item not found');
+        }
+        
+        await sql`DELETE FROM "cartItems" WHERE id = ${input.id}`;
+        return { success: true };
+      }),
+    
+    clear: publicProcedure.mutation(async ({ ctx }) => {
+      const user = (ctx as Context).user;
+      if (!user) {
+        throw new Error('Not authenticated');
+      }
+      
+      await sql`DELETE FROM "cartItems" WHERE "userId" = ${user.id}`;
+      return { success: true };
+    }),
+  }),
+  
+  // Coupons router
+  coupons: router({
+    validate: publicProcedure
+      .input(z.object({
+        code: z.string().min(3).max(50),
+        orderTotal: z.number().min(0),
+      }))
+      .query(async ({ input }) => {
+        const sanitizedCode = input.code.toUpperCase().replace(/[^A-Z0-9-_]/g, '');
+        
+        // Get coupon
+        const coupons = await sql`
+          SELECT * FROM coupons
+          WHERE code = ${sanitizedCode}
+          LIMIT 1
+        `;
+        
+        if (coupons.length === 0) {
+          return { valid: false, message: 'Coupon not found' };
+        }
+        
+        const coupon = coupons[0];
+        
+        if (coupon.active === 0) {
+          return { valid: false, message: 'Coupon is inactive' };
+        }
+        
+        // Check if coupon has expired
+        if (coupon.validUntil && new Date(coupon.validUntil) < new Date()) {
+          return { valid: false, message: 'Coupon has expired' };
+        }
+        
+        // Check if coupon hasn't started yet
+        if (coupon.validFrom && new Date(coupon.validFrom) > new Date()) {
+          return { valid: false, message: 'Coupon is not yet valid' };
+        }
+        
+        // Check max uses
+        if (coupon.maxUses > 0 && coupon.usedCount >= coupon.maxUses) {
+          return { valid: false, message: 'Coupon has reached maximum uses' };
+        }
+        
+        // Check minimum purchase amount
+        if (input.orderTotal < coupon.minPurchaseAmount) {
+          return { valid: false, message: `Minimum purchase of ${coupon.minPurchaseAmount} AED required` };
+        }
+        
+        // Calculate discount
+        let discount = 0;
+        if (coupon.discountType === 'percentage') {
+          discount = Math.floor((input.orderTotal * coupon.discountValue) / 100);
+        } else {
+          discount = Math.min(coupon.discountValue, input.orderTotal);
+        }
+        
+        return {
+          valid: true,
+          discount,
+          coupon,
+        };
+      }),
+  }),
+  
+  // Orders router
+  orders: router({
+    create: publicProcedure
+      .input(z.object({
+        items: z.array(z.object({
+          productId: z.number().int().positive(),
+          quantity: z.number().int().min(1),
+          price: z.number().min(0),
+        })),
+        shippingAddress: z.string().max(500),
+        customerName: z.string().min(2).max(100),
+        customerEmail: z.string().email().max(255),
+        customerPhone: z.string().max(50).optional(),
+        couponCode: z.string().max(50).optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const user = (ctx as Context).user;
+        if (!user) {
+          throw new Error('Not authenticated');
+        }
+        
+        const clientIp = (ctx as Context).clientIp || 'unknown';
+        
+        // Sanitize inputs
+        const sanitizedAddress = sanitizeString(input.shippingAddress);
+        const sanitizedName = sanitizeString(input.customerName);
+        const sanitizedEmail = sanitizeEmail(input.customerEmail);
+        const sanitizedPhone = input.customerPhone ? sanitizeString(input.customerPhone) : null;
+        const sanitizedCouponCode = input.couponCode ? input.couponCode.toUpperCase().replace(/[^A-Z0-9-_]/g, '') : null;
+        
+        // Calculate subtotal
+        const subtotal = input.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        
+        // Apply coupon if provided
+        let discountAmount = 0;
+        let totalAmount = subtotal;
+        
+        if (sanitizedCouponCode) {
+          const coupons = await sql`
+            SELECT * FROM coupons
+            WHERE code = ${sanitizedCouponCode} AND active = 1
+            LIMIT 1
+          `;
+          
+          if (coupons.length > 0) {
+            const coupon = coupons[0];
+            
+            // Validate coupon
+            if (coupon.validUntil && new Date(coupon.validUntil) < new Date()) {
+              // Coupon expired, continue without it
+            } else if (coupon.validFrom && new Date(coupon.validFrom) > new Date()) {
+              // Coupon not yet valid, continue without it
+            } else if (coupon.maxUses > 0 && coupon.usedCount >= coupon.maxUses) {
+              // Coupon max uses reached, continue without it
+            } else if (subtotal >= coupon.minPurchaseAmount) {
+              // Calculate discount
+              if (coupon.discountType === 'percentage') {
+                discountAmount = Math.floor((subtotal * coupon.discountValue) / 100);
+              } else {
+                discountAmount = Math.min(coupon.discountValue, subtotal);
+              }
+              
+              totalAmount = subtotal - discountAmount;
+              
+              // Increment coupon usage
+              await sql`
+                UPDATE coupons
+                SET "usedCount" = "usedCount" + 1, "updatedAt" = NOW()
+                WHERE code = ${sanitizedCouponCode}
+              `;
+            }
+          }
+        }
+        
+        // Create order
+        const orderResult = await sql`
+          INSERT INTO orders (
+            "userId", "totalAmount", "shippingAddress", "customerName",
+            "customerEmail", "customerPhone", "couponCode", "discountAmount",
+            status, "paymentStatus", "createdAt", "updatedAt"
+          )
+          VALUES (
+            ${user.id}, ${totalAmount}, ${sanitizedAddress}, ${sanitizedName},
+            ${sanitizedEmail}, ${sanitizedPhone}, ${sanitizedCouponCode}, ${discountAmount},
+            'pending', 'pending', NOW(), NOW()
+          )
+          RETURNING id
+        `;
+        
+        const orderId = orderResult[0].id;
+        
+        // Create order items
+        for (const item of input.items) {
+          await sql`
+            INSERT INTO "orderItems" (
+              "orderId", "productId", quantity, "priceAtPurchase", "createdAt", "updatedAt"
+            )
+            VALUES (
+              ${orderId}, ${item.productId}, ${item.quantity}, ${item.price}, NOW(), NOW()
+            )
+          `;
+        }
+        
+        // Clear cart
+        await sql`DELETE FROM "cartItems" WHERE "userId" = ${user.id}`;
+        
+        logSecurityEvent('ORDER_CREATED', { orderId, userId: user.id }, clientIp);
+        
+        return { orderId };
+      }),
+    
+    byId: publicProcedure
+      .input(z.object({ id: z.number().int().positive() }))
+      .query(async ({ input, ctx }) => {
+        const user = (ctx as Context).user;
+        if (!user) {
+          throw new Error('Not authenticated');
+        }
+        
+        const orders = await sql`
+          SELECT * FROM orders
+          WHERE id = ${input.id}
+          LIMIT 1
+        `;
+        
+        if (orders.length === 0) {
+          throw new Error('Order not found');
+        }
+        
+        const order = orders[0];
+        
+        // Check if user owns this order or is admin
+        if (order.userId !== user.id && user.role !== 'admin') {
+          throw new Error('Unauthorized');
+        }
+        
+        const items = await sql`
+          SELECT 
+            oi.id,
+            oi.quantity,
+            oi."priceAtPurchase",
+            p.id as "productId",
+            p.name,
+            p."nameEN",
+            p."namePT",
+            p.slug,
+            p."imageUrl"
+          FROM "orderItems" oi
+          JOIN products p ON oi."productId" = p.id
+          WHERE oi."orderId" = ${input.id}
+        `;
+        
+        return {
+          ...order,
+          items: items.map(item => ({
+            id: item.id,
+            quantity: item.quantity,
+            priceAtPurchase: item.priceAtPurchase,
+            product: {
+              id: item.productId,
+              name: item.name,
+              nameEN: item.nameEN,
+              namePT: item.namePT,
+              slug: item.slug,
+              imageUrl: item.imageUrl,
+            },
+          })),
+        };
+      }),
+    
+    myOrders: publicProcedure.query(async ({ ctx }) => {
+      const user = (ctx as Context).user;
+      if (!user) {
+        throw new Error('Not authenticated');
+      }
+      
+      const orders = await sql`
+        SELECT * FROM orders
+        WHERE "userId" = ${user.id}
+        ORDER BY "createdAt" DESC
+      `;
+      
+      return orders;
+    }),
   }),
   
   newsletter: router({
@@ -577,6 +1193,222 @@ const appRouter = router({
           
           throw new Error('Failed to subscribe to newsletter');
         }
+      }),
+  }),
+  
+  // System router
+  system: router({
+    health: publicProcedure
+      .input(z.object({
+        timestamp: z.number().min(0, "timestamp cannot be negative"),
+      }))
+      .query(() => ({
+        ok: true,
+      })),
+    
+    notifyOwner: adminProcedure
+      .input(z.object({
+        title: z.string().min(1, "title is required").max(1200),
+        content: z.string().min(1, "content is required").max(20000),
+      }))
+      .mutation(async ({ input }) => {
+        const { notifyOwner } = await import('../server/_core/notification');
+        const delivered = await notifyOwner(input);
+        return {
+          success: delivered,
+        } as const;
+      }),
+  }),
+  
+  // Payment router
+  payment: router({
+    createCheckoutSession: publicProcedure
+      .input(z.object({
+        orderId: z.number().int().positive(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const user = (ctx as Context).user;
+        if (!user) {
+          throw new Error('Not authenticated');
+        }
+        
+        const Stripe = (await import('stripe')).default;
+        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+          apiVersion: '2025-10-29.clover',
+        });
+        
+        const orders = await sql`
+          SELECT * FROM orders
+          WHERE id = ${input.orderId}
+          LIMIT 1
+        `;
+        
+        if (orders.length === 0) {
+          throw new Error('Order not found');
+        }
+        
+        const order = orders[0];
+        
+        if (order.userId !== user.id) {
+          throw new Error('Unauthorized');
+        }
+        
+        const items = await sql`
+          SELECT 
+            oi.quantity,
+            oi."priceAtPurchase",
+            p."nameEN",
+            p."descriptionEN",
+            p."imageUrl"
+          FROM "orderItems" oi
+          JOIN products p ON oi."productId" = p.id
+          WHERE oi."orderId" = ${input.orderId}
+        `;
+        
+        const lineItems = items.map(item => ({
+          price_data: {
+            currency: 'aed',
+            product_data: {
+              name: item.nameEN || 'Product',
+              description: item.descriptionEN || undefined,
+              images: item.imageUrl ? [item.imageUrl] : [],
+            },
+            unit_amount: Math.round(item.priceAtPurchase * 100), // Convert to fils (cents)
+          },
+          quantity: item.quantity,
+        }));
+        
+        const baseUrl = process.env.VITE_FRONTEND_FORGE_API_URL || process.env.SITE_URL || 'https://ileala.ae';
+        
+        const session = await stripe.checkout.sessions.create({
+          line_items: lineItems,
+          mode: 'payment',
+          currency: 'aed',
+          success_url: `${baseUrl}/order-confirmation/${input.orderId}?session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: `${baseUrl}/checkout`,
+          metadata: {
+            orderId: input.orderId.toString(),
+          },
+        });
+        
+        return { sessionId: session.id, url: session.url || '' };
+      }),
+    
+    verifyPayment: publicProcedure
+      .input(z.object({
+        sessionId: z.string().min(1),
+      }))
+      .query(async ({ input }) => {
+        const Stripe = (await import('stripe')).default;
+        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+          apiVersion: '2025-10-29.clover',
+        });
+        
+        const session = await stripe.checkout.sessions.retrieve(input.sessionId);
+        
+        if (session.payment_status === 'paid' && session.metadata?.orderId) {
+          const orderId = parseInt(session.metadata.orderId);
+          await sql`
+            UPDATE orders
+            SET "paymentStatus" = 'paid', "updatedAt" = NOW()
+            WHERE id = ${orderId}
+          `;
+        }
+        
+        return {
+          paymentStatus: session.payment_status,
+          orderId: session.metadata?.orderId,
+        };
+      }),
+    
+    createSanityCheckout: publicProcedure
+      .input(z.object({
+        productId: z.string().min(1),
+        productName: z.string().min(1).max(255),
+        productPrice: z.number().min(0),
+        productImage: z.string().url().max(500).optional(),
+        quantity: z.number().int().min(1).max(999).default(1),
+      }))
+      .mutation(async ({ input }) => {
+        const Stripe = (await import('stripe')).default;
+        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+          apiVersion: '2025-10-29.clover',
+        });
+        
+        const baseUrl = process.env.VITE_FRONTEND_FORGE_API_URL || process.env.SITE_URL || 'https://ileala.ae';
+        
+        const session = await stripe.checkout.sessions.create({
+          line_items: [
+            {
+              price_data: {
+                currency: 'aed',
+                product_data: {
+                  name: input.productName,
+                  images: input.productImage ? [input.productImage] : [],
+                },
+                unit_amount: Math.round(input.productPrice * 100), // Convert to fils (cents)
+              },
+              quantity: input.quantity,
+            },
+          ],
+          mode: 'payment',
+          currency: 'aed',
+          locale: 'en',
+          success_url: `${baseUrl}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: `${baseUrl}/products`,
+          metadata: {
+            productId: input.productId,
+            source: 'sanity',
+          },
+        });
+        
+        return { sessionId: session.id, url: session.url || '' };
+      }),
+    
+    createSanityCartCheckout: publicProcedure
+      .input(z.object({
+        items: z.array(z.object({
+          productId: z.string().min(1),
+          productName: z.string().min(1).max(255),
+          productPrice: z.number().min(0),
+          productImage: z.string().url().max(500).optional(),
+          quantity: z.number().int().min(1).max(999),
+        })),
+      }))
+      .mutation(async ({ input }) => {
+        const Stripe = (await import('stripe')).default;
+        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+          apiVersion: '2025-10-29.clover',
+        });
+        
+        const baseUrl = process.env.VITE_FRONTEND_FORGE_API_URL || process.env.SITE_URL || 'https://ileala.ae';
+        
+        const lineItems = input.items.map(item => ({
+          price_data: {
+            currency: 'aed',
+            product_data: {
+              name: item.productName,
+              images: item.productImage ? [item.productImage] : [],
+            },
+            unit_amount: Math.round(item.productPrice * 100), // Convert to fils (cents)
+          },
+          quantity: item.quantity,
+        }));
+        
+        const session = await stripe.checkout.sessions.create({
+          line_items: lineItems,
+          mode: 'payment',
+          currency: 'aed',
+          locale: 'en',
+          success_url: `${baseUrl}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: `${baseUrl}/cart`,
+          metadata: {
+            source: 'sanity-cart',
+            itemCount: input.items.length.toString(),
+          },
+        });
+        
+        return { sessionId: session.id, url: session.url || '' };
       }),
   }),
   
