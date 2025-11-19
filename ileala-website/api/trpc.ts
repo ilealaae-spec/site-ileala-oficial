@@ -27,9 +27,16 @@ type Context = {
 
 const t = initTRPC.context<Context>().create();
 const router = t.router;
+
+// Helper function to ensure Context type is properly inferred
+function ensureContext(ctx: any): Context {
+  return ctx as Context;
+}
+
 const publicProcedure = t.procedure.use(({ ctx, next }) => {
   // This middleware ensures ctx is properly typed as Context
-  return next({ ctx: ctx as Context });
+  const typedCtx = ensureContext(ctx);
+  return next({ ctx: typedCtx });
 });
 
 // ============================================================================
