@@ -7,18 +7,53 @@ import bcrypt from 'bcryptjs';
 import { nanoid } from 'nanoid';
 
 // ============================================================================
+// ENVIRONMENT VALIDATION
+// ============================================================================
+// Validate critical environment variables
+const DATABASE_URL = process.env.DATABASE_URL;
+if (!DATABASE_URL) {
+  console.error('[CRITICAL] DATABASE_URL is not configured!');
+  // In production, we should fail fast, but in development we can continue
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('DATABASE_URL environment variable is required');
+  }
+}
+
+const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
+if (!STRIPE_SECRET_KEY && process.env.NODE_ENV === 'production') {
+  console.warn('[WARNING] STRIPE_SECRET_KEY is not configured. Payment features will not work.');
+}
+
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+if (!RESEND_API_KEY && process.env.NODE_ENV === 'production') {
+  console.warn('[WARNING] RESEND_API_KEY is not configured. Email features will not work.');
+}
+
+// ============================================================================
 // DATABASE CONNECTION
 // ============================================================================
 // Use Neon serverless driver for Vercel serverless functions
 // This is optimized for serverless environments and doesn't maintain persistent connections
-const sql = neon(process.env.DATABASE_URL || '');
+const sql = neon(DATABASE_URL || '');
 
 // ============================================================================
 // TRPC SETUP
 // ============================================================================
+// ============================================================================
+// TYPE DEFINITIONS
+// ============================================================================
+// User type definition
+type User = {
+  id: number;
+  email: string;
+  name: string | null;
+  role: 'user' | 'admin';
+  emailVerified?: boolean;
+};
+
 // Define context type
 type Context = {
-  user: any | null;
+  user: User | null;
   setCookie: (name: string, value: string) => void;
   clearCookie: (name: string) => void;
   clientIp?: string;
@@ -27,6 +62,15 @@ type Context = {
 const t = initTRPC.context<Context>().create();
 const router = t.router;
 const publicProcedure = t.procedure;
+
+// Middleware to check if user is authenticated
+const protectedProcedure = publicProcedure.use(async ({ ctx, next }) => {
+  const user = (ctx as Context).user;
+  if (!user) {
+    throw new Error('Unauthorized: Authentication required');
+  }
+  return next({ ctx });
+});
 
 // Middleware to check if user is admin
 const adminProcedure = publicProcedure.use(async ({ ctx, next }) => {
@@ -704,11 +748,8 @@ const appRouter = router({
   
   // Cart router
   cart: router({
-    items: publicProcedure.query(async ({ ctx }) => {
+    items: protectedProcedure.query(async ({ ctx }) => {
       const user = (ctx as Context).user;
-      if (!user) {
-        throw new Error('Not authenticated');
-      }
       
       const items = await sql`
         SELECT 
@@ -748,16 +789,13 @@ const appRouter = router({
       }));
     }),
     
-    add: publicProcedure
+    add: protectedProcedure
       .input(z.object({
         productId: z.number().int().positive(),
         quantity: z.number().int().min(1).max(999),
       }))
       .mutation(async ({ input, ctx }) => {
         const user = (ctx as Context).user;
-        if (!user) {
-          throw new Error('Not authenticated');
-        }
         
         // Check if product exists and is active
         const products = await sql`
@@ -799,16 +837,13 @@ const appRouter = router({
         }
       }),
     
-    update: publicProcedure
+    update: protectedProcedure
       .input(z.object({
         id: z.number().int().positive(),
         quantity: z.number().int().min(0).max(999),
       }))
       .mutation(async ({ input, ctx }) => {
         const user = (ctx as Context).user;
-        if (!user) {
-          throw new Error('Not authenticated');
-        }
         
         // Verify cart item belongs to user
         const items = await sql`
@@ -834,13 +869,10 @@ const appRouter = router({
         return { success: true };
       }),
     
-    remove: publicProcedure
+    remove: protectedProcedure
       .input(z.object({ id: z.number().int().positive() }))
       .mutation(async ({ input, ctx }) => {
         const user = (ctx as Context).user;
-        if (!user) {
-          throw new Error('Not authenticated');
-        }
         
         // Verify cart item belongs to user
         const items = await sql`
@@ -857,11 +889,8 @@ const appRouter = router({
         return { success: true };
       }),
     
-    clear: publicProcedure.mutation(async ({ ctx }) => {
+    clear: protectedProcedure.mutation(async ({ ctx }) => {
       const user = (ctx as Context).user;
-      if (!user) {
-        throw new Error('Not authenticated');
-      }
       
       await sql`DELETE FROM "cartItems" WHERE "userId" = ${user.id}`;
       return { success: true };
@@ -933,7 +962,7 @@ const appRouter = router({
   
   // Orders router
   orders: router({
-    create: publicProcedure
+    create: protectedProcedure
       .input(z.object({
         items: z.array(z.object({
           productId: z.number().int().positive(),
@@ -948,9 +977,6 @@ const appRouter = router({
       }))
       .mutation(async ({ input, ctx }) => {
         const user = (ctx as Context).user;
-        if (!user) {
-          throw new Error('Not authenticated');
-        }
         
         const clientIp = (ctx as Context).clientIp || 'unknown';
         
@@ -1042,13 +1068,10 @@ const appRouter = router({
         return { orderId };
       }),
     
-    byId: publicProcedure
+    byId: protectedProcedure
       .input(z.object({ id: z.number().int().positive() }))
       .query(async ({ input, ctx }) => {
         const user = (ctx as Context).user;
-        if (!user) {
-          throw new Error('Not authenticated');
-        }
         
         const orders = await sql`
           SELECT * FROM orders
@@ -1101,11 +1124,8 @@ const appRouter = router({
         };
       }),
     
-    myOrders: publicProcedure.query(async ({ ctx }) => {
+    myOrders: protectedProcedure.query(async ({ ctx }) => {
       const user = (ctx as Context).user;
-      if (!user) {
-        throw new Error('Not authenticated');
-      }
       
       const orders = await sql`
         SELECT * FROM orders
@@ -1222,18 +1242,18 @@ const appRouter = router({
   
   // Payment router
   payment: router({
-    createCheckoutSession: publicProcedure
+    createCheckoutSession: protectedProcedure
       .input(z.object({
         orderId: z.number().int().positive(),
       }))
       .mutation(async ({ input, ctx }) => {
         const user = (ctx as Context).user;
-        if (!user) {
-          throw new Error('Not authenticated');
-        }
         
+        if (!STRIPE_SECRET_KEY) {
+          throw new Error('Stripe is not configured');
+        }
         const Stripe = (await import('stripe')).default;
-        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+        const stripe = new Stripe(STRIPE_SECRET_KEY, {
           apiVersion: '2025-10-29.clover',
         });
         
@@ -1294,13 +1314,16 @@ const appRouter = router({
         return { sessionId: session.id, url: session.url || '' };
       }),
     
-    verifyPayment: publicProcedure
+    verifyPayment: protectedProcedure
       .input(z.object({
         sessionId: z.string().min(1),
       }))
       .query(async ({ input }) => {
+        if (!STRIPE_SECRET_KEY) {
+          throw new Error('Stripe is not configured');
+        }
         const Stripe = (await import('stripe')).default;
-        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+        const stripe = new Stripe(STRIPE_SECRET_KEY, {
           apiVersion: '2025-10-29.clover',
         });
         
@@ -1330,8 +1353,11 @@ const appRouter = router({
         quantity: z.number().int().min(1).max(999).default(1),
       }))
       .mutation(async ({ input }) => {
+        if (!STRIPE_SECRET_KEY) {
+          throw new Error('Stripe is not configured');
+        }
         const Stripe = (await import('stripe')).default;
-        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+        const stripe = new Stripe(STRIPE_SECRET_KEY, {
           apiVersion: '2025-10-29.clover',
         });
         
@@ -1376,8 +1402,11 @@ const appRouter = router({
         })),
       }))
       .mutation(async ({ input }) => {
+        if (!STRIPE_SECRET_KEY) {
+          throw new Error('Stripe is not configured');
+        }
         const Stripe = (await import('stripe')).default;
-        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+        const stripe = new Stripe(STRIPE_SECRET_KEY, {
           apiVersion: '2025-10-29.clover',
         });
         
