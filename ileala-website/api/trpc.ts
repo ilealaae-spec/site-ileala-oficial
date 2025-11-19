@@ -588,11 +588,16 @@ async function handleRequest(request: any) {
     
     let response: Response;
     try {
+      // Create a helper function that explicitly returns Context type
+      const createContext = (): Context => {
+        return ctx;
+      };
+      
       response = await fetchRequestHandler({
         endpoint: '/api/trpc',
         req: finalRequest,
         router: appRouter,
-        createContext: (): Context => ctx,
+        createContext,
         onError: ({ error, path, type }) => {
           console.error('[Vercel tRPC] Error in handler:', {
             error: error.message,
