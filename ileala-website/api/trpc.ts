@@ -2270,10 +2270,11 @@ function createProtectedRequest(rawReq: any): any {
   });
 }
 
+// CRITICAL: The error "at Object.handler" means Vercel wraps our handler in an object.
+// This happens when Vercel tries to inspect the handler before calling it.
+// SOLUTION: Use arrow function directly in export to prevent Vercel from wrapping it.
 // CRITICAL: Export handler as a direct async function declaration - the simplest form.
 // This is the most basic form that Vercel expects and may prevent Object.handler wrapping.
-// CRITICAL: Export as a named function first, then default export
-// This prevents Vercel from wrapping it in an Object.handler structure
 async function vercelHandler(req: any): Promise<Response> {
   // Wrap everything in try-catch to catch errors that happen even before processing
   try {
