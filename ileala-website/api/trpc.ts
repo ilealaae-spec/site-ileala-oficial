@@ -196,7 +196,7 @@ const appRouter = router({
         poBox: z.string().optional(),
         country: z.string().optional(),
       }))
-      .mutation(async ({ input, ctx }: { input: any; ctx: Context }) => {
+      .mutation(async ({ input, ctx }) => {
         try {
           console.log('[Register] Starting registration for:', input.email);
           
@@ -237,7 +237,7 @@ const appRouter = router({
         email: z.string().email(),
         password: z.string(),
       }))
-      .mutation(async ({ input, ctx }: { input: any; ctx: Context }) => {
+      .mutation(async ({ input, ctx }) => {
         const user = await verifyUserCredentials(input.email, input.password);
         if (!user) {
           throw new Error('Invalid email or password');
@@ -257,11 +257,11 @@ const appRouter = router({
         };
       }),
     
-    me: publicProcedure.query(({ ctx }: { ctx: Context }) => {
+    me: publicProcedure.query(({ ctx }) => {
       return ctx.user || null;
     }),
     
-    logout: publicProcedure.mutation(({ ctx }: { ctx: Context }) => {
+    logout: publicProcedure.mutation(({ ctx }) => {
       ctx.clearCookie(COOKIE_NAME);
       return { success: true };
     }),
