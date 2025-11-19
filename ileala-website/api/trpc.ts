@@ -445,10 +445,32 @@ async function handleRequest(request: any) {
   
   try {
     console.log('[Vercel tRPC] Handling request:', validRequest.method, validRequest.url);
+    console.log('[Vercel tRPC] ValidRequest is Request instance:', validRequest instanceof Request);
+    console.log('[Vercel tRPC] ValidRequest headers type:', typeof validRequest.headers);
+    console.log('[Vercel tRPC] ValidRequest headers.get type:', typeof validRequest.headers.get);
+    
+    // Ensure validRequest is truly a Request object with all methods bound
+    // Sometimes creating a new Request doesn't properly bind all methods
+    const finalRequest = new Request(validRequest.url, {
+      method: validRequest.method,
+      headers: validRequest.headers,
+      body: validRequest.body,
+      cache: validRequest.cache,
+      credentials: validRequest.credentials,
+      integrity: validRequest.integrity,
+      keepalive: validRequest.keepalive,
+      mode: validRequest.mode,
+      redirect: validRequest.redirect,
+      referrer: validRequest.referrer,
+      referrerPolicy: validRequest.referrerPolicy,
+      signal: validRequest.signal,
+    });
+    
+    console.log('[Vercel tRPC] FinalRequest headers.get type:', typeof finalRequest.headers.get);
     
     const response = await fetchRequestHandler({
       endpoint: '/api/trpc',
-      req: validRequest,
+      req: finalRequest,
       router: appRouter,
       createContext: () => ctx,
       onError: ({ error, path, type }) => {
