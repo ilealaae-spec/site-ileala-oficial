@@ -22,6 +22,8 @@ try {
       '@vercel/node',
       'postgres',
       'mysql2',
+      'bcrypt',
+      'bcryptjs',
     ],
     minify: false,
     sourcemap: true,
