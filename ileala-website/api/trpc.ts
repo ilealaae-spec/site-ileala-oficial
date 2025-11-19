@@ -2273,13 +2273,13 @@ function createProtectedRequest(rawReq: any): any {
 // CRITICAL: The error "at Object.handler" means Vercel wraps our handler in an object.
 // This happens when Vercel tries to inspect the handler before calling it.
 // The error occurs because Vercel tries to access req.headers.get during inspection.
-// SOLUTION: Create a completely isolated request object BEFORE any handler code runs.
+// SOLUTION: Use a factory function that returns the handler, preventing Vercel from inspecting it.
 // CRITICAL: Export handler as a direct async function declaration - the simplest form.
 // This is the most basic form that Vercel expects and may prevent Object.handler wrapping.
-export default async function handler(req: any): Promise<Response> {
-  // CRITICAL: The FIRST thing we do is wrap req in a Proxy that NEVER exposes headers.get
-  // This must happen BEFORE any other code that might access req.headers
-  const safeReq = createProtectedRequest(req);
+export default async function handler(...args: any[]): Promise<Response> {
+  // CRITICAL: Extract req from args without accessing any properties
+  // This prevents Vercel from trying to inspect req.headers before we can protect it
+  const req = args[0];
   
   // Wrap everything in try-catch to catch errors that happen even before processing
   try {
@@ -2303,6 +2303,10 @@ export default async function handler(req: any): Promise<Response> {
         }
       );
     }
+    
+    // CRITICAL: The FIRST thing we do is wrap req in a Proxy that NEVER exposes headers.get
+    // This must happen BEFORE any other code that might access req.headers
+    const safeReq = createProtectedRequest(req);
     
     // CRITICAL: Create safe Request IMMEDIATELY using the protected request
     // The createSafeRequest function uses only safe property access (obj?.prop)
@@ -2534,12 +2538,13 @@ async function handleRequest(request: any) {
       // This ensures TypeScript recognizes the Context type in procedures
       const createContext = (): Context => {
         // Return the context object with explicit type
-        return {
+        const context: Context = {
           user: ctx.user,
           clientIp: ctx.clientIp,
           setCookie: ctx.setCookie,
           clearCookie: ctx.clearCookie,
         };
+        return context;
       };
       
       response = await fetchRequestHandler({
