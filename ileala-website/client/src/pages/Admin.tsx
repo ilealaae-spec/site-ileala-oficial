@@ -3,8 +3,8 @@ import { useAuth } from '@/_core/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useLocation } from 'wouter';
-import { Loader2, LayoutDashboard, Mail, Users, Package, ShoppingCart } from 'lucide-react';
-import { useState } from 'react';
+import { Loader2, LayoutDashboard, Mail, Users, Package, ShoppingCart, Shield } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 // Import tab components
 import DashboardTab from '@/components/admin/DashboardTab';
@@ -18,9 +18,28 @@ export default function Admin() {
   const { user, isLoading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [emergencyUser, setEmergencyUser] = useState<any>(null);
+  const [checkingEmergency, setCheckingEmergency] = useState(true);
 
-  // Check if user is admin
-  if (authLoading) {
+  // Check for emergency admin session
+  useEffect(() => {
+    try {
+      const emergencySession = localStorage.getItem('emergency_admin_session');
+      if (emergencySession) {
+        const parsedSession = JSON.parse(emergencySession);
+        if (parsedSession && parsedSession.role === 'admin' && parsedSession.emergency) {
+          setEmergencyUser(parsedSession);
+        }
+      }
+    } catch (error) {
+      console.error('Error checking emergency session:', error);
+    } finally {
+      setCheckingEmergency(false);
+    }
+  }, []);
+
+  // Show loading while checking emergency session or auth
+  if (checkingEmergency || authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -28,12 +47,17 @@ export default function Admin() {
     );
   }
 
-  if (!user) {
+  // Use emergency user if available, otherwise use regular auth user
+  const currentUser = emergencyUser || user;
+
+  // Redirect to login if no user found
+  if (!currentUser) {
     setLocation('/login');
     return null;
   }
 
-  if (user.role !== 'admin') {
+  // Check if user is admin
+  if (currentUser.role !== 'admin') {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -57,14 +81,34 @@ export default function Admin() {
     <div className="w-full min-h-screen bg-sage-50">
       <div className="container py-8">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-sage-900 mb-2">
-            {language === 'en' ? 'Admin Panel' : 'Painel Administrativo'}
-          </h1>
+          <div className="flex items-center gap-3 mb-2">
+            <h1 className="text-4xl font-bold text-sage-900">
+              {language === 'en' ? 'Admin Panel' : 'Painel Administrativo'}
+            </h1>
+            {emergencyUser && (
+              <div className="flex items-center gap-2 px-3 py-1 bg-red-100 border-2 border-red-500 rounded-full">
+                <Shield className="w-4 h-4 text-red-600" />
+                <span className="text-xs font-bold text-red-600 uppercase">
+                  {language === 'en' ? 'Emergency Mode' : 'Modo Emergência'}
+                </span>
+              </div>
+            )}
+          </div>
           <p className="text-sage-600">
             {language === 'en' 
               ? 'Manage your store, products, orders, and customers' 
               : 'Gerencie sua loja, produtos, pedidos e clientes'}
           </p>
+          {emergencyUser && (
+            <div className="mt-4 p-3 bg-yellow-50 border-l-4 border-yellow-500 rounded">
+              <p className="text-sm text-yellow-800">
+                <strong>⚠️ {language === 'en' ? 'Warning' : 'Aviso'}:</strong>{' '}
+                {language === 'en' 
+                  ? 'You are logged in using emergency admin access. Some features may be limited.' 
+                  : 'Você está logado usando acesso admin de emergência. Alguns recursos podem estar limitados.'}
+              </p>
+            </div>
+          )}
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
