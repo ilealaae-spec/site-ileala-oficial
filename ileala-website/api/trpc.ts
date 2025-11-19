@@ -211,7 +211,7 @@ const appRouter = router({
           
           // Set session cookie
           const sessionValue = createSessionCookie(user);
-          ctx.setCookie(COOKIE_NAME, sessionValue);
+          (ctx as Context).setCookie(COOKIE_NAME, sessionValue);
           
           console.log('[Register] Success!');
           return {
@@ -241,7 +241,7 @@ const appRouter = router({
         }
         
         const sessionValue = createSessionCookie(user);
-        ctx.setCookie(COOKIE_NAME, sessionValue);
+        (ctx as Context).setCookie(COOKIE_NAME, sessionValue);
         
         return {
           success: true,
@@ -255,11 +255,11 @@ const appRouter = router({
       }),
     
     me: publicProcedure.query(({ ctx }) => {
-      return ctx.user || null;
+      return (ctx as Context).user || null;
     }),
     
     logout: publicProcedure.mutation(({ ctx }) => {
-      ctx.clearCookie(COOKIE_NAME);
+      (ctx as Context).clearCookie(COOKIE_NAME);
       return { success: true };
     }),
   }),
