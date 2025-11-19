@@ -373,7 +373,17 @@ function createSafeRequest(rawRequest: any): Request {
 // 
 // SOLUTION: Use a function expression assigned to a const, then export it.
 // This prevents Vercel from wrapping it in an Object.handler structure.
+// CRITICAL: The error "at Object.handler" means Vercel wraps our handler in an object.
+// This happens BEFORE the handler is called, so we can't catch it with try-catch.
+// The solution is to ensure the handler function itself never accesses request.headers.get
+// until we've created a safe Request object.
+
+// Use a wrapper that immediately creates a safe Request without any property access
 const handler = async function(req: any): Promise<Response> {
+  // Log immediately to see if we even get here
+  console.log('[Vercel tRPC] Handler called, req type:', typeof req);
+  console.log('[Vercel tRPC] Handler called, req is Request:', req instanceof Request);
+  
   // Wrap everything in try-catch to catch errors that happen even before processing
   try {
     if (!req) {
@@ -401,9 +411,14 @@ const handler = async function(req: any): Promise<Response> {
     // We must do this without accessing ANY properties of req first
     // The createSafeRequest function uses only safe property access (obj?.prop)
     // and never calls methods on the original request object
+    console.log('[Vercel tRPC] Creating safe request...');
     const safeRequest = createSafeRequest(req);
+    console.log('[Vercel tRPC] Safe request created, type:', typeof safeRequest);
+    console.log('[Vercel tRPC] Safe request is Request:', safeRequest instanceof Request);
+    console.log('[Vercel tRPC] Safe request headers.get type:', typeof safeRequest.headers.get);
     
     // Now process with the safe request
+    console.log('[Vercel tRPC] Calling handleRequest...');
     return await handleRequest(safeRequest);
   } catch (error) {
     // Log the error with full details
@@ -439,6 +454,7 @@ const handler = async function(req: any): Promise<Response> {
   }
 };
 
+// Export handler - using const assignment to avoid Object.handler wrapping
 export default handler;
 
 async function handleRequest(request: any) {
