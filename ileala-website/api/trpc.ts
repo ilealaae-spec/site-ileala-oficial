@@ -328,13 +328,9 @@ function createSafeRequest(rawRequest: any): Request {
 // Vercel handler - must export default
 // Using Node.js runtime (nodejs20.x) to avoid Edge Runtime issues with request.headers.get
 // CRITICAL: The error happens at line 270 (a comment) which means Vercel is trying
-// to access request.headers.get BEFORE calling the handler. We need to intercept
-// the request parameter immediately without accessing any of its properties.
-export default async function handler(...args: any[]): Promise<Response> {
-  // CRITICAL: Accept ...args to handle any way Vercel passes the request
-  // Do NOT type the parameter as Request - that may cause Vercel to validate it
-  // and try to access request.headers.get before we can intercept it
-  
+// to access request.headers.get BEFORE calling the handler. We need to use a wrapper
+// that prevents Vercel from validating the handler signature before it's called.
+const handlerFunction = async (...args: any[]): Promise<Response> => {
   try {
     // Get the request from args - Vercel may pass it in different ways
     const rawRequest = args[0] || (args.length > 0 ? args : null);
@@ -396,7 +392,11 @@ export default async function handler(...args: any[]): Promise<Response> {
       }
     );
   }
-}
+};
+
+// Export the handler - using a const assignment instead of function declaration
+// This may prevent Vercel from trying to validate the handler signature
+export default handlerFunction;
 
 async function handleRequest(request: any) {
   const cookies: Array<{ name: string; value: string; options: any }> = [];
