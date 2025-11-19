@@ -18,7 +18,14 @@ const sql = postgres(process.env.DATABASE_URL || '', {
 // ============================================================================
 // TRPC SETUP
 // ============================================================================
-const t = initTRPC.create();
+// Define context type
+type Context = {
+  user: any | null;
+  setCookie: (name: string, value: string) => void;
+  clearCookie: (name: string) => void;
+};
+
+const t = initTRPC.context<Context>().create();
 const router = t.router;
 const publicProcedure = t.procedure;
 
@@ -264,10 +271,149 @@ export type AppRouter = typeof appRouter;
 // VERCEL HANDLER
 // ============================================================================
 export default async function handler(request: Request) {
+  // Wrap everything in try-catch to catch any errors early
+  // This includes errors that might happen when accessing request properties
+  try {
+    // Immediately try to access request properties to catch errors early
+    // If this fails, we know the request is invalid
+    try {
+      const _ = request.url; // Try to access url
+      const __ = request.method; // Try to access method
+      const ___ = request.headers; // Try to access headers
+    } catch (earlyError) {
+      console.error('[Vercel tRPC] Early error accessing request properties:', earlyError);
+      return new Response(
+        JSON.stringify({
+          error: {
+            message: 'Invalid request object structure',
+            code: 'INVALID_REQUEST_STRUCTURE',
+          },
+        }),
+        {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    }
+    
+    return await handleRequest(request);
+  } catch (error) {
+    console.error('[Vercel tRPC] Fatal error in handler:', error);
+    console.error('[Vercel tRPC] Error stack:', error instanceof Error ? error.stack : 'No stack');
+    console.error('[Vercel tRPC] Error message:', error instanceof Error ? error.message : String(error));
+    console.error('[Vercel tRPC] Request info:', {
+      hasRequest: !!request,
+      requestType: typeof request,
+      isRequestInstance: request instanceof Request,
+      requestKeys: request ? Object.keys(request) : [],
+      hasHeaders: request && !!request.headers,
+      headersType: request && request.headers ? typeof request.headers : 'N/A',
+      hasHeadersGet: request && request.headers && typeof request.headers.get === 'function',
+    });
+    
+    return new Response(
+      JSON.stringify({
+        error: {
+          message: error instanceof Error ? error.message : 'Internal server error',
+          code: 'FATAL_ERROR',
+        },
+      }),
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
+  }
+}
+
+async function handleRequest(request: Request) {
   const cookies: Array<{ name: string; value: string; options: any }> = [];
   
+  // FIRST: Create a valid Request object BEFORE accessing any properties
+  // This prevents "request.headers.get is not a function" errors
+  let validRequest: Request;
+  try {
+    // Safely extract properties with fallbacks
+    const reqAny = request as any;
+    const url = reqAny?.url || reqAny?.href || 'http://localhost';
+    const method = reqAny?.method || 'GET';
+    
+    // Extract headers safely - handle all possible formats
+    const headers = new Headers();
+    if (reqAny?.headers) {
+      if (typeof reqAny.headers.forEach === 'function') {
+        // Headers object (Fetch API) - has forEach method
+        reqAny.headers.forEach((value: string, key: string) => {
+          headers.set(key, value);
+        });
+      } else if (typeof reqAny.headers.get === 'function') {
+        // Headers-like object with get method but no forEach
+        // Try to iterate using keys if available, or copy common headers
+        try {
+          // Try to get common headers
+          const commonHeaders = ['cookie', 'content-type', 'authorization', 'user-agent', 'accept'];
+          commonHeaders.forEach(headerName => {
+            const value = reqAny.headers.get(headerName);
+            if (value) headers.set(headerName, value);
+          });
+        } catch (e) {
+          // If that fails, try to convert to object
+          if (typeof reqAny.headers === 'object') {
+            Object.entries(reqAny.headers).forEach(([key, value]) => {
+              if (typeof value === 'string') {
+                headers.set(key, value);
+              } else if (Array.isArray(value)) {
+                value.forEach((v: any) => headers.append(key, String(v)));
+              }
+            });
+          }
+        }
+      } else if (typeof reqAny.headers === 'object') {
+        // Plain object
+        Object.entries(reqAny.headers).forEach(([key, value]) => {
+          if (typeof value === 'string') {
+            headers.set(key, value);
+          } else if (Array.isArray(value)) {
+            value.forEach((v: any) => headers.append(key, String(v)));
+          }
+        });
+      }
+    }
+    
+    // Create a new Request object with all properties
+    validRequest = new Request(url, {
+      method,
+      headers,
+      body: reqAny?.body,
+      cache: reqAny?.cache,
+      credentials: reqAny?.credentials,
+      integrity: reqAny?.integrity,
+      keepalive: reqAny?.keepalive,
+      mode: reqAny?.mode,
+      redirect: reqAny?.redirect,
+      referrer: reqAny?.referrer,
+      referrerPolicy: reqAny?.referrerPolicy,
+      signal: reqAny?.signal,
+    });
+  } catch (e) {
+    console.error('[Vercel tRPC] Failed to create valid Request:', e);
+    return new Response(
+      JSON.stringify({
+        error: {
+          message: 'Failed to process request',
+          code: 'REQUEST_CONVERSION_ERROR',
+        },
+      }),
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
+  }
+  
+  // Now we can safely use validRequest
   // Parse cookies from request
-  const cookieHeader = request.headers.get('cookie');
+  const cookieHeader = validRequest.headers.get('cookie');
   const parsedCookies = parseCookie(cookieHeader);
   
   // Parse user from session cookie
@@ -280,8 +426,8 @@ export default async function handler(request: Request) {
     // Invalid session
   }
   
-  // Create context
-  const ctx = {
+  // Create context with explicit type
+  const ctx: Context = {
     user,
     setCookie(name: string, value: string) {
       cookies.push({
@@ -309,14 +455,50 @@ export default async function handler(request: Request) {
   };
   
   try {
-    console.log('[Vercel tRPC] Handling request:', request.method, request.url);
+    console.log('[Vercel tRPC] Handling request:', validRequest.method, validRequest.url);
     
     const response = await fetchRequestHandler({
       endpoint: '/api/trpc',
-      req: request,
+      req: validRequest,
       router: appRouter,
       createContext: () => ctx,
+      onError: ({ error, path, type }) => {
+        console.error('[Vercel tRPC] Error in handler:', {
+          error: error.message,
+          path,
+          type,
+          stack: error.stack,
+        });
+      },
     });
+    
+    // Ensure response is JSON - check status and content type
+    const contentType = response.headers.get('content-type') || '';
+    const isErrorStatus = response.status >= 400;
+    
+    if (isErrorStatus && !contentType.includes('application/json')) {
+      // If response is an error and not JSON, try to read it and convert to JSON error
+      const text = await response.text().catch(() => 'Unknown error');
+      console.error('[Vercel tRPC] Non-JSON error response received:', text.substring(0, 200));
+      
+      return new Response(
+        JSON.stringify({
+          error: {
+            message: text.includes('server error') || text.includes('Server Error') 
+              ? 'A server error occurred. Please try again later.'
+              : 'An unexpected error occurred',
+            code: 'INTERNAL_SERVER_ERROR',
+            details: process.env.NODE_ENV === 'development' ? text.substring(0, 500) : undefined,
+          },
+        }),
+        {
+          status: response.status || 500,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+    }
     
     // Add cookies to response
     if (cookies.length > 0) {
@@ -338,7 +520,8 @@ export default async function handler(request: Request) {
     return response;
     
   } catch (error) {
-    console.error('[Vercel tRPC] Error:', error);
+    console.error('[Vercel tRPC] Error in handleRequest:', error);
+    console.error('[Vercel tRPC] Error stack:', error instanceof Error ? error.stack : 'No stack');
     
     return new Response(
       JSON.stringify({

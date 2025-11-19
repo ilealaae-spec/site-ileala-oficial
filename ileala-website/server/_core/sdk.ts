@@ -256,9 +256,19 @@ class SDKServer {
     } as GetUserInfoWithJwtResponse;
   }
 
-  async authenticateRequest(req: Request): Promise<User> {
+  async authenticateRequest(req: any): Promise<User> {
     // Regular authentication flow
-    const cookies = this.parseCookies(req.headers.cookie);
+    // Handle both Express Request and Fetch Request
+    let cookieHeader: string | undefined;
+    if (req && typeof req.headers?.get === 'function') {
+      // Fetch API Request
+      cookieHeader = req.headers.get('cookie') || undefined;
+    } else if (req?.headers?.cookie) {
+      // Express Request
+      cookieHeader = req.headers.cookie;
+    }
+    
+    const cookies = this.parseCookies(cookieHeader);
     const sessionCookie = cookies.get(COOKIE_NAME);
     
     // Try to parse as traditional login JSON first (for email/password login)

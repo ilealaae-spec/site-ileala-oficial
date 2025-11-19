@@ -8,21 +8,52 @@ function isIpAddress(host: string) {
   return host.includes(":");
 }
 
-function isSecureRequest(req: Request) {
-  if (req.protocol === "https") return true;
+// Helper to safely get header value from either Express Request or Fetch Request
+function getHeaderValue(req: any, headerName: string): string | string[] | undefined {
+  // Check if it's a Fetch API Request (has headers.get method)
+  if (req && typeof req.headers?.get === 'function') {
+    const value = req.headers.get(headerName);
+    return value || undefined;
+  }
+  
+  // Check if it's an Express Request (has headers as object)
+  if (req && req.headers && typeof req.headers === 'object') {
+    return req.headers[headerName];
+  }
+  
+  return undefined;
+}
 
-  const forwardedProto = req.headers["x-forwarded-proto"];
-  if (!forwardedProto) return false;
+function isSecureRequest(req: any): boolean {
+  // Check protocol property (Express Request)
+  if (req?.protocol === "https") return true;
+
+  // Check URL protocol (Fetch Request)
+  if (req?.url) {
+    try {
+      const url = new URL(req.url);
+      if (url.protocol === "https:") return true;
+    } catch (e) {
+      // Invalid URL, continue
+    }
+  }
+
+  // Check x-forwarded-proto header
+  const forwardedProto = getHeaderValue(req, "x-forwarded-proto");
+  if (!forwardedProto) {
+    // Default to secure in production (Vercel always uses HTTPS)
+    return process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
+  }
 
   const protoList = Array.isArray(forwardedProto)
     ? forwardedProto
-    : forwardedProto.split(",");
+    : String(forwardedProto).split(",");
 
   return protoList.some(proto => proto.trim().toLowerCase() === "https");
 }
 
 export function getSessionCookieOptions(
-  req: Request
+  req: any
 ): Pick<CookieOptions, "domain" | "httpOnly" | "path" | "sameSite" | "secure"> {
   // const hostname = req.hostname;
   // const shouldSetDomain =
