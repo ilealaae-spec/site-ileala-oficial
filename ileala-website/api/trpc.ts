@@ -271,15 +271,97 @@ export type AppRouter = typeof appRouter;
 // VERCEL HANDLER
 // ============================================================================
 // Vercel handler - must export default
-export default async function handler(request: any) {
-  // CRITICAL: The request parameter from Vercel may not be a proper Request object
-  // We must NEVER access request.headers.get() directly as it may not be a function
-  // Instead, we immediately convert it to a safe format
+// CRITICAL: We must intercept the request IMMEDIATELY and convert it to a proper Request
+// before ANY code (including Vercel's internal code) tries to access request.headers.get
+export default async function handler(...args: any[]) {
+  // Vercel may pass the request in different ways - handle all cases
+  let rawRequest: any;
   
-  // Wrap everything in try-catch to catch any errors early
+  // Handle different call signatures from Vercel
+  if (args.length === 0) {
+    return new Response(
+      JSON.stringify({ error: { message: 'No request provided', code: 'NO_REQUEST' } }),
+      { status: 400, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+  
+  // Get the request from the first argument
+  rawRequest = args[0];
+  
+  // IMMEDIATELY create a proper Request object without accessing any properties
+  // This must happen before ANY other code runs
+  let safeRequest: Request;
   try {
-    // Immediately convert request to a safe format without accessing headers.get
-    return await handleRequest(request);
+    // Extract URL and method safely without accessing headers
+    const reqAny = rawRequest as any;
+    const url = (reqAny?.url || reqAny?.href || (typeof reqAny === 'string' ? reqAny : 'https://ileala.ae')) as string;
+    const method = (reqAny?.method || 'GET') as string;
+    
+    // Create headers object safely - NEVER call .get() or .forEach() on original headers
+    const headers = new Headers();
+    
+    // Try to extract headers without calling any methods on the original headers object
+    if (reqAny?.headers) {
+      try {
+        // Method 1: If it's a Headers object with forEach
+        if (typeof (reqAny.headers as any).forEach === 'function') {
+          (reqAny.headers as any).forEach((value: string, key: string) => {
+            headers.set(key, value);
+          });
+        } 
+        // Method 2: If it's a plain object, iterate safely
+        else if (typeof reqAny.headers === 'object' && !Array.isArray(reqAny.headers)) {
+          for (const key in reqAny.headers) {
+            if (Object.prototype.hasOwnProperty.call(reqAny.headers, key)) {
+              const value = reqAny.headers[key];
+              if (typeof value === 'string') {
+                headers.set(key, value);
+              } else if (Array.isArray(value)) {
+                value.forEach((v: any) => headers.append(key, String(v)));
+              }
+            }
+          }
+        }
+      } catch (headerError) {
+        console.warn('[Vercel tRPC] Could not extract headers:', headerError);
+        // Continue with empty headers
+      }
+    }
+    
+    // Create a proper Request object
+    safeRequest = new Request(url, {
+      method,
+      headers,
+      body: reqAny?.body,
+      cache: reqAny?.cache,
+      credentials: reqAny?.credentials,
+      integrity: reqAny?.integrity,
+      keepalive: reqAny?.keepalive,
+      mode: reqAny?.mode,
+      redirect: reqAny?.redirect,
+      referrer: reqAny?.referrer,
+      referrerPolicy: reqAny?.referrerPolicy,
+      signal: reqAny?.signal,
+    });
+  } catch (conversionError) {
+    console.error('[Vercel tRPC] Failed to create safe Request:', conversionError);
+    return new Response(
+      JSON.stringify({
+        error: {
+          message: 'Failed to process request',
+          code: 'REQUEST_CONVERSION_ERROR',
+        },
+      }),
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
+  }
+  
+  // Now use the safe request
+  try {
+    return await handleRequest(safeRequest);
   } catch (error) {
     // Log the error with as much info as possible without accessing request properties
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -290,12 +372,12 @@ export default async function handler(request: any) {
     
     // Try to get request info safely without accessing headers.get
     try {
-      const reqAny = request as any;
+      const reqAny = rawRequest as any;
       console.error('[Vercel tRPC] Request info:', {
-        hasRequest: !!request,
-        requestType: typeof request,
-        isRequestInstance: request instanceof Request,
-        requestKeys: request ? Object.keys(request).slice(0, 10) : [],
+        hasRequest: !!rawRequest,
+        requestType: typeof rawRequest,
+        isRequestInstance: rawRequest instanceof Request,
+        requestKeys: rawRequest ? Object.keys(rawRequest).slice(0, 10) : [],
         hasHeaders: !!reqAny?.headers,
         headersType: reqAny?.headers ? typeof reqAny.headers : 'N/A',
         // DO NOT try to access headers.get here - it will cause the same error
