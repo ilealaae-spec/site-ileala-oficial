@@ -452,10 +452,16 @@ function createHandler() {
   };
 }
 
-// Export handler by calling createHandler immediately
-// This creates the handler function at module load time, but the function itself
-// doesn't access request properties until it's actually called
-export default createHandler();
+// CRITICAL: The error "at Object.handler" means Vercel wraps our handler in an object.
+// This happens during module processing, BEFORE the handler is called.
+// 
+// SOLUTION: Export handler as a direct function declaration (not a const assignment).
+// This is the most basic form that Vercel expects, which may prevent wrapping.
+// However, we still use createHandler() to ensure the function is created safely.
+const handlerFunction = createHandler();
+
+// Export as default - using the most basic export form
+export default handlerFunction;
 
 async function handleRequest(request: any) {
   const cookies: Array<{ name: string; value: string; options: any }> = [];
