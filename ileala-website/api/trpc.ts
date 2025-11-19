@@ -27,17 +27,7 @@ type Context = {
 
 const t = initTRPC.context<Context>().create();
 const router = t.router;
-
-// Create a procedure with explicit Context type
-const publicProcedure = t.procedure.use(async ({ ctx, next }) => {
-  // Explicitly type the context to ensure TypeScript recognizes it
-  const typedCtx: Context = {
-    user: (ctx as any).user ?? null,
-    setCookie: (ctx as any).setCookie ?? (() => {}),
-    clearCookie: (ctx as any).clearCookie ?? (() => {}),
-  };
-  return next({ ctx: typedCtx });
-});
+const publicProcedure = t.procedure;
 
 // ============================================================================
 // DATABASE FUNCTIONS
