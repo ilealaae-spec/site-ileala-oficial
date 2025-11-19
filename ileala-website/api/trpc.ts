@@ -326,15 +326,17 @@ function createSafeRequest(rawRequest: any): Request {
 }
 
 // Vercel handler - must export default
-// CRITICAL: The error happens at line 270 (a comment) which means Vercel is trying
-// to access request.headers.get BEFORE calling the handler. This suggests Vercel
-// is doing some pre-processing or validation. We need to ensure the handler signature
-// matches exactly what Vercel expects for Edge Runtime.
-export default async function handler(req: Request): Promise<Response> {
-  // Wrap in try-catch to catch ANY error, including those that happen before processing
+// CRITICAL: The error at line 270 suggests Vercel accesses request.headers.get
+// before calling the handler. We must ensure the handler signature is exactly
+// what Vercel expects and never access request properties before creating safeRequest.
+export default async function handler(req: any): Promise<Response> {
+  // CRITICAL: Do NOT access req.headers, req.headers.get, or ANY property of req
+  // before calling createSafeRequest. The error happens when Vercel tries to
+  // validate/inspect the request parameter before calling this function.
+  
   try {
-    // IMMEDIATELY create a safe Request - don't access ANY properties of req
-    // This must be the FIRST thing we do
+    // IMMEDIATELY create a safe Request without accessing ANY properties of req
+    // This is the FIRST and ONLY thing we do with req before processing
     const safeRequest = createSafeRequest(req);
     
     // Now process with the safe request
@@ -347,16 +349,22 @@ export default async function handler(req: Request): Promise<Response> {
     console.error('[Vercel tRPC] Error in handler:', errorMessage);
     console.error('[Vercel tRPC] Error stack:', errorStack);
     
-    // Return a proper error response
+    // Return a proper error response in tRPC batch format
     return new Response(
-      JSON.stringify({
-        error: {
-          message: errorMessage.includes('headers.get') 
-            ? 'Request headers are not accessible in the expected format'
-            : 'Internal server error',
-          code: 'INTERNAL_SERVER_ERROR',
+      JSON.stringify([
+        {
+          error: {
+            message: errorMessage.includes('headers.get') 
+              ? 'Request headers are not accessible in the expected format'
+              : 'Internal server error',
+            code: 'INTERNAL_SERVER_ERROR',
+            data: {
+              code: 'INTERNAL_SERVER_ERROR',
+              httpStatus: 500,
+            },
+          },
         },
-      }),
+      ]),
       {
         status: 500,
         headers: { 'Content-Type': 'application/json' },
