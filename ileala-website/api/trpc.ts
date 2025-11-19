@@ -272,49 +272,41 @@ export type AppRouter = typeof appRouter;
 // ============================================================================
 export default async function handler(request: Request) {
   // Wrap everything in try-catch to catch any errors early
-  // This includes errors that might happen when accessing request properties
+  // CRITICAL: Never access request.headers.get() directly - it may not be a function
+  // The Vercel runtime may pass the request in a way where headers.get is not bound correctly
   try {
-    // Immediately try to access request properties to catch errors early
-    // If this fails, we know the request is invalid
-    try {
-      const _ = request.url; // Try to access url
-      const __ = request.method; // Try to access method
-      const ___ = request.headers; // Try to access headers
-    } catch (earlyError) {
-      console.error('[Vercel tRPC] Early error accessing request properties:', earlyError);
-      return new Response(
-        JSON.stringify({
-          error: {
-            message: 'Invalid request object structure',
-            code: 'INVALID_REQUEST_STRUCTURE',
-          },
-        }),
-        {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      );
-    }
-    
+    // Immediately wrap the request to prevent any direct access to headers.get
     return await handleRequest(request);
   } catch (error) {
-    console.error('[Vercel tRPC] Fatal error in handler:', error);
-    console.error('[Vercel tRPC] Error stack:', error instanceof Error ? error.stack : 'No stack');
-    console.error('[Vercel tRPC] Error message:', error instanceof Error ? error.message : String(error));
-    console.error('[Vercel tRPC] Request info:', {
-      hasRequest: !!request,
-      requestType: typeof request,
-      isRequestInstance: request instanceof Request,
-      requestKeys: request ? Object.keys(request) : [],
-      hasHeaders: request && !!request.headers,
-      headersType: request && request.headers ? typeof request.headers : 'N/A',
-      hasHeadersGet: request && request.headers && typeof request.headers.get === 'function',
-    });
+    // Log the error with as much info as possible without accessing request properties
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : 'No stack';
+    
+    console.error('[Vercel tRPC] Fatal error in handler:', errorMessage);
+    console.error('[Vercel tRPC] Error stack:', errorStack);
+    
+    // Try to get request info safely without accessing headers.get
+    try {
+      const reqAny = request as any;
+      console.error('[Vercel tRPC] Request info:', {
+        hasRequest: !!request,
+        requestType: typeof request,
+        isRequestInstance: request instanceof Request,
+        requestKeys: request ? Object.keys(request).slice(0, 10) : [],
+        hasHeaders: !!reqAny?.headers,
+        headersType: reqAny?.headers ? typeof reqAny.headers : 'N/A',
+        // DO NOT try to access headers.get here - it will cause the same error
+      });
+    } catch (infoError) {
+      console.error('[Vercel tRPC] Could not get request info:', infoError);
+    }
     
     return new Response(
       JSON.stringify({
         error: {
-          message: error instanceof Error ? error.message : 'Internal server error',
+          message: errorMessage.includes('headers.get') 
+            ? 'Request headers are not accessible in the expected format'
+            : errorMessage,
           code: 'FATAL_ERROR',
         },
       }),
@@ -339,44 +331,37 @@ async function handleRequest(request: Request) {
     const method = reqAny?.method || 'GET';
     
     // Extract headers safely - handle all possible formats
+    // NEVER call .get() or .forEach() directly - check if they exist first
     const headers = new Headers();
     if (reqAny?.headers) {
-      if (typeof reqAny.headers.forEach === 'function') {
-        // Headers object (Fetch API) - has forEach method
-        reqAny.headers.forEach((value: string, key: string) => {
-          headers.set(key, value);
-        });
-      } else if (typeof reqAny.headers.get === 'function') {
-        // Headers-like object with get method but no forEach
-        // Try to iterate using keys if available, or copy common headers
-        try {
-          // Try to get common headers
-          const commonHeaders = ['cookie', 'content-type', 'authorization', 'user-agent', 'accept'];
-          commonHeaders.forEach(headerName => {
-            const value = reqAny.headers.get(headerName);
-            if (value) headers.set(headerName, value);
+      try {
+        // Check if it's a Headers object with forEach (safest check)
+        if (reqAny.headers && typeof reqAny.headers.forEach === 'function') {
+          // Headers object (Fetch API) - has forEach method
+          reqAny.headers.forEach((value: string, key: string) => {
+            headers.set(key, value);
           });
-        } catch (e) {
-          // If that fails, try to convert to object
-          if (typeof reqAny.headers === 'object') {
+        } else if (reqAny.headers && typeof reqAny.headers === 'object' && !Array.isArray(reqAny.headers)) {
+          // It's an object - try to iterate as plain object
+          // This handles both plain objects and Headers-like objects
+          try {
             Object.entries(reqAny.headers).forEach(([key, value]) => {
               if (typeof value === 'string') {
                 headers.set(key, value);
               } else if (Array.isArray(value)) {
                 value.forEach((v: any) => headers.append(key, String(v)));
+              } else if (value != null) {
+                headers.set(key, String(value));
               }
             });
+          } catch (e) {
+            console.warn('[Vercel tRPC] Could not extract headers from object:', e);
+            // Continue with empty headers
           }
         }
-      } else if (typeof reqAny.headers === 'object') {
-        // Plain object
-        Object.entries(reqAny.headers).forEach(([key, value]) => {
-          if (typeof value === 'string') {
-            headers.set(key, value);
-          } else if (Array.isArray(value)) {
-            value.forEach((v: any) => headers.append(key, String(v)));
-          }
-        });
+      } catch (e) {
+        console.warn('[Vercel tRPC] Error extracting headers:', e);
+        // Continue with empty headers - request can still be processed
       }
     }
     
@@ -539,3 +524,4 @@ async function handleRequest(request: Request) {
     );
   }
 }
+
