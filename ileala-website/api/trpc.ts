@@ -2272,10 +2272,15 @@ function createProtectedRequest(rawReq: any): any {
 
 // CRITICAL: The error "at Object.handler" means Vercel wraps our handler in an object.
 // This happens when Vercel tries to inspect the handler before calling it.
-// SOLUTION: Use arrow function directly in export to prevent Vercel from wrapping it.
+// The error occurs because Vercel tries to access req.headers.get during inspection.
+// SOLUTION: Create a completely isolated request object BEFORE any handler code runs.
 // CRITICAL: Export handler as a direct async function declaration - the simplest form.
 // This is the most basic form that Vercel expects and may prevent Object.handler wrapping.
-async function vercelHandler(req: any): Promise<Response> {
+export default async function handler(req: any): Promise<Response> {
+  // CRITICAL: The FIRST thing we do is wrap req in a Proxy that NEVER exposes headers.get
+  // This must happen BEFORE any other code that might access req.headers
+  const safeReq = createProtectedRequest(req);
+  
   // Wrap everything in try-catch to catch errors that happen even before processing
   try {
     if (!req) {
@@ -2299,15 +2304,10 @@ async function vercelHandler(req: any): Promise<Response> {
       );
     }
     
-    // CRITICAL: Create protected request FIRST - this wraps the original request
-    // in a Proxy that safely handles headers.get access
-    const protectedReq = createProtectedRequest(req);
-    
-    // CRITICAL: Create safe Request IMMEDIATELY - this is the FIRST thing we do
-    // We must do this without accessing ANY properties of req first
+    // CRITICAL: Create safe Request IMMEDIATELY using the protected request
     // The createSafeRequest function uses only safe property access (obj?.prop)
     // and never calls methods on the original request object
-    const safeRequest = createSafeRequest(protectedReq);
+    const safeRequest = createSafeRequest(safeReq);
     
     // Now process with the safe request
     return await handleRequest(safeRequest);
