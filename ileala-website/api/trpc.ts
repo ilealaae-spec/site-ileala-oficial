@@ -1,6 +1,4 @@
 // api/trpc.ts - Vercel Serverless Function Handler
-// This file adapts the Express-based tRPC server to work with Vercel's Fetch API
-
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 
 // Dynamic imports to ensure server code is bundled
@@ -18,29 +16,29 @@ const createExpressLikeRequest = (request: Request) => {
     method: request.method,
     url: url.pathname + url.search,
     headers: {
-      cookie: request.headers.get("cookie") || undefined,
-      "content-type": request.headers.get("content-type") || undefined,
-      authorization: request.headers.get("authorization") || undefined,
+      cookie: request.headers.get("cookie") || "",
+      "content-type": request.headers.get("content-type") || "",
+      authorization: request.headers.get("authorization") || "",
     },
     query: Object.fromEntries(url.searchParams),
-    body: undefined, // Will be parsed by tRPC
+    body: undefined,
   };
 };
 
 // Create Express-like Response for compatibility
 const createExpressLikeResponse = () => {
-  const cookies: Array<{ name: string; value: string; options: any }> = [];
+  const cookies: Array<{ name: string; value: string; options: Record<string, any> }> = [];
   
   return {
     cookies,
-    cookie(name: string, value: string, options: any) {
+    cookie(name: string, value: string, options: Record<string, any>) {
       cookies.push({ name, value, options });
     },
-    clearCookie(name: string, options: any) {
+    clearCookie(name: string, options: Record<string, any>) {
       cookies.push({ name, value: "", options: { ...options, maxAge: -1 } });
     },
     setHeader() {},
-    getHeader() {},
+    getHeader() { return undefined; },
   };
 };
 
@@ -131,9 +129,3 @@ export default async function handler(request: Request) {
     );
   }
 }
-
-// Vercel serverless function configuration
-export const config = {
-  runtime: "nodejs18.x",
-  maxDuration: 10,
-};
