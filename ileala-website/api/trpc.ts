@@ -1,35 +1,25 @@
-// api/trpc.ts
-import express from "express";
-import { createExpressMiddleware } from "@trpc/server/adapters/express";
-import type { VercelRequest, VercelResponse } from "@vercel/node";
-
+// /api/trpc.ts - Using Fetch Adapter for Vercel
+import { createFetchHandler } from "@trpc/server/adapters/fetch";
 import { appRouter } from "../server/routers";
 import { createContext } from "../server/_core/context";
+import { trpcRateLimiterMiddleware } from "../server/middleware/trpcRateLimiter";
 
-const app = express();
+// Function to get the base URL on Vercel
+const getBaseUrl = () => {
+    // IMPORTANT: Use the Vercel environment variable
+    if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+    return "http://localhost:3000"; 
+};
 
-app.use(express.json({ limit: "50mb" }));
-app.use(express.urlencoded({ limit: "50mb", extended: true }));
-
-// monta o tRPC na raiz da função
-app.use(
-  createExpressMiddleware({
+// Request handler
+const handler = (req: Request) =>
+  createFetchHandler({
     router: appRouter,
-    createContext,
-    onError({ error, path, type, input }) {
-      console.error("[tRPC Error]", {
-        path,
-        type,
-        input,
-        message: error.message,
-        code: error.code,
-        stack: error.stack,
-      });
-    },
-  }),
-);
+    // We pass the Request object (req) to createContext
+    createContext: ({ req }) => createContext({ req }),
+    endpoint: `${getBaseUrl()}/api/trpc`,
+    // The tRPC Fetch Handler does not accept global middlewares directly like Express.
+    // The Rate Limiter will be moved to createContext and the tRPC Router.
+  })(req);
 
-// Vercel handler simples
-export default function handler(req: VercelRequest, res: VercelResponse) {
-  return app(req as any, res as any);
-}
+export default handler;
