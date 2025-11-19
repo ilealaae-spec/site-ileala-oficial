@@ -598,9 +598,15 @@ async function handleRequest(request: any) {
     
     let response: Response;
     try {
-      // Create a helper function that explicitly returns Context type
+      // Create context function with explicit return type
+      // This ensures TypeScript recognizes the Context type in procedures
       const createContext = (): Context => {
-        return ctx;
+        // Return the context object with explicit type
+        return {
+          user: ctx.user,
+          setCookie: ctx.setCookie,
+          clearCookie: ctx.clearCookie,
+        };
       };
       
       response = await fetchRequestHandler({
