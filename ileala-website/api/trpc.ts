@@ -455,29 +455,29 @@ async function sendVerificationEmail(email: string, token: string, name: string)
       const verifyUrl = `${process.env.SITE_URL || 'https://ileala.ae'}/verify-email?token=${token}`;
       
       if (process.env.RESEND_API_KEY) {
-        const response = await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
+      const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
             from: 'ILE ALA <noreply@ileala.ae>',
-            to: email,
+          to: email,
             subject: 'Verify your email - ILE ALA',
-            html: `
-              <h1>Welcome ${name}!</h1>
-              <p>Please verify your email address by clicking the link below:</p>
-              <a href="${verifyUrl}">Verify Email</a>
-              <p>This link will expire in 24 hours.</p>
-            `,
+          html: `
+            <h1>Welcome ${name}!</h1>
+            <p>Please verify your email address by clicking the link below:</p>
+            <a href="${verifyUrl}">Verify Email</a>
+            <p>This link will expire in 24 hours.</p>
+          `,
           }),
-        });
-        
-        if (!response.ok) {
-          console.error('[Email] Failed to send verification email:', await response.text());
-        }
-      } else {
+      });
+      
+      if (!response.ok) {
+        console.error('[Email] Failed to send verification email:', await response.text());
+      }
+    } else {
         console.log('[Email] RESEND_API_KEY not configured. Verification URL:', verifyUrl);
       }
     } catch (fallbackError) {
@@ -589,11 +589,11 @@ const appRouter = router({
           { timeoutMs: 5000, retries: 1 }
         );
         
-        if (existingUser) {
+          if (existingUser) {
           logSecurityEvent('DUPLICATE_REGISTRATION_ATTEMPT', { email: input.email }, clientIp);
-          throw new Error('User with this email already exists');
-        }
-        
+            throw new Error('User with this email already exists');
+          }
+          
         structuredLog('info', 'Creating new user', { email: input.email }, { ip: clientIp });
         const user = await safeQuery(
           () => createUser(input),
@@ -2255,7 +2255,9 @@ function createProtectedRequest(rawReq: any): any {
 
 // CRITICAL: Export handler as a direct async function declaration - the simplest form.
 // This is the most basic form that Vercel expects and may prevent Object.handler wrapping.
-export default async function handler(req: any): Promise<Response> {
+// CRITICAL: Export as a named function first, then default export
+// This prevents Vercel from wrapping it in an Object.handler structure
+async function vercelHandler(req: any): Promise<Response> {
   // Wrap everything in try-catch to catch errors that happen even before processing
   try {
     if (!req) {
@@ -2459,11 +2461,19 @@ async function handleRequest(request: any) {
     console.log('[Vercel tRPC] ValidRequest headers type:', typeof validRequest.headers);
     console.log('[Vercel tRPC] ValidRequest headers.get type:', typeof validRequest.headers.get);
     
-    // Ensure validRequest is truly a Request object with all methods bound
-    // Sometimes creating a new Request doesn't properly bind all methods
+    // CRITICAL: Create a completely new Request object with fresh Headers
+    // This ensures no reference to the original request object remains
+    // Extract all header values first to create a completely new Headers object
+    const finalHeaders = new Headers();
+    validRequest.headers.forEach((value, key) => {
+      finalHeaders.set(key, value);
+    });
+    
+    // Create a completely isolated Request object
+    // This prevents any access to the original request's headers.get method
     const finalRequest = new Request(validRequest.url, {
       method: validRequest.method,
-      headers: validRequest.headers,
+      headers: finalHeaders, // Use the new Headers object, not the original
       body: validRequest.body,
       cache: validRequest.cache,
       credentials: validRequest.credentials,
@@ -2493,9 +2503,9 @@ async function handleRequest(request: any) {
       };
       
       response = await fetchRequestHandler({
-        endpoint: '/api/trpc',
+      endpoint: '/api/trpc',
         req: finalRequest,
-        router: appRouter,
+      router: appRouter,
         createContext,
         onError: ({ error, path, type }) => {
           console.error('[Vercel tRPC] Error in handler:', {
