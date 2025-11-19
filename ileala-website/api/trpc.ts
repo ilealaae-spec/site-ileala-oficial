@@ -2,18 +2,16 @@
 import { initTRPC } from '@trpc/server';
 import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
 import { z } from 'zod';
-import postgres from 'postgres';
+import { neon } from '@neondatabase/serverless';
 import bcrypt from 'bcryptjs';
 import { nanoid } from 'nanoid';
 
 // ============================================================================
 // DATABASE CONNECTION
 // ============================================================================
-const sql = postgres(process.env.DATABASE_URL || '', {
-  max: 1,
-  idle_timeout: 20,
-  connect_timeout: 10,
-});
+// Use Neon serverless driver for Vercel serverless functions
+// This is optimized for serverless environments and doesn't maintain persistent connections
+const sql = neon(process.env.DATABASE_URL || '');
 
 // ============================================================================
 // TRPC SETUP
