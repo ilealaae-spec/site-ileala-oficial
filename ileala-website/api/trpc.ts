@@ -653,46 +653,60 @@ const appRouter = router({
       
       update: adminProcedure
         .input(z.object({
-          id: z.number(),
-          nameEN: z.string().optional(),
-          namePT: z.string().optional(),
-          descriptionEN: z.string().optional(),
-          descriptionPT: z.string().optional(),
-          price: z.number().optional(),
-          imageUrl: z.string().optional(),
-          collection: z.string().optional(),
-          category: z.string().optional(),
-          stock: z.number().optional(),
-          featured: z.number().optional(),
-          active: z.number().optional(),
+          id: z.number().int().positive(),
+          nameEN: z.string().min(1).max(255).optional(),
+          namePT: z.string().min(1).max(255).optional(),
+          descriptionEN: z.string().max(5000).optional(),
+          descriptionPT: z.string().max(5000).optional(),
+          price: z.number().min(0).max(999999.99).optional(),
+          imageUrl: z.string().url().max(500).optional(),
+          collection: z.string().max(100).optional(),
+          category: z.string().max(100).optional(),
+          stock: z.number().min(0).max(999999).optional(),
+          featured: z.number().min(0).max(1).optional(),
+          active: z.number().min(0).max(1).optional(),
         }))
-        .mutation(async ({ input }) => {
+        .mutation(async ({ input, ctx }) => {
           const { id, ...updates } = input;
+          const clientIp = (ctx as Context).clientIp || 'unknown';
           
-          // Update each field individually if provided
+          // Sanitize and update each field individually if provided
           if (updates.nameEN !== undefined) {
-            await sql`UPDATE products SET name = ${updates.nameEN}, "nameEN" = ${updates.nameEN}, "updatedAt" = NOW() WHERE id = ${id}`;
+            const sanitized = sanitizeString(updates.nameEN);
+            await sql`UPDATE products SET name = ${sanitized}, "nameEN" = ${sanitized}, "updatedAt" = NOW() WHERE id = ${id}`;
           }
           if (updates.namePT !== undefined) {
-            await sql`UPDATE products SET "namePT" = ${updates.namePT}, "updatedAt" = NOW() WHERE id = ${id}`;
+            const sanitized = sanitizeString(updates.namePT);
+            await sql`UPDATE products SET "namePT" = ${sanitized}, "updatedAt" = NOW() WHERE id = ${id}`;
           }
           if (updates.descriptionEN !== undefined) {
-            await sql`UPDATE products SET "descriptionEN" = ${updates.descriptionEN}, "updatedAt" = NOW() WHERE id = ${id}`;
+            const sanitized = sanitizeString(updates.descriptionEN);
+            await sql`UPDATE products SET "descriptionEN" = ${sanitized}, "updatedAt" = NOW() WHERE id = ${id}`;
           }
           if (updates.descriptionPT !== undefined) {
-            await sql`UPDATE products SET "descriptionPT" = ${updates.descriptionPT}, "updatedAt" = NOW() WHERE id = ${id}`;
+            const sanitized = sanitizeString(updates.descriptionPT);
+            await sql`UPDATE products SET "descriptionPT" = ${sanitized}, "updatedAt" = NOW() WHERE id = ${id}`;
           }
           if (updates.price !== undefined) {
             await sql`UPDATE products SET price = ${updates.price}, "updatedAt" = NOW() WHERE id = ${id}`;
           }
           if (updates.imageUrl !== undefined) {
-            await sql`UPDATE products SET "imageUrl" = ${updates.imageUrl}, "updatedAt" = NOW() WHERE id = ${id}`;
+            // Validate URL
+            try {
+              new URL(updates.imageUrl);
+              const sanitized = updates.imageUrl.slice(0, 500);
+              await sql`UPDATE products SET "imageUrl" = ${sanitized}, "updatedAt" = NOW() WHERE id = ${id}`;
+            } catch (e) {
+              throw new Error('Invalid image URL');
+            }
           }
           if (updates.collection !== undefined) {
-            await sql`UPDATE products SET collection = ${updates.collection}, "updatedAt" = NOW() WHERE id = ${id}`;
+            const sanitized = sanitizeString(updates.collection);
+            await sql`UPDATE products SET collection = ${sanitized}, "updatedAt" = NOW() WHERE id = ${id}`;
           }
           if (updates.category !== undefined) {
-            await sql`UPDATE products SET category = ${updates.category}, "updatedAt" = NOW() WHERE id = ${id}`;
+            const sanitized = sanitizeString(updates.category);
+            await sql`UPDATE products SET category = ${sanitized}, "updatedAt" = NOW() WHERE id = ${id}`;
           }
           if (updates.stock !== undefined) {
             await sql`UPDATE products SET stock = ${updates.stock}, "updatedAt" = NOW() WHERE id = ${id}`;
@@ -703,6 +717,8 @@ const appRouter = router({
           if (updates.active !== undefined) {
             await sql`UPDATE products SET active = ${updates.active}, "updatedAt" = NOW() WHERE id = ${id}`;
           }
+          
+          logSecurityEvent('PRODUCT_UPDATED', { productId: id }, clientIp);
           
           return { success: true };
         }),
@@ -728,10 +744,12 @@ const appRouter = router({
       
       updateStatus: adminProcedure
         .input(z.object({
-          id: z.number(),
+          id: z.number().int().positive(),
           status: z.enum(['pending', 'processing', 'shipped', 'delivered', 'cancelled']),
         }))
-        .mutation(async ({ input }) => {
+        .mutation(async ({ input, ctx }) => {
+          const clientIp = (ctx as Context).clientIp || 'unknown';
+          logSecurityEvent('ORDER_STATUS_UPDATED', { orderId: input.id, status: input.status }, clientIp);
           await sql`
             UPDATE orders
             SET status = ${input.status}, "updatedAt" = NOW()
