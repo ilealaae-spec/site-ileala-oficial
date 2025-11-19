@@ -116,24 +116,188 @@ function sanitizeString(input: string): string {
     .slice(0, 1000); // Limit length
 }
 
+// Enhanced email validation with RFC 5322 compliant regex
+function validateEmail(email: string): { valid: boolean; message?: string } {
+  if (!email || typeof email !== 'string') {
+    return { valid: false, message: 'Email is required' };
+  }
+  
+  // RFC 5322 compliant regex (simplified but robust)
+  const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+  
+  if (!emailRegex.test(email)) {
+    return { valid: false, message: 'Invalid email format' };
+  }
+  
+  // Check length
+  if (email.length > 255) {
+    return { valid: false, message: 'Email is too long (max 255 characters)' };
+  }
+  
+  // Check for common invalid patterns
+  if (email.includes('..') || email.startsWith('.') || email.endsWith('.')) {
+    return { valid: false, message: 'Invalid email format' };
+  }
+  
+  return { valid: true };
+}
+
 // Sanitize email
 function sanitizeEmail(email: string): string {
   return email.toLowerCase().trim().slice(0, 255);
 }
 
-// Security logging
-function logSecurityEvent(type: string, details: any, ip?: string) {
-  const timestamp = new Date().toISOString();
-  const logEntry = {
-    timestamp,
-    type,
-    details,
-    ip: ip || 'unknown',
+// Structured logging with levels
+type LogLevel = 'info' | 'warn' | 'error' | 'security';
+type LogEntry = {
+  timestamp: string;
+  level: LogLevel;
+  message: string;
+  data?: any;
+  ip?: string;
+  userId?: number;
+  path?: string;
+};
+
+function structuredLog(level: LogLevel, message: string, data?: any, metadata?: { ip?: string; userId?: number; path?: string }) {
+  const logEntry: LogEntry = {
+    timestamp: new Date().toISOString(),
+    level,
+    message,
+    ...(data && { data }),
+    ...(metadata?.ip && { ip: metadata.ip }),
+    ...(metadata?.userId && { userId: metadata.userId }),
+    ...(metadata?.path && { path: metadata.path }),
   };
-  console.warn('[SECURITY]', JSON.stringify(logEntry));
+  
+  const logString = JSON.stringify(logEntry);
+  
+  switch (level) {
+    case 'error':
+      console.error(`[${level.toUpperCase()}]`, logString);
+      break;
+    case 'warn':
+    case 'security':
+      console.warn(`[${level.toUpperCase()}]`, logString);
+      break;
+    default:
+      console.log(`[${level.toUpperCase()}]`, logString);
+  }
   
   // In production, you might want to send this to a logging service
   // For now, we just log to console
+}
+
+// Security logging (wrapper for structured logging)
+function logSecurityEvent(type: string, details: any, ip?: string) {
+  structuredLog('security', type, details, { ip });
+}
+
+// Error handling wrapper for database queries
+async function withTimeout<T>(
+  query: () => Promise<T>,
+  timeoutMs: number = 10000,
+  errorMessage: string = 'Database query timeout'
+): Promise<T> {
+  return Promise.race([
+    query(),
+    new Promise<T>((_, reject) => {
+      setTimeout(() => reject(new Error(errorMessage)), timeoutMs);
+    }),
+  ]);
+}
+
+// Retry logic for database queries
+async function withRetry<T>(
+  query: () => Promise<T>,
+  maxRetries: number = 3,
+  delayMs: number = 1000
+): Promise<T> {
+  let lastError: Error | null = null;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await query();
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      
+      // Don't retry on certain errors
+      if (error instanceof Error && (
+        error.message.includes('timeout') ||
+        error.message.includes('connection') ||
+        error.message.includes('ECONNREFUSED')
+      )) {
+        if (attempt < maxRetries) {
+          structuredLog('warn', `Database query failed, retrying (${attempt}/${maxRetries})`, { error: lastError.message });
+          await new Promise(resolve => setTimeout(resolve, delayMs * attempt));
+          continue;
+        }
+      }
+      
+      // For other errors, throw immediately
+      throw lastError;
+    }
+  }
+  
+  throw lastError || new Error('Query failed after retries');
+}
+
+// Safe database query wrapper with timeout and retry
+async function safeQuery<T>(
+  query: () => Promise<T>,
+  options: { timeoutMs?: number; retries?: number; errorMessage?: string } = {}
+): Promise<T> {
+  const { timeoutMs = 10000, retries = 2, errorMessage = 'Database query failed' } = options;
+  
+  try {
+    return await withRetry(
+      () => withTimeout(query, timeoutMs, errorMessage),
+      retries
+    );
+  } catch (error) {
+    structuredLog('error', 'Database query failed', {
+      error: error instanceof Error ? error.message : String(error),
+      timeout: timeoutMs,
+      retries,
+    });
+    throw error;
+  }
+}
+
+// Simple in-memory cache for frequent queries
+const queryCache = new Map<string, { data: any; expiresAt: number }>();
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+function getCached<T>(key: string): T | null {
+  const cached = queryCache.get(key);
+  if (!cached) return null;
+  
+  if (Date.now() > cached.expiresAt) {
+    queryCache.delete(key);
+    return null;
+  }
+  
+  return cached.data as T;
+}
+
+function setCache<T>(key: string, data: T, ttlMs: number = CACHE_TTL_MS): void {
+  queryCache.set(key, {
+    data,
+    expiresAt: Date.now() + ttlMs,
+  });
+}
+
+function clearCache(pattern?: string): void {
+  if (!pattern) {
+    queryCache.clear();
+    return;
+  }
+  
+  for (const key of queryCache.keys()) {
+    if (key.includes(pattern)) {
+      queryCache.delete(key);
+    }
+  }
 }
 
 // Rate limiting tracking (in-memory, for serverless this is per-instance)
@@ -385,7 +549,10 @@ const appRouter = router({
     register: publicProcedure
       .input(z.object({
         name: z.string().min(2).max(100),
-        email: z.string().email().max(255),
+        email: z.string().email().max(255).refine((email) => {
+          const validation = validateEmail(email);
+          return validation.valid;
+        }, { message: 'Invalid email format' }),
         password: z.string().min(8).max(128),
         phone: z.string().max(50).optional(),
         address: z.string().max(255).optional(),
@@ -417,14 +584,21 @@ const appRouter = router({
             throw new Error(passwordValidation.message || 'Password does not meet security requirements');
           }
           
-          const existingUser = await getUserByEmail(input.email);
-          if (existingUser) {
-            logSecurityEvent('DUPLICATE_REGISTRATION_ATTEMPT', { email: input.email }, clientIp);
-            throw new Error('User with this email already exists');
-          }
-          
-          console.log('[Register] Creating user...');
-          const user = await createUser(input);
+        const existingUser = await safeQuery(
+          () => getUserByEmail(input.email),
+          { timeoutMs: 5000, retries: 1 }
+        );
+        
+        if (existingUser) {
+          logSecurityEvent('DUPLICATE_REGISTRATION_ATTEMPT', { email: input.email }, clientIp);
+          throw new Error('User with this email already exists');
+        }
+        
+        structuredLog('info', 'Creating new user', { email: input.email }, { ip: clientIp });
+        const user = await safeQuery(
+          () => createUser(input),
+          { timeoutMs: 10000, retries: 2 }
+        );
           console.log('[Register] User created:', user.id);
           
           logSecurityEvent('USER_REGISTERED', { userId: user.id, email: user.email }, clientIp);
@@ -454,7 +628,10 @@ const appRouter = router({
     
     login: publicProcedure
       .input(z.object({
-        email: z.string().email().max(255),
+        email: z.string().email().max(255).refine((email) => {
+          const validation = validateEmail(email);
+          return validation.valid;
+        }, { message: 'Invalid email format' }),
         password: z.string().max(128),
       }))
       .mutation(async ({ input, ctx }) => {
@@ -473,7 +650,11 @@ const appRouter = router({
         // Sanitize email
         const sanitizedEmail = sanitizeEmail(input.email);
         
-        const user = await verifyUserCredentials(sanitizedEmail, input.password);
+        const user = await safeQuery(
+          () => verifyUserCredentials(sanitizedEmail, input.password),
+          { timeoutMs: 5000, retries: 1 }
+        );
+        
         if (!user) {
           logSecurityEvent('FAILED_LOGIN_ATTEMPT', { email: sanitizedEmail }, clientIp);
           throw new Error('Invalid email or password');
@@ -546,7 +727,10 @@ const appRouter = router({
     
     resendVerification: publicProcedure
       .input(z.object({
-        email: z.string().email().max(255),
+        email: z.string().email().max(255).refine((email) => {
+          const validation = validateEmail(email);
+          return validation.valid;
+        }, { message: 'Invalid email format' }),
       }))
       .mutation(async ({ input, ctx }) => {
         const clientIp = (ctx as Context).clientIp || 'unknown';
@@ -580,7 +764,10 @@ const appRouter = router({
     
     forgotPassword: publicProcedure
       .input(z.object({
-        email: z.string().email().max(255),
+        email: z.string().email().max(255).refine((email) => {
+          const validation = validateEmail(email);
+          return validation.valid;
+        }, { message: 'Invalid email format' }),
       }))
       .mutation(async ({ input, ctx }) => {
         const clientIp = (ctx as Context).clientIp || 'unknown';
@@ -687,61 +874,110 @@ const appRouter = router({
   // Products router
   products: router({
     list: publicProcedure.query(async () => {
-      const products = await sql`
-        SELECT * FROM products
-        WHERE active = 1
-        ORDER BY "createdAt" DESC
-      `;
+      const cacheKey = 'products:list';
+      const cached = getCached(cacheKey);
+      if (cached) return cached;
+      
+      const products = await safeQuery(
+        () => sql`
+          SELECT * FROM products
+          WHERE active = 1
+          ORDER BY "createdAt" DESC
+        `,
+        { timeoutMs: 5000, retries: 1 }
+      );
+      
+      setCache(cacheKey, products);
       return products;
     }),
     
     featured: publicProcedure.query(async () => {
-      const products = await sql`
-        SELECT * FROM products
-        WHERE active = 1 AND featured = 1
-        ORDER BY "createdAt" DESC
-      `;
+      const cacheKey = 'products:featured';
+      const cached = getCached(cacheKey);
+      if (cached) return cached;
+      
+      const products = await safeQuery(
+        () => sql`
+          SELECT * FROM products
+          WHERE active = 1 AND featured = 1
+          ORDER BY "createdAt" DESC
+        `,
+        { timeoutMs: 5000, retries: 1 }
+      );
+      
+      setCache(cacheKey, products);
       return products;
     }),
     
     byId: publicProcedure
       .input(z.object({ id: z.number().int().positive() }))
       .query(async ({ input }) => {
-        const products = await sql`
-          SELECT * FROM products
-          WHERE id = ${input.id} AND active = 1
-          LIMIT 1
-        `;
+        const cacheKey = `products:byId:${input.id}`;
+        const cached = getCached(cacheKey);
+        if (cached) return cached;
+        
+        const products = await safeQuery(
+          () => sql`
+            SELECT * FROM products
+            WHERE id = ${input.id} AND active = 1
+            LIMIT 1
+          `,
+          { timeoutMs: 5000, retries: 1 }
+        );
+        
         if (products.length === 0) {
           throw new Error('Product not found');
         }
-        return products[0];
+        
+        const product = products[0];
+        setCache(cacheKey, product);
+        return product;
       }),
     
     bySlug: publicProcedure
       .input(z.object({ slug: z.string().max(255) }))
       .query(async ({ input }) => {
         const sanitizedSlug = sanitizeString(input.slug);
-        const products = await sql`
-          SELECT * FROM products
-          WHERE slug = ${sanitizedSlug} AND active = 1
-          LIMIT 1
-        `;
+        const cacheKey = `products:bySlug:${sanitizedSlug}`;
+        const cached = getCached(cacheKey);
+        if (cached) return cached;
+        
+        const products = await safeQuery(
+          () => sql`
+            SELECT * FROM products
+            WHERE slug = ${sanitizedSlug} AND active = 1
+            LIMIT 1
+          `,
+          { timeoutMs: 5000, retries: 1 }
+        );
+        
         if (products.length === 0) {
           throw new Error('Product not found');
         }
-        return products[0];
+        
+        const product = products[0];
+        setCache(cacheKey, product);
+        return product;
       }),
     
     byCollection: publicProcedure
       .input(z.object({ collection: z.string().max(100) }))
       .query(async ({ input }) => {
         const sanitizedCollection = sanitizeString(input.collection);
-        const products = await sql`
-          SELECT * FROM products
-          WHERE collection = ${sanitizedCollection} AND active = 1
-          ORDER BY "createdAt" DESC
-        `;
+        const cacheKey = `products:byCollection:${sanitizedCollection}`;
+        const cached = getCached(cacheKey);
+        if (cached) return cached;
+        
+        const products = await safeQuery(
+          () => sql`
+            SELECT * FROM products
+            WHERE collection = ${sanitizedCollection} AND active = 1
+            ORDER BY "createdAt" DESC
+          `,
+          { timeoutMs: 5000, retries: 1 }
+        );
+        
+        setCache(cacheKey, products);
         return products;
       }),
   }),
@@ -971,7 +1207,10 @@ const appRouter = router({
         })),
         shippingAddress: z.string().max(500),
         customerName: z.string().min(2).max(100),
-        customerEmail: z.string().email().max(255),
+        customerEmail: z.string().email().max(255).refine((email) => {
+          const validation = validateEmail(email);
+          return validation.valid;
+        }, { message: 'Invalid email format' }),
         customerPhone: z.string().max(50).optional(),
         couponCode: z.string().max(50).optional(),
       }))
@@ -1140,7 +1379,10 @@ const appRouter = router({
   newsletter: router({
     subscribe: publicProcedure
       .input(z.object({
-        email: z.string().email().max(255),
+        email: z.string().email().max(255).refine((email) => {
+          const validation = validateEmail(email);
+          return validation.valid;
+        }, { message: 'Invalid email format' }),
         name: z.string().max(100).optional(),
       }))
       .mutation(async ({ input, ctx }) => {
@@ -1493,21 +1735,27 @@ const appRouter = router({
           const clientIp = (ctx as Context).clientIp || 'unknown';
           logSecurityEvent('PRODUCT_CREATED', { productName: sanitizedNameEN }, clientIp);
           
-          const result = await sql`
-            INSERT INTO products (
-              name, "nameEN", "namePT", "descriptionEN", "descriptionPT",
-              price, "imageUrl", collection, category, stock, featured,
-              slug, active, "createdAt", "updatedAt"
-            )
-            VALUES (
-              ${sanitizedNameEN}, ${sanitizedNameEN}, ${sanitizedNamePT || sanitizedNameEN},
-              ${sanitizedDescEN}, ${sanitizedDescPT},
-              ${input.price}, ${sanitizedImageUrl}, ${sanitizedCollection},
-              ${sanitizedCategory}, ${input.stock || 0}, ${input.featured || 0},
-              ${slug}, 1, NOW(), NOW()
-            )
-            RETURNING id
-          `;
+          const result = await safeQuery(
+            () => sql`
+              INSERT INTO products (
+                name, "nameEN", "namePT", "descriptionEN", "descriptionPT",
+                price, "imageUrl", collection, category, stock, featured,
+                slug, active, "createdAt", "updatedAt"
+              )
+              VALUES (
+                ${sanitizedNameEN}, ${sanitizedNameEN}, ${sanitizedNamePT || sanitizedNameEN},
+                ${sanitizedDescEN}, ${sanitizedDescPT},
+                ${input.price}, ${sanitizedImageUrl}, ${sanitizedCollection},
+                ${sanitizedCategory}, ${input.stock || 0}, ${input.featured || 0},
+                ${slug}, 1, NOW(), NOW()
+              )
+              RETURNING id
+            `,
+            { timeoutMs: 10000, retries: 2 }
+          );
+          
+          // Clear products cache
+          clearCache('products:');
           
           return { id: result[0].id };
         }),
@@ -1581,6 +1829,9 @@ const appRouter = router({
           
           logSecurityEvent('PRODUCT_UPDATED', { productId: id }, clientIp);
           
+          // Clear products cache
+          clearCache('products:');
+          
           return { success: true };
         }),
       
@@ -1589,8 +1840,97 @@ const appRouter = router({
         .mutation(async ({ input, ctx }) => {
           const clientIp = (ctx as Context).clientIp || 'unknown';
           logSecurityEvent('PRODUCT_DELETED', { productId: input.id }, clientIp);
-          await sql`DELETE FROM products WHERE id = ${input.id}`;
+          
+          // Clear cache for products
+          clearCache('products:');
+          
+          await safeQuery(
+            () => sql`DELETE FROM products WHERE id = ${input.id}`,
+            { timeoutMs: 5000, retries: 1 }
+          );
+          
           return { success: true };
+        }),
+      
+      uploadImage: adminProcedure
+        .input(z.object({
+          fileName: z.string().min(1).max(255),
+          fileData: z.string().min(1), // base64 encoded
+          contentType: z.string().min(1).max(100),
+        }))
+        .mutation(async ({ input, ctx }) => {
+          const clientIp = (ctx as Context).clientIp || 'unknown';
+          
+          try {
+            // Validate file size (max 5MB for base64)
+            // Base64 encoding increases size by ~33%, so 5MB base64 ≈ 3.75MB original
+            const MAX_FILE_SIZE_BASE64 = 5 * 1024 * 1024; // 5MB
+            if (input.fileData.length > MAX_FILE_SIZE_BASE64) {
+              structuredLog('warn', 'File upload rejected - file too large', {
+                fileName: input.fileName,
+                size: input.fileData.length,
+                maxSize: MAX_FILE_SIZE_BASE64,
+              }, { ip: clientIp });
+              throw new Error('File size exceeds maximum allowed (5MB)');
+            }
+            
+            // Validate content type
+            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+            if (!allowedTypes.includes(input.contentType.toLowerCase())) {
+              structuredLog('warn', 'File upload rejected - invalid content type', {
+                fileName: input.fileName,
+                contentType: input.contentType,
+              }, { ip: clientIp });
+              throw new Error('Invalid file type. Only JPEG, PNG, WebP, and GIF are allowed.');
+            }
+            
+            // Decode base64
+            let buffer: Buffer;
+            try {
+              buffer = Buffer.from(input.fileData, 'base64');
+            } catch (e) {
+              structuredLog('error', 'File upload failed - invalid base64', {
+                fileName: input.fileName,
+                error: e instanceof Error ? e.message : String(e),
+              }, { ip: clientIp });
+              throw new Error('Invalid file data format');
+            }
+            
+            // Validate actual buffer size (should match base64 size calculation)
+            const MAX_BUFFER_SIZE = 5 * 1024 * 1024; // 5MB
+            if (buffer.length > MAX_BUFFER_SIZE) {
+              structuredLog('warn', 'File upload rejected - buffer too large', {
+                fileName: input.fileName,
+                bufferSize: buffer.length,
+                maxSize: MAX_BUFFER_SIZE,
+              }, { ip: clientIp });
+              throw new Error('File size exceeds maximum allowed (5MB)');
+            }
+            
+            // Generate unique filename
+            const timestamp = Date.now();
+            const ext = input.fileName.split('.').pop() || 'jpg';
+            const sanitizedFileName = sanitizeString(input.fileName.replace(/[^a-zA-Z0-9.-]/g, '_'));
+            const key = `products/${timestamp}-${sanitizedFileName}`;
+            
+            // Upload to S3
+            const { storagePut } = await import('../server/storage');
+            const result = await storagePut(key, buffer, input.contentType);
+            
+            structuredLog('info', 'Image uploaded successfully', {
+              fileName: input.fileName,
+              key: result.key,
+              url: result.url,
+            }, { ip: clientIp });
+            
+            return { url: result.url, key: result.key };
+          } catch (error) {
+            structuredLog('error', 'Image upload failed', {
+              fileName: input.fileName,
+              error: error instanceof Error ? error.message : String(error),
+            }, { ip: clientIp });
+            throw error;
+          }
         }),
     }),
     
