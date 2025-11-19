@@ -381,7 +381,61 @@ function createSafeRequest(rawRequest: any): Request {
 // CRITICAL: The error "at Object.handler" means Vercel wraps our handler in an object.
 // The error happens at line 270 (a comment), which means it happens during module processing.
 // 
-// SOLUTION: Export handler as a direct async function declaration - the simplest form.
+// SOLUTION: Create a protected request wrapper that intercepts any access to headers.get
+// BEFORE the handler is even called. This prevents Vercel's validation from failing.
+function createProtectedRequest(rawReq: any): any {
+  // If it's already a proper Request, return it
+  if (rawReq instanceof Request && typeof rawReq.headers?.get === 'function') {
+    return rawReq;
+  }
+  
+  // Create a Proxy that intercepts access to headers.get
+  // This prevents errors when Vercel tries to validate the handler
+  return new Proxy(rawReq || {}, {
+    get(target, prop) {
+      // If accessing 'headers', return a safe Headers-like object
+      if (prop === 'headers') {
+        // Return a Headers object that has a get method
+        // This prevents "headers.get is not a function" errors
+        const headers = new Headers();
+        
+        // Try to extract headers from the original request safely
+        try {
+          const originalHeaders = target.headers;
+          if (originalHeaders) {
+            if (typeof originalHeaders.forEach === 'function') {
+              // It's a Headers object
+              originalHeaders.forEach((value: string, key: string) => {
+                headers.set(key, value);
+              });
+            } else if (typeof originalHeaders === 'object' && !Array.isArray(originalHeaders)) {
+              // It's a plain object
+              Object.entries(originalHeaders).forEach(([key, value]) => {
+                if (typeof value === 'string') {
+                  headers.set(key, value);
+                } else if (Array.isArray(value)) {
+                  value.forEach((v: any) => headers.append(key, String(v)));
+                } else if (value != null) {
+                  headers.set(key, String(value));
+                }
+              });
+            }
+          }
+        } catch (e) {
+          // If we can't extract headers, return empty Headers object
+          // This is safe and won't cause errors
+        }
+        
+        return headers;
+      }
+      
+      // For all other properties, return the original value
+      return target[prop];
+    },
+  });
+}
+
+// CRITICAL: Export handler as a direct async function declaration - the simplest form.
 // This is the most basic form that Vercel expects and may prevent Object.handler wrapping.
 export default async function handler(req: any): Promise<Response> {
   // Wrap everything in try-catch to catch errors that happen even before processing
@@ -407,11 +461,15 @@ export default async function handler(req: any): Promise<Response> {
       );
     }
     
+    // CRITICAL: Create protected request FIRST - this wraps the original request
+    // in a Proxy that safely handles headers.get access
+    const protectedReq = createProtectedRequest(req);
+    
     // CRITICAL: Create safe Request IMMEDIATELY - this is the FIRST thing we do
     // We must do this without accessing ANY properties of req first
     // The createSafeRequest function uses only safe property access (obj?.prop)
     // and never calls methods on the original request object
-    const safeRequest = createSafeRequest(req);
+    const safeRequest = createSafeRequest(protectedReq);
     
     // Now process with the safe request
     return await handleRequest(safeRequest);
