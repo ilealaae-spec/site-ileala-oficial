@@ -331,10 +331,12 @@ function createSafeRequest(rawRequest: any): Request {
 // to access request.headers.get BEFORE calling the handler. We need to use a wrapper
 // that prevents Vercel from validating the handler signature before it's called.
 // Wrapper function to intercept request before Vercel can access it
+// CRITICAL: The error happens BEFORE the handler is called, so we need to use
+// a Proxy to intercept ANY access to the request object, including headers.get
 const handlerFunction = async (req?: any, ...restArgs: any[]): Promise<Response> => {
   try {
     // Get the request - handle both direct parameter and args array
-    const rawRequest = req || restArgs[0] || (restArgs.length > 0 ? restArgs : null);
+    let rawRequest = req || restArgs[0] || (restArgs.length > 0 ? restArgs : null);
     
     if (!rawRequest) {
       return new Response(
@@ -357,9 +359,54 @@ const handlerFunction = async (req?: any, ...restArgs: any[]): Promise<Response>
       );
     }
     
+    // Create a Proxy to intercept ANY access to the request object
+    // This prevents Vercel from accessing request.headers.get before we can create a safe Request
+    let safeRequestCreated = false;
+    let cachedSafeRequest: Request | null = null;
+    
+    const proxiedRequest = new Proxy(rawRequest, {
+      get(target: any, prop: string | symbol) {
+        // If accessing headers, return a Proxy that intercepts .get() calls
+        if (prop === 'headers') {
+          return new Proxy(target.headers || {}, {
+            get(headerTarget: any, headerProp: string | symbol) {
+              // If trying to call .get(), create safe Request first
+              if (headerProp === 'get' && typeof headerTarget.get !== 'function') {
+                if (!safeRequestCreated) {
+                  cachedSafeRequest = createSafeRequest(rawRequest);
+                  safeRequestCreated = true;
+                }
+                return cachedSafeRequest!.headers.get.bind(cachedSafeRequest!.headers);
+              }
+              // For other header properties, try to get from safe Request if created
+              if (safeRequestCreated && cachedSafeRequest) {
+                return (cachedSafeRequest.headers as any)[headerProp];
+              }
+              // Fallback to original
+              return headerTarget[headerProp];
+            },
+          });
+        }
+        
+        // For other properties, if safe Request is created, use it
+        if (safeRequestCreated && cachedSafeRequest) {
+          const value = (cachedSafeRequest as any)[prop];
+          if (typeof value === 'function') {
+            return value.bind(cachedSafeRequest);
+          }
+          return value;
+        }
+        
+        // Otherwise, return from original target
+        return target[prop];
+      },
+    });
+    
     // IMMEDIATELY create a safe Request without accessing ANY properties of rawRequest
     // This must be the FIRST thing we do, before Vercel can access rawRequest.headers.get
-    const safeRequest = createSafeRequest(rawRequest);
+    const safeRequest = createSafeRequest(proxiedRequest);
+    cachedSafeRequest = safeRequest;
+    safeRequestCreated = true;
     
     // Now process with the safe request
     return await handleRequest(safeRequest);
