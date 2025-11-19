@@ -2,11 +2,7 @@
   "version": 2,
   "buildCommand": "pnpm run build",
   "outputDirectory": "dist/public",
-  "functions": {
-    "api/**/*.ts": {
-      "includeFiles": "server/**"
-    }
-  },
+  "installCommand": "pnpm install",
   "rewrites": [
     {
       "source": "/api/trpc/:path*",
@@ -17,7 +13,7 @@
       "destination": "/api/oauth/callback"
     },
     {
-      "source": "/(.* )",
+      "source": "/(.*)",
       "destination": "/index.html"
     }
   ],
