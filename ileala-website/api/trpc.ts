@@ -21,6 +21,12 @@ type PossibleRequest =
       buffer?: () => Promise<Buffer>;
     };
 
+type RequestContext = {
+  user: any;
+  setCookie: (name: string, value: string) => void;
+  clearCookie: (name: string) => void;
+};
+
 function isFetchRequest(value: PossibleRequest): value is Request {
   return (
     !!value &&
@@ -51,8 +57,12 @@ async function streamToBuffer(stream: NodeJS.ReadableStream): Promise<Buffer> {
   return Buffer.concat(chunks);
 }
 
-function bufferToArrayBuffer(buffer: Buffer): ArrayBuffer {
-  return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+function bufferToBody(buffer: Buffer): BodyInit {
+  const arrayBuffer = buffer.buffer.slice(
+    buffer.byteOffset,
+    buffer.byteOffset + buffer.byteLength
+  );
+  return arrayBuffer as ArrayBuffer;
 }
 
 function createHeadersFromObject(
@@ -132,18 +142,18 @@ async function normalizeRequest(rawRequest: PossibleRequest): Promise<Request> {
   const method = (rawRequest as any)?.method || 'GET';
   const url = buildAbsoluteUrl(rawRequest, headers);
 
-  let body: BodyInit | null = null;
+  let body: BodyInit | undefined;
   if (method !== 'GET' && method !== 'HEAD') {
     const buffered = await readBodyFromPossibleRequest(rawRequest);
     if (buffered && buffered.length > 0) {
-      body = bufferToArrayBuffer(buffered);
+      body = bufferToBody(buffered);
     }
   }
 
   return new Request(url, {
     method,
     headers,
-    body: body ?? undefined,
+    body,
   });
 }
 
@@ -159,7 +169,7 @@ const sql = postgres(process.env.DATABASE_URL || '', {
 // ============================================================================
 // TRPC SETUP
 // ============================================================================
-const t = initTRPC.create();
+const t = initTRPC.context<RequestContext>().create();
 const router = t.router;
 const publicProcedure = t.procedure;
 
@@ -270,12 +280,6 @@ async function sendVerificationEmail(email: string, token: string, name: string)
 // COOKIE HELPERS
 // ============================================================================
 const COOKIE_NAME = 'session';
-
-type RequestContext = {
-  user: any;
-  setCookie: (name: string, value: string) => void;
-  clearCookie: (name: string) => void;
-};
 
 function createSessionCookie(user: any): string {
   return JSON.stringify({
