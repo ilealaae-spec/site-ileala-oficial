@@ -332,19 +332,15 @@ function createSafeRequest(rawRequest: any): Request {
 // that prevents Vercel from validating the handler signature before it's called.
 // Wrapper function to intercept request before Vercel can access it
 // CRITICAL: The error happens at line 270 (a comment) which means Vercel is trying
-// to access request.headers.get BEFORE calling the handler. The only way to prevent
-// this is to create the safe Request IMMEDIATELY, without any property access on rawRequest.
-const handlerFunction = async (req?: any, ...restArgs: any[]): Promise<Response> => {
-  // CRITICAL: Create safeRequest IMMEDIATELY, before ANY other code runs
-  // Do NOT access req.headers, req.url, or ANY property of req before this
-  let safeRequest: Request;
+// to access request.headers.get BEFORE calling the handler. We need to ensure
+// the handler signature doesn't trigger Vercel's validation that accesses headers.get.
+const handlerFunction = async (req: any): Promise<Response> => {
+  // CRITICAL: The error happens when Vercel tries to validate/inspect the handler
+  // before calling it. By using 'any' type and not accessing req properties in the
+  // function signature, we avoid triggering Vercel's validation.
   
   try {
-    // Get the request - handle both direct parameter and args array
-    // But DO NOT access any properties of it yet
-    const rawRequest = req || restArgs[0] || (restArgs.length > 0 ? restArgs : null);
-    
-    if (!rawRequest) {
+    if (!req) {
       return new Response(
         JSON.stringify([
           {
@@ -365,9 +361,17 @@ const handlerFunction = async (req?: any, ...restArgs: any[]): Promise<Response>
       );
     }
     
-    // IMMEDIATELY create a safe Request - this is the FIRST and ONLY thing we do
-    // with rawRequest before any other code can access it
-    safeRequest = createSafeRequest(rawRequest);
+    // Check if req is already a valid Request with working headers.get
+    // If it is, use it directly; otherwise create a safe Request
+    let safeRequest: Request;
+    
+    if (req instanceof Request && typeof req.headers?.get === 'function') {
+      // It's already a valid Request - use it directly
+      safeRequest = req;
+    } else {
+      // Create a safe Request from the raw request
+      safeRequest = createSafeRequest(req);
+    }
     
     // Now process with the safe request
     return await handleRequest(safeRequest);
