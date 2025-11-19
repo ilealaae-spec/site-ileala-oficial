@@ -330,22 +330,18 @@ function createSafeRequest(rawRequest: any): Request {
 // CRITICAL: The error happens at line 270 (a comment) which means Vercel is trying
 // to access request.headers.get BEFORE calling the handler. We need to use a wrapper
 // that prevents Vercel from validating the handler signature before it's called.
-// Wrapper function to intercept request before Vercel can access it
+// Vercel handler - must export default
 // CRITICAL: The error happens at line 270 (a comment) which means Vercel is trying
-// to access request.headers.get BEFORE calling the handler. The error stack shows
-// "at Object.handler" which suggests Vercel is wrapping our handler in an Object.
-// We need to ensure the handler is a plain function, not a method of an object.
-function handlerFunction(req: any): Promise<Response> {
-  // CRITICAL: Use function declaration instead of arrow function or const
-  // This ensures the handler is a plain function, not bound to any object
-  // which might cause Vercel to try to access request.headers.get during binding
-  
-  // Log immediately to see if we even get here
-  console.log('[Vercel tRPC] Handler called, req type:', typeof req, 'is Request:', req instanceof Request);
+// to access request.headers.get BEFORE calling the handler. The stack trace shows
+// "at Object.handler" which means Vercel wraps our handler. We need to export
+// a function directly without any intermediate variables or objects.
+export default async function handler(req: any): Promise<Response> {
+  // CRITICAL: Export function directly - no intermediate variables
+  // This prevents Vercel from wrapping it in an Object that accesses headers.get
   
   try {
     if (!req) {
-      return Promise.resolve(new Response(
+      return new Response(
         JSON.stringify([
           {
             error: {
@@ -362,38 +358,15 @@ function handlerFunction(req: any): Promise<Response> {
           status: 400,
           headers: { 'Content-Type': 'application/json' },
         }
-      ));
+      );
     }
     
     // IMMEDIATELY create a safe Request - do this BEFORE any property access
     // Even checking instanceof Request might trigger property access
-    let safeRequest: Request;
-    try {
-      safeRequest = createSafeRequest(req);
-    } catch (createError) {
-      console.error('[Vercel tRPC] Failed to create safe Request:', createError);
-      return Promise.resolve(new Response(
-        JSON.stringify([
-          {
-            error: {
-              message: 'Failed to process request',
-              code: 'REQUEST_CONVERSION_ERROR',
-              data: {
-                code: 'REQUEST_CONVERSION_ERROR',
-                httpStatus: 500,
-              },
-            },
-          },
-        ]),
-        {
-          status: 500,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      ));
-    }
+    const safeRequest = createSafeRequest(req);
     
     // Now process with the safe request
-    return handleRequest(safeRequest);
+    return await handleRequest(safeRequest);
   } catch (error) {
     // Log the error
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -403,7 +376,7 @@ function handlerFunction(req: any): Promise<Response> {
     console.error('[Vercel tRPC] Error stack:', errorStack);
     
     // Return a proper error response in tRPC batch format
-    return Promise.resolve(new Response(
+    return new Response(
       JSON.stringify([
         {
           error: {
@@ -422,16 +395,9 @@ function handlerFunction(req: any): Promise<Response> {
         status: 500,
         headers: { 'Content-Type': 'application/json' },
       }
-    ));
+    );
   }
 }
-
-// Export the handler - using a const assignment instead of function declaration
-// This may prevent Vercel from trying to validate the handler signature
-// CRITICAL: The error happens at line 270 (a comment) which means Vercel is trying
-// to access request.headers.get BEFORE calling the handler. We need to ensure
-// the export doesn't trigger any validation that accesses the request.
-export default handlerFunction as any;
 
 async function handleRequest(request: any) {
   const cookies: Array<{ name: string; value: string; options: any }> = [];
