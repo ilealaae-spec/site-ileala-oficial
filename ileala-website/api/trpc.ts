@@ -512,40 +512,73 @@ async function handleRequest(request: any) {
     
     console.log('[Vercel tRPC] FinalRequest headers.get type:', typeof finalRequest.headers.get);
     
-    const response = await fetchRequestHandler({
-      endpoint: '/api/trpc',
-      req: finalRequest,
-      router: appRouter,
-      createContext: () => ctx,
-      onError: ({ error, path, type }) => {
-        console.error('[Vercel tRPC] Error in handler:', {
-          error: error.message,
-          path,
-          type,
-          stack: error.stack,
-        });
-      },
-    });
+    let response: Response;
+    try {
+      response = await fetchRequestHandler({
+        endpoint: '/api/trpc',
+        req: finalRequest,
+        router: appRouter,
+        createContext: () => ctx,
+        onError: ({ error, path, type }) => {
+          console.error('[Vercel tRPC] Error in handler:', {
+            error: error.message,
+            path,
+            type,
+            stack: error.stack,
+          });
+        },
+      });
+    } catch (handlerError) {
+      // If fetchRequestHandler throws an error, return a JSON error response
+      console.error('[Vercel tRPC] fetchRequestHandler threw error:', handlerError);
+      return new Response(
+        JSON.stringify([
+          {
+            error: {
+              message: 'Internal server error',
+              code: 'INTERNAL_SERVER_ERROR',
+              data: {
+                code: 'INTERNAL_SERVER_ERROR',
+                httpStatus: 500,
+              },
+            },
+          },
+        ]),
+        {
+          status: 500,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+    }
     
     // Ensure response is JSON - check status and content type
     const contentType = response.headers.get('content-type') || '';
     const isErrorStatus = response.status >= 400;
     
     if (isErrorStatus && !contentType.includes('application/json')) {
-      // If response is an error and not JSON, try to read it and convert to JSON error
-      const text = await response.text().catch(() => 'Unknown error');
+      // Clone response before reading to avoid consuming body
+      const clonedResponse = response.clone();
+      const text = await clonedResponse.text().catch(() => 'Unknown error');
       console.error('[Vercel tRPC] Non-JSON error response received:', text.substring(0, 200));
       
+      // Return JSON error in tRPC batch format
       return new Response(
-        JSON.stringify({
-          error: {
-            message: text.includes('server error') || text.includes('Server Error') 
-              ? 'A server error occurred. Please try again later.'
-              : 'An unexpected error occurred',
-            code: 'INTERNAL_SERVER_ERROR',
-            details: process.env.NODE_ENV === 'development' ? text.substring(0, 500) : undefined,
+        JSON.stringify([
+          {
+            error: {
+              message: text.includes('server error') || text.includes('Server Error') 
+                ? 'A server error occurred. Please try again later.'
+                : 'An unexpected error occurred',
+              code: 'INTERNAL_SERVER_ERROR',
+              data: {
+                code: 'INTERNAL_SERVER_ERROR',
+                httpStatus: response.status || 500,
+              },
+            },
           },
-        }),
+        ]),
         {
           status: response.status || 500,
           headers: {

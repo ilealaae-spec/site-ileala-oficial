@@ -52,20 +52,28 @@ const trpcClient = trpc.createClient({
           const isErrorStatus = response.status >= 400;
           
           if (isErrorStatus && !contentType.includes('application/json')) {
-            // Read the text response
-            const text = await response.text().catch(() => 'Unknown error');
+            // Clone the response before reading to avoid consuming the body
+            const clonedResponse = response.clone();
+            const text = await clonedResponse.text().catch(() => 'Unknown error');
             console.error('[Client] Non-JSON error response:', text.substring(0, 200));
             
-            // Create a new Response with JSON error
+            // Create a new Response with JSON error that tRPC can parse
+            // tRPC expects a specific format for errors
             return new Response(
-              JSON.stringify({
-                error: {
-                  message: text.includes('server error') || text.includes('Server Error')
-                    ? 'A server error occurred. Please try again later.'
-                    : 'An unexpected error occurred',
-                  code: 'INTERNAL_SERVER_ERROR',
+              JSON.stringify([
+                {
+                  error: {
+                    message: text.includes('server error') || text.includes('Server Error')
+                      ? 'A server error occurred. Please try again later.'
+                      : 'An unexpected error occurred',
+                    code: 'INTERNAL_SERVER_ERROR',
+                    data: {
+                      code: 'INTERNAL_SERVER_ERROR',
+                      httpStatus: response.status,
+                    },
+                  },
                 },
-              }),
+              ]),
               {
                 status: response.status,
                 statusText: response.statusText,
@@ -79,14 +87,20 @@ const trpcClient = trpc.createClient({
           return response;
         }).catch((error) => {
           console.error('[Client] Fetch error:', error);
-          // Return a JSON error response for network errors
+          // Return a JSON error response for network errors in tRPC format
           return new Response(
-            JSON.stringify({
-              error: {
-                message: 'Network error. Please check your connection and try again.',
-                code: 'NETWORK_ERROR',
+            JSON.stringify([
+              {
+                error: {
+                  message: 'Network error. Please check your connection and try again.',
+                  code: 'NETWORK_ERROR',
+                  data: {
+                    code: 'NETWORK_ERROR',
+                    httpStatus: 500,
+                  },
+                },
               },
-            }),
+            ]),
             {
               status: 500,
               headers: {
