@@ -2,24 +2,46 @@
   "version": 2,
   "buildCommand": "pnpm run build",
   "outputDirectory": "dist/public",
+  "functions": {
+    "api/**/*.ts": {
+      "includeFiles": "server/**"
+    }
+  },
   "rewrites": [
     {
-      "source": "/api/trpc/(.*)",
-      "destination": "/api/trpc.ts"
+      "source": "/api/trpc/:path*",
+      "destination": "/api/trpc"
     },
     {
       "source": "/api/oauth/callback",
-      "destination": "/api/oauth/callback.ts"
+      "destination": "/api/oauth/callback"
+    },
+    {
+      "source": "/(.* )",
+      "destination": "/index.html"
     }
   ],
-  "functions": {
-    "api/trpc.ts": {
-      "memory": 2048,
-      "maxDuration": 30
-    },
-    "api/oauth/callback.ts": {
-      "memory": 1024,
-      "maxDuration": 10
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Credentials",
+          "value": "true"
+        },
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET,OPTIONS,PATCH,DELETE,POST,PUT"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version"
+        }
+      ]
     }
-  }
+  ]
 }
