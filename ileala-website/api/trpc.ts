@@ -270,12 +270,15 @@ export type AppRouter = typeof appRouter;
 // ============================================================================
 // VERCEL HANDLER
 // ============================================================================
-export default async function handler(request: Request) {
+// Vercel handler - must export default
+export default async function handler(request: any) {
+  // CRITICAL: The request parameter from Vercel may not be a proper Request object
+  // We must NEVER access request.headers.get() directly as it may not be a function
+  // Instead, we immediately convert it to a safe format
+  
   // Wrap everything in try-catch to catch any errors early
-  // CRITICAL: Never access request.headers.get() directly - it may not be a function
-  // The Vercel runtime may pass the request in a way where headers.get is not bound correctly
   try {
-    // Immediately wrap the request to prevent any direct access to headers.get
+    // Immediately convert request to a safe format without accessing headers.get
     return await handleRequest(request);
   } catch (error) {
     // Log the error with as much info as possible without accessing request properties
@@ -318,16 +321,17 @@ export default async function handler(request: Request) {
   }
 }
 
-async function handleRequest(request: Request) {
+async function handleRequest(request: any) {
   const cookies: Array<{ name: string; value: string; options: any }> = [];
   
   // FIRST: Create a valid Request object BEFORE accessing any properties
   // This prevents "request.headers.get is not a function" errors
+  // The request parameter may not be a proper Request object from Vercel
   let validRequest: Request;
   try {
-    // Safely extract properties with fallbacks
-    const reqAny = request as any;
-    const url = reqAny?.url || reqAny?.href || 'http://localhost';
+    // Safely extract properties with fallbacks - use reqAny to avoid type errors
+    const reqAny = request;
+    const url = reqAny?.url || reqAny?.href || (typeof reqAny === 'string' ? reqAny : 'http://localhost');
     const method = reqAny?.method || 'GET';
     
     // Extract headers safely - handle all possible formats
