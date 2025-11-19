@@ -89,7 +89,7 @@ export async function createUserRaw(user: {
 // Generate email verification token (raw SQL)
 export async function generateEmailVerificationTokenRaw(userId: number): Promise<string> {
   console.log('[generateEmailVerificationTokenRaw] Called for user:', userId);
-  const client = await getClient();
+  const client = await getClient(); // <--- CHAMADA ADICIONADA
   if (!client) {
     console.warn("[Database] Cannot generate token: database not available");
     throw new Error("Database not available");
@@ -175,6 +175,11 @@ export async function verifyEmailTokenRaw(token: string) {
  * Get all users (for admin panel)
  */
 export async function getAllUsersRaw() {
+  const client = await getClient(); // <--- CORREÇÃO AQUI
+  if (!client) {
+    console.warn("[Database] Cannot get users: database not available");
+    throw new Error("Database not available");
+  }
   try {
     const result = await client`
       SELECT 
@@ -344,3 +349,7 @@ export async function resetPasswordWithTokenRaw(token: string, newPassword: stri
     return false;
   }
 }
+    
+  
+
+   
