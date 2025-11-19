@@ -409,7 +409,10 @@ const handlerFunction = async (req: any): Promise<Response> => {
 
 // Export the handler - using a const assignment instead of function declaration
 // This may prevent Vercel from trying to validate the handler signature
-export default handlerFunction;
+// CRITICAL: The error happens at line 270 (a comment) which means Vercel is trying
+// to access request.headers.get BEFORE calling the handler. We need to ensure
+// the export doesn't trigger any validation that accesses the request.
+export default handlerFunction as any;
 
 async function handleRequest(request: any) {
   const cookies: Array<{ name: string; value: string; options: any }> = [];
