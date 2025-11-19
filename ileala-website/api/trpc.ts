@@ -88,6 +88,18 @@ async function verifyUserCredentials(email: string, password: string) {
   const isValid = await bcrypt.compare(password, user.password);
   if (!isValid) return null;
   
+  // Update last signed in
+  try {
+    await sql`
+      UPDATE users
+      SET "lastSignedIn" = NOW()
+      WHERE id = ${user.id}
+    `;
+  } catch (e) {
+    console.warn('[Login] Failed to update lastSignedIn:', e);
+    // Continue even if update fails
+  }
+  
   return user;
 }
 
