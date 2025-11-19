@@ -342,6 +342,70 @@ const appRouter = router({
         };
       }),
   }),
+  
+  newsletter: router({
+    subscribe: publicProcedure
+      .input(z.object({
+        email: z.string().email(),
+        name: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        try {
+          console.log('[Newsletter] Subscribing:', input.email);
+          
+          // Check if email already exists
+          const existing = await sql`
+            SELECT id FROM newsletter WHERE email = ${input.email} LIMIT 1
+          `;
+          
+          if (existing.length > 0) {
+            // Update existing subscription to active
+            await sql`
+              UPDATE newsletter
+              SET active = 1, subscribed_at = NOW()
+              WHERE email = ${input.email}
+            `;
+            console.log('[Newsletter] Reactivated existing subscription');
+            return { success: true, message: 'Email already subscribed - reactivated' };
+          }
+          
+          // Insert new subscription
+          if (input.name && input.name.trim()) {
+            await sql`
+              INSERT INTO newsletter (email, name, source, active, subscribed_at)
+              VALUES (${input.email}, ${input.name.trim()}, 'website', 1, NOW())
+            `;
+          } else {
+            await sql`
+              INSERT INTO newsletter (email, source, active, subscribed_at)
+              VALUES (${input.email}, 'website', 1, NOW())
+            `;
+          }
+          
+          console.log('[Newsletter] Successfully subscribed');
+          return { success: true };
+        } catch (error: any) {
+          console.error('[Newsletter] Error:', error);
+          
+          // Check if it's a duplicate email error (unique constraint)
+          if (error.code === '23505' || error.message?.includes('unique') || error.message?.includes('duplicate')) {
+            // Try to reactivate
+            try {
+              await sql`
+                UPDATE newsletter
+                SET active = 1, subscribed_at = NOW()
+                WHERE email = ${input.email}
+              `;
+              return { success: true, message: 'Email already subscribed - reactivated' };
+            } catch (updateError) {
+              throw new Error('Email already subscribed');
+            }
+          }
+          
+          throw new Error('Failed to subscribe to newsletter');
+        }
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;
