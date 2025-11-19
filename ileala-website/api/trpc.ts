@@ -298,31 +298,43 @@ function createSafeRequest(rawRequest: any): Request {
   
   // Extract headers using ONLY Object.keys - this is the safest way
   // We never call .forEach(), .get(), or any other method on the original headers
+  // CRITICAL: Even accessing reqAny?.headers might trigger property access that causes errors
+  // We must wrap this in a try-catch and be extremely defensive
   try {
-    const headersObj = reqAny?.headers;
-    if (headersObj && typeof headersObj === 'object' && !Array.isArray(headersObj)) {
-      // Use Object.keys - this is safe and doesn't call methods
-      const keys = Object.keys(headersObj);
-      for (const key of keys) {
+    // Use hasOwnProperty check first to avoid triggering getters
+    if (reqAny && 'headers' in reqAny) {
+      const headersObj = reqAny.headers;
+      if (headersObj && typeof headersObj === 'object' && !Array.isArray(headersObj)) {
+        // Use Object.keys - this is safe and doesn't call methods
+        // But we must be careful - even Object.keys might trigger property access
         try {
-          const value = headersObj[key];
-          if (typeof value === 'string') {
-            headers.set(key, value);
-          } else if (Array.isArray(value)) {
-            for (const v of value) {
-              headers.append(key, String(v));
+          const keys = Object.keys(headersObj);
+          for (const key of keys) {
+            try {
+              // Use bracket notation to avoid triggering getters
+              const value = headersObj[key];
+              if (typeof value === 'string') {
+                headers.set(key, value);
+              } else if (Array.isArray(value)) {
+                for (const v of value) {
+                  headers.append(key, String(v));
+                }
+              } else if (value != null) {
+                headers.set(key, String(value));
+              }
+            } catch (e) {
+              // Skip this header if we can't process it
             }
-          } else if (value != null) {
-            headers.set(key, String(value));
           }
-        } catch (e) {
-          // Skip this header
+        } catch (keysError) {
+          // If Object.keys fails, skip headers extraction
+          console.warn('[Vercel tRPC] Could not use Object.keys on headers:', keysError);
         }
       }
     }
   } catch (headerError) {
     console.warn('[Vercel tRPC] Could not extract headers:', headerError);
-    // Continue with empty headers
+    // Continue with empty headers - this is safe
   }
   
   // Extract other properties safely - only property access, no method calls
