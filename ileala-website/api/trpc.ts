@@ -329,25 +329,14 @@ function createSafeRequest(rawRequest: any): Request {
 // CRITICAL: We must intercept the request IMMEDIATELY and convert it to a proper Request
 // before ANY code (including Vercel's internal code) tries to access request.headers.get
 export default async function handler(request: Request | any) {
-  // IMMEDIATELY check if this is already a valid Request
-  // If not, create a Proxy that intercepts any access and creates a valid Request on-demand
+  // NEVER try to access request.headers.get() directly - always create a safe Request first
+  // Even if it looks like a Request, it may not have properly bound methods
   let safeRequest: Request;
   
   try {
-    // Check if it's already a valid Request with working headers.get
-    if (request instanceof Request && typeof request.headers?.get === 'function') {
-      // Test if headers.get actually works
-      try {
-        request.headers.get('test');
-        safeRequest = request;
-      } catch (e) {
-        // headers.get exists but doesn't work - need to recreate
-        safeRequest = createSafeRequest(request);
-      }
-    } else {
-      // Not a valid Request - create one immediately
-      safeRequest = createSafeRequest(request);
-    }
+    // ALWAYS create a new Request object - don't trust the incoming request
+    // This ensures all methods (including headers.get) are properly bound
+    safeRequest = createSafeRequest(request);
   } catch (conversionError) {
     console.error('[Vercel tRPC] Failed to create safe Request:', conversionError);
     return new Response(
