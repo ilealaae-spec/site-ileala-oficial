@@ -272,56 +272,85 @@ export type AppRouter = typeof appRouter;
 // ============================================================================
 // Helper function to create a safe Request from any input
 function createSafeRequest(rawRequest: any): Request {
-  // Extract URL and method safely without accessing headers
-  const reqAny = rawRequest as any;
-  const url = (reqAny?.url || reqAny?.href || (typeof reqAny === 'string' ? reqAny : 'https://ileala.ae')) as string;
-  const method = (reqAny?.method || 'GET') as string;
+  // CRITICAL: This function must NEVER call any methods on the original request object.
+  // We use ONLY property access (obj?.prop), never method calls (obj.method()).
+  // Even checking typeof obj.method === 'function' can trigger property access that causes errors.
   
-  // Create headers object safely - NEVER call .get() or .forEach() on original headers
+  const reqAny = rawRequest as any;
+  
+  // Extract URL - use only safe property access
+  let url = 'https://ileala.ae';
+  try {
+    if (typeof rawRequest === 'string') {
+      url = rawRequest;
+    } else {
+      url = String(reqAny?.url || reqAny?.href || url);
+    }
+  } catch (e) {
+    // Fallback to default
+  }
+  
+  // Extract method - use only safe property access
+  const method = String(reqAny?.method || 'GET');
+  
+  // Create headers object safely - NEVER call methods on original headers
   const headers = new Headers();
   
-  // Try to extract headers without calling any methods on the original headers object
-  if (reqAny?.headers) {
-    try {
-      // Method 1: If it's a Headers object with forEach
-      if (typeof (reqAny.headers as any).forEach === 'function') {
-        (reqAny.headers as any).forEach((value: string, key: string) => {
-          headers.set(key, value);
-        });
-      } 
-      // Method 2: If it's a plain object, iterate safely
-      else if (typeof reqAny.headers === 'object' && !Array.isArray(reqAny.headers)) {
-        for (const key in reqAny.headers) {
-          if (Object.prototype.hasOwnProperty.call(reqAny.headers, key)) {
-            const value = reqAny.headers[key];
-            if (typeof value === 'string') {
-              headers.set(key, value);
-            } else if (Array.isArray(value)) {
-              value.forEach((v: any) => headers.append(key, String(v)));
+  // Extract headers using ONLY Object.keys - this is the safest way
+  // We never call .forEach(), .get(), or any other method on the original headers
+  try {
+    const headersObj = reqAny?.headers;
+    if (headersObj && typeof headersObj === 'object' && !Array.isArray(headersObj)) {
+      // Use Object.keys - this is safe and doesn't call methods
+      const keys = Object.keys(headersObj);
+      for (const key of keys) {
+        try {
+          const value = headersObj[key];
+          if (typeof value === 'string') {
+            headers.set(key, value);
+          } else if (Array.isArray(value)) {
+            for (const v of value) {
+              headers.append(key, String(v));
             }
+          } else if (value != null) {
+            headers.set(key, String(value));
           }
+        } catch (e) {
+          // Skip this header
         }
       }
-    } catch (headerError) {
-      console.warn('[Vercel tRPC] Could not extract headers:', headerError);
-      // Continue with empty headers
     }
+  } catch (headerError) {
+    console.warn('[Vercel tRPC] Could not extract headers:', headerError);
+    // Continue with empty headers
   }
+  
+  // Extract other properties safely - only property access, no method calls
+  const body = reqAny?.body;
+  const cache = reqAny?.cache;
+  const credentials = reqAny?.credentials;
+  const integrity = reqAny?.integrity;
+  const keepalive = reqAny?.keepalive;
+  const mode = reqAny?.mode;
+  const redirect = reqAny?.redirect;
+  const referrer = reqAny?.referrer;
+  const referrerPolicy = reqAny?.referrerPolicy;
+  const signal = reqAny?.signal;
   
   // Create a proper Request object
   return new Request(url, {
     method,
     headers,
-    body: reqAny?.body,
-    cache: reqAny?.cache,
-    credentials: reqAny?.credentials,
-    integrity: reqAny?.integrity,
-    keepalive: reqAny?.keepalive,
-    mode: reqAny?.mode,
-    redirect: reqAny?.redirect,
-    referrer: reqAny?.referrer,
-    referrerPolicy: reqAny?.referrerPolicy,
-    signal: reqAny?.signal,
+    body,
+    cache,
+    credentials,
+    integrity,
+    keepalive,
+    mode,
+    redirect,
+    referrer,
+    referrerPolicy,
+    signal,
   });
 }
 
