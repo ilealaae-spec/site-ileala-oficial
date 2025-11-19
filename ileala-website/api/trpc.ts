@@ -326,17 +326,12 @@ function createSafeRequest(rawRequest: any): Request {
 }
 
 // Vercel handler - must export default
-// CRITICAL: The error at line 270 suggests Vercel accesses request.headers.get
-// before calling the handler. We must ensure the handler signature is exactly
-// what Vercel expects and never access request properties before creating safeRequest.
-export default async function handler(req: any): Promise<Response> {
-  // CRITICAL: Do NOT access req.headers, req.headers.get, or ANY property of req
-  // before calling createSafeRequest. The error happens when Vercel tries to
-  // validate/inspect the request parameter before calling this function.
-  
+// Using Node.js runtime (nodejs20.x) to avoid Edge Runtime issues with request.headers.get
+// Node.js runtime uses standard Request/Response objects from Fetch API
+export default async function handler(req: Request): Promise<Response> {
   try {
-    // IMMEDIATELY create a safe Request without accessing ANY properties of req
-    // This is the FIRST and ONLY thing we do with req before processing
+    // With Node.js runtime, req should already be a proper Request object
+    // But we'll still create a safe Request to be absolutely sure
     const safeRequest = createSafeRequest(req);
     
     // Now process with the safe request
