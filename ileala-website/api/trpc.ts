@@ -2276,9 +2276,47 @@ function createProtectedRequest(rawReq: any): any {
 // SOLUTION: Use a factory function that creates the handler, preventing Vercel from inspecting it.
 // CRITICAL: The handler must NEVER access req.headers.get directly - always convert to Request first.
 // Solução: Usar fetchRequestHandler com Fetch API conforme Opção 1 do suporte Vercel
-// Isso permite que o Vercel reconheça o handler como Fetch handler e não tente
-// inspecioná-lo como Node.js handler, evitando o erro request.headers.get
-export default async function handler(request: Request): Promise<Response> {
+// Wrapper que converte VercelRequest para Request se necessário
+// Isso evita que o Vercel tente inspecionar o handler e acesse métodos inexistentes
+export default async function handler(
+  req: Request | any
+): Promise<Response> {
+  // Se o Vercel passar um VercelRequest, converter para Request
+  let request: Request;
+  
+  if (req instanceof Request) {
+    // Já é um Request válido
+    request = req;
+  } else {
+    // É um VercelRequest - converter para Request
+    const url = req.url || (req as any).href || 'http://localhost';
+    const method = req.method || 'GET';
+    
+    // Converter headers de VercelRequest para Headers
+    const headers = new Headers();
+    if (req.headers) {
+      for (const [key, value] of Object.entries(req.headers)) {
+        if (value !== undefined) {
+          if (Array.isArray(value)) {
+            for (const v of value) {
+              headers.append(key, String(v));
+            }
+          } else {
+            headers.set(key, String(value));
+          }
+        }
+      }
+    }
+    
+    // Criar Request com body se existir
+    const body = req.body ? JSON.stringify(req.body) : null;
+    
+    request = new Request(url, {
+      method,
+      headers,
+      body,
+    });
+  }
   // Array para armazenar cookies que serão adicionados à resposta
   const cookies: Array<{ name: string; value: string; options: any }> = [];
   
