@@ -1,7 +1,8 @@
 // api/trpc.ts - Vercel Serverless Function with inline dependencies
 import { initTRPC } from '@trpc/server';
-import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
+import { nodeHTTPRequestHandler } from '@trpc/server/adapters/node-http';
 import { z } from 'zod';
+import type { IncomingMessage, ServerResponse } from 'http';
 import { neon } from '@neondatabase/serverless';
 import bcrypt from 'bcryptjs';
 import { nanoid } from 'nanoid';
@@ -2282,80 +2283,96 @@ function createProtectedRequest(rawReq: any): any {
 // CRITICAL: Export handler directly as an async function
 // This prevents Vercel from wrapping it in Object.handler
 // The error "at Object.handler" happens when Vercel wraps the handler
-export default async function handler(req: any): Promise<Response> {
-    // IMMEDIATELY wrap in try-catch to catch ANY error, including during Vercel's inspection
-    try {
-      // CRITICAL: Convert req to Request IMMEDIATELY using ONLY property access
-      // NEVER access req.headers.get or any method on req
-      let url = 'https://ileala.ae';
-      let method = 'GET';
-      const headers = new Headers();
-      
-      // Extract properties using ONLY bracket notation and typeof checks
-      // This prevents Vercel from trying to call methods during inspection
-      try {
-        if (req && typeof req === 'object') {
-          // Extract URL - use only property access
-          if ('url' in req && typeof req.url === 'string') {
-            url = req.url;
-          } else if ('href' in req && typeof req.href === 'string') {
-            url = req.href;
+// CRITICAL: Use nodeHTTPRequestHandler instead of fetchRequestHandler
+// This is more compatible with Vercel's Node.js runtime and doesn't require Request/Response objects
+export default async function handler(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  // IMMEDIATELY wrap in try-catch to catch ANY error
+  try {
+    // nodeHTTPRequestHandler works directly with Node.js IncomingMessage/ServerResponse
+    // No need to convert to Request/Response - this avoids the headers.get error
+    await nodeHTTPRequestHandler({
+      req,
+      res,
+      router: appRouter,
+      createContext: () => {
+        // Extract client IP from req
+        const forwardedFor = req.headers['x-forwarded-for'];
+        const realIp = req.headers['x-real-ip'];
+        const clientIp = typeof forwardedFor === 'string' 
+          ? forwardedFor.split(',')[0]?.trim() 
+          : typeof realIp === 'string' 
+            ? realIp 
+            : 'unknown';
+        
+        // Parse cookies from request
+        const cookieHeader = req.headers.cookie;
+        const parsedCookies = parseCookie(cookieHeader);
+        
+        // Parse user from session cookie
+        let user = null;
+        try {
+          if (parsedCookies[COOKIE_NAME]) {
+            user = JSON.parse(parsedCookies[COOKIE_NAME]);
           }
-          
-          // Extract method - use only property access
-          if ('method' in req && typeof req.method === 'string') {
-            method = req.method;
-          }
-          
-          // Extract headers - use ONLY Object.keys, NEVER call methods
-          if ('headers' in req && req.headers && typeof req.headers === 'object' && !Array.isArray(req.headers)) {
-            try {
-              // Use Object.keys - this is safe and doesn't call methods
-              const headerKeys = Object.keys(req.headers);
-              for (const key of headerKeys) {
-                try {
-                  const value = req.headers[key];
-                  if (typeof value === 'string') {
-                    headers.set(key, value);
-                  } else if (Array.isArray(value)) {
-                    for (const v of value) {
-                      headers.append(key, String(v));
-                    }
-                  } else if (value != null && value !== undefined) {
-                    headers.set(key, String(value));
-                  }
-                } catch (e) {
-                  // Skip this header if we can't process it
-                }
-              }
-            } catch (e) {
-              // If Object.keys fails, continue with empty headers
-            }
-          }
+        } catch (e) {
+          // Invalid session
         }
-      } catch (e) {
-        // If extraction fails, use defaults (already set above)
-      }
-      
-      // Create a completely new Request object from extracted values
-      // This ensures no reference to the original req remains
-      const validRequest = new Request(url, {
-        method,
-        headers, // Fresh Headers object with no reference to original
-        body: req?.body,
-        cache: req?.cache,
-        credentials: req?.credentials,
-        integrity: req?.integrity,
-        keepalive: req?.keepalive,
-        mode: req?.mode,
-        redirect: req?.redirect,
-        referrer: req?.referrer,
-        referrerPolicy: req?.referrerPolicy,
-        signal: req?.signal,
-      });
-      
-      // Now process with the completely isolated request
-      return await handleRequest(validRequest);
+        
+        // Create context with cookie management
+  const cookies: Array<{ name: string; value: string; options: any }> = [];
+        
+        return {
+          user,
+          clientIp,
+          setCookie(name: string, value: string) {
+            cookies.push({
+              name,
+              value,
+              options: {
+                path: '/',
+                httpOnly: true,
+                secure: true,
+                sameSite: 'Lax',
+                maxAge: 365 * 24 * 60 * 60, // 1 year
+              },
+            });
+            // Set cookie immediately on response
+            const cookieString = createSetCookieHeader(name, value, {
+              path: '/',
+              httpOnly: true,
+              secure: true,
+              sameSite: 'Lax',
+              maxAge: 365 * 24 * 60 * 60,
+            });
+            res.setHeader('Set-Cookie', cookieString);
+          },
+          clearCookie(name: string) {
+            cookies.push({
+              name,
+              value: '',
+              options: {
+                path: '/',
+                maxAge: -1,
+              },
+            });
+            // Clear cookie immediately on response
+            const cookieString = createSetCookieHeader(name, '', {
+              path: '/',
+              maxAge: -1,
+            });
+            res.setHeader('Set-Cookie', cookieString);
+          },
+        } as Context;
+      },
+      onError: ({ error, path, type }) => {
+        console.error('[Vercel tRPC] Error in handler:', {
+          error: error.message,
+          path,
+          type,
+          stack: error.stack,
+        });
+      },
+    });
   } catch (error) {
     // Log the error with full details
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -2366,30 +2383,29 @@ export default async function handler(req: any): Promise<Response> {
     console.error('[Vercel tRPC] Request type:', typeof req);
     console.error('[Vercel tRPC] Request keys:', req ? Object.keys(req).slice(0, 10) : 'null');
     
-    // Return a proper error response in tRPC batch format
-    return new Response(
-      JSON.stringify([
-        {
-          error: {
-            message: errorMessage.includes('headers.get') 
-              ? 'Request headers are not accessible in the expected format'
-              : 'Internal server error',
+    // Return a proper error response using ServerResponse
+    res.statusCode = 500;
+    res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify([
+      {
+        error: {
+          message: errorMessage.includes('headers.get') 
+            ? 'Request headers are not accessible in the expected format'
+            : 'Internal server error',
+          code: 'INTERNAL_SERVER_ERROR',
+          data: {
             code: 'INTERNAL_SERVER_ERROR',
-            data: {
-              code: 'INTERNAL_SERVER_ERROR',
-              httpStatus: 500,
-            },
+            httpStatus: 500,
           },
         },
-      ]),
-      {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      }
-    );
+      },
+    ]));
   }
 }
 
+// OBSOLETO: Esta função não é mais usada - o handler principal usa nodeHTTPRequestHandler diretamente
+// Mantida apenas para referência histórica
+/*
 async function handleRequest(request: any): Promise<Response> {
   // CRITICAL: Wrap everything in try-catch to ensure we ALWAYS return JSON
   // Even if there's an error, we must return a JSON response, not HTML
@@ -2778,3 +2794,4 @@ async function handleRequest(request: any): Promise<Response> {
     );
   }
 }
+*/
