@@ -1,74 +1,10 @@
 // api/trpc.ts - Vercel Serverless Function with inline dependencies
 import { initTRPC } from '@trpc/server';
-import { nodeHTTPRequestHandler } from '@trpc/server/adapters/node-http';
+import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
 import { z } from 'zod';
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { IncomingMessage, ServerResponse } from 'http';
 import { neon } from '@neondatabase/serverless';
 import bcrypt from 'bcryptjs';
 import { nanoid } from 'nanoid';
-
-// Helper para converter VercelRequest para IncomingMessage de forma segura
-function createIncomingMessage(req: VercelRequest): IncomingMessage {
-  const msg = Object.create(IncomingMessage.prototype);
-  
-  // Converter headers para objeto simples (sem métodos .get())
-  const headers: Record<string, string | string[]> = {};
-  for (const [key, value] of Object.entries(req.headers || {})) {
-    if (value !== undefined) {
-      headers[key.toLowerCase()] = value;
-    }
-  }
-  
-  // Criar objeto IncomingMessage com todas as propriedades necessárias
-  Object.assign(msg, {
-    headers,
-    url: req.url || '',
-    method: req.method || 'GET',
-    httpVersion: '1.1',
-    httpVersionMajor: 1,
-    httpVersionMinor: 1,
-    complete: false,
-    rawHeaders: [],
-    rawTrailers: [],
-    trailers: {},
-    aborted: false,
-    upgrade: false,
-    statusCode: null,
-    statusMessage: null,
-    socket: null,
-    destroy: () => {},
-    setTimeout: () => {},
-    setEncoding: () => {},
-    pause: () => msg,
-    resume: () => msg,
-    read: () => null,
-    addListener: () => msg,
-    on: () => msg,
-    once: () => msg,
-    removeListener: () => msg,
-    off: () => msg,
-    removeAllListeners: () => msg,
-    setMaxListeners: () => msg,
-    getMaxListeners: () => 10,
-    listeners: () => [],
-    rawListeners: () => [],
-    emit: () => false,
-    listenerCount: () => 0,
-    prependListener: () => msg,
-    prependOnceListener: () => msg,
-    eventNames: () => [],
-  });
-  
-  return msg as IncomingMessage;
-}
-
-// Helper para converter VercelResponse para ServerResponse
-function createServerResponse(res: VercelResponse): ServerResponse {
-  const srvRes = Object.create(ServerResponse.prototype);
-  Object.assign(srvRes, res);
-  return srvRes as ServerResponse;
-}
 
 // ============================================================================
 // ENVIRONMENT VALIDATION
@@ -2339,108 +2275,116 @@ function createProtectedRequest(rawReq: any): any {
 // The error occurs because Vercel tries to access req.headers.get during inspection.
 // SOLUTION: Use a factory function that creates the handler, preventing Vercel from inspecting it.
 // CRITICAL: The handler must NEVER access req.headers.get directly - always convert to Request first.
-// Solução: Converter VercelRequest/VercelResponse para IncomingMessage/ServerResponse
-// antes de passar para nodeHTTPRequestHandler, evitando que o Vercel tente
-// inspecionar o handler e acesse métodos que não existem
-export default function handler(req: VercelRequest, res: VercelResponse): void {
-  // Converter VercelRequest para IncomingMessage de forma segura
-  // Isso cria um objeto válido sem métodos .get() que causam o erro
-  const nodeReq = createIncomingMessage(req);
-  const nodeRes = createServerResponse(res);
+// Solução: Usar fetchRequestHandler com Fetch API conforme Opção 1 do suporte Vercel
+// Isso permite que o Vercel reconheça o handler como Fetch handler e não tente
+// inspecioná-lo como Node.js handler, evitando o erro request.headers.get
+export default async function handler(request: Request): Promise<Response> {
+  // Array para armazenar cookies que serão adicionados à resposta
+  const cookies: Array<{ name: string; value: string; options: any }> = [];
   
-  nodeHTTPRequestHandler({
-    req: nodeReq,
-    res: nodeRes,
-    router: appRouter,
-    createContext: () => {
-      // Extract client IP from req (VercelRequest headers can be string or array)
-      const forwardedFor = req.headers['x-forwarded-for'];
-      const realIp = req.headers['x-real-ip'];
-      const clientIp = typeof forwardedFor === 'string' 
-        ? forwardedFor.split(',')[0]?.trim() 
-        : Array.isArray(forwardedFor)
-          ? forwardedFor[0]?.split(',')[0]?.trim() || 'unknown'
-          : typeof realIp === 'string' 
-            ? realIp 
-            : Array.isArray(realIp)
-              ? realIp[0] || 'unknown'
-              : 'unknown';
-      
-      // Parse cookies from request (VercelRequest headers can be string or array)
-      const cookieHeader = typeof req.headers.cookie === 'string' 
-        ? req.headers.cookie 
-        : Array.isArray(req.headers.cookie)
-          ? req.headers.cookie[0]
-          : '';
-      const parsedCookies = parseCookie(cookieHeader);
-      
-      // Parse user from session cookie
-      let user = null;
-      try {
-        if (parsedCookies[COOKIE_NAME]) {
-          user = JSON.parse(parsedCookies[COOKIE_NAME]);
-        }
-      } catch (e) {
-        // Invalid session
+  // Função para criar contexto com gerenciamento de cookies
+  const createContext = (): Context => {
+    // Extrair IP do cliente dos headers
+    const forwardedFor = request.headers.get('x-forwarded-for');
+    const realIp = request.headers.get('x-real-ip');
+    const clientIp = forwardedFor 
+      ? forwardedFor.split(',')[0]?.trim() || 'unknown'
+      : realIp || 'unknown';
+    
+    // Parse cookies do request
+    const cookieHeader = request.headers.get('cookie') || '';
+    const parsedCookies = parseCookie(cookieHeader);
+    
+    // Parse user da session cookie
+    let user = null;
+    try {
+      if (parsedCookies[COOKIE_NAME]) {
+        user = JSON.parse(parsedCookies[COOKIE_NAME]);
       }
-      
-      // Create context with cookie management
-      return {
-        user,
-        clientIp,
-        setCookie(name: string, value: string) {
-          // Set cookie immediately on response using VercelResponse
-          const cookieString = createSetCookieHeader(name, value, {
+    } catch (e) {
+      // Invalid session
+    }
+    
+    // Retornar contexto com funções de cookie que armazenam na array
+    return {
+      user,
+      clientIp,
+      setCookie(name: string, value: string) {
+        cookies.push({
+          name,
+          value,
+          options: {
             path: '/',
             httpOnly: true,
             secure: true,
             sameSite: 'Lax',
             maxAge: 365 * 24 * 60 * 60,
-          });
-          res.setHeader('Set-Cookie', cookieString);
-        },
-        clearCookie(name: string) {
-          // Clear cookie immediately on response using VercelResponse
-          const cookieString = createSetCookieHeader(name, '', {
+          },
+        });
+      },
+      clearCookie(name: string) {
+        cookies.push({
+          name,
+          value: '',
+          options: {
             path: '/',
             maxAge: -1,
-          });
-          res.setHeader('Set-Cookie', cookieString);
-        },
-      } as Context;
-    },
-    onError: ({ error, path, type }) => {
-      console.error('[Vercel tRPC] Error in handler:', {
-        error: error.message,
-        path,
-        type,
-        stack: error.stack,
-      });
-      
-      // Se a resposta ainda não foi enviada, enviar erro JSON
-      if (!res.headersSent) {
-        res.status(500).json([
-          {
-            error: {
-              message: error.message || 'Internal server error',
-              code: 'INTERNAL_SERVER_ERROR',
-              data: {
-                code: 'INTERNAL_SERVER_ERROR',
-                httpStatus: 500,
-              },
-            },
           },
-        ]);
+        });
+      },
+    };
+  };
+  
+  try {
+    // Usar fetchRequestHandler conforme recomendação do suporte Vercel (Opção 1)
+    const response = await fetchRequestHandler({
+      endpoint: '/api/trpc',
+      req: request,
+      router: appRouter,
+      createContext,
+      onError: ({ error, path, type }) => {
+        console.error('[Vercel tRPC] Error in handler:', {
+          error: error.message,
+          path,
+          type,
+          stack: error.stack,
+        });
+      },
+    });
+    
+    // Adicionar cookies à resposta se houver
+    if (cookies.length > 0) {
+      const newHeaders = new Headers(response.headers);
+      
+      for (const { name, value, options } of cookies) {
+        const cookieString = createSetCookieHeader(name, value, options);
+        newHeaders.append('Set-Cookie', cookieString);
       }
-    },
-  }).catch((error) => {
-    // Tratar erros não capturados pelo onError
-    console.error('[Vercel tRPC] Unhandled error in handler:', error);
-    if (!res.headersSent) {
-      res.status(500).json([
+      
+      return new Response(response.body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: newHeaders,
+      });
+    }
+    
+    return response;
+  } catch (error) {
+    // Log do erro
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : 'No stack';
+    
+    console.error('[Vercel tRPC] Error in handler:', errorMessage);
+    console.error('[Vercel tRPC] Error stack:', errorStack);
+    
+    // Retornar resposta JSON de erro no formato tRPC batch
+    return new Response(
+      JSON.stringify([
         {
           error: {
-            message: error instanceof Error ? error.message : 'Internal server error',
+            message: errorMessage.includes('headers.get') 
+              ? 'Request headers are not accessible in the expected format'
+              : 'Internal server error',
             code: 'INTERNAL_SERVER_ERROR',
             data: {
               code: 'INTERNAL_SERVER_ERROR',
@@ -2448,8 +2392,14 @@ export default function handler(req: VercelRequest, res: VercelResponse): void {
             },
           },
         },
-      ]);
-    }
-  });
+      ]),
+      {
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+  }
 }
 
