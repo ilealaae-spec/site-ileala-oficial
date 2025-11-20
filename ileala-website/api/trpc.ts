@@ -1,7 +1,9 @@
 // api/trpc.ts - Vercel Serverless Function with inline dependencies
 import { initTRPC } from '@trpc/server';
-import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
+import { nodeHTTPRequestHandler } from '@trpc/server/adapters/node-http';
 import { z } from 'zod';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { IncomingMessage, ServerResponse } from 'http';
 import { neon } from '@neondatabase/serverless';
 import bcrypt from 'bcryptjs';
 import { nanoid } from 'nanoid';
@@ -2282,51 +2284,52 @@ function createProtectedRequest(rawReq: any): any {
 // CRITICAL: Export handler directly as an async function
 // This prevents Vercel from wrapping it in Object.handler
 // The error "at Object.handler" happens when Vercel wraps the handler
-// CRITICAL: Use fetchRequestHandler with Edge Runtime (Recomendado pelo suporte Vercel)
-// fetchRequestHandler é projetado para trabalhar com a API Web padrão (Request/Response)
-// e funciona nativamente com Vercel, evitando problemas com headers.get
-export const config = {
-  runtime: 'edge', // Edge Runtime usa Request/Response nativamente
-};
-
-export default async function handler(req: Request): Promise<Response> {
+// CRITICAL: Opção 2 do suporte Vercel - Converter VercelRequest para IncomingMessage
+// Edge Runtime não suporta bcryptjs e outras dependências Node.js
+// Precisamos usar Node.js runtime e converter VercelRequest para IncomingMessage
+export default async function handler(
+  req: VercelRequest,
+  res: VercelResponse
+): Promise<void> {
   // IMMEDIATELY wrap in try-catch to catch ANY error
   try {
-    // CRITICAL: Create a completely new Request object to prevent Vercel inspection issues
-    // Even with Edge Runtime, Vercel may inspect the handler before execution
-    // Creating a new Request ensures no reference to the original remains
-    const safeRequest = new Request(req.url, {
-      method: req.method,
-      headers: new Headers(req.headers), // Create new Headers from original
-      body: req.body,
-      cache: req.cache,
-      credentials: req.credentials,
-      integrity: req.integrity,
-      keepalive: req.keepalive,
-      mode: req.mode,
-      redirect: req.redirect,
-      referrer: req.referrer,
-      referrerPolicy: req.referrerPolicy,
-      signal: req.signal,
-    });
+    // CRITICAL: Convert VercelRequest to IncomingMessage using Object.assign and Object.create
+    // This is the recommended approach from Vercel support (Opção 2)
+    const nodeReq = Object.assign(
+      Object.create(IncomingMessage.prototype),
+      req
+    ) as IncomingMessage;
     
-    // fetchRequestHandler works directly with Request/Response (Web Standard API)
-    // This is the recommended approach for tRPC on Vercel with Edge Runtime
-    const cookies: Array<{ name: string; value: string; options: any }> = [];
+    const nodeRes = Object.assign(
+      Object.create(ServerResponse.prototype),
+      res
+    ) as ServerResponse;
     
-    return await fetchRequestHandler({
-      endpoint: '/api/trpc',
-      req: safeRequest, // Use the safe Request, not the original
+    // nodeHTTPRequestHandler works with Node.js IncomingMessage/ServerResponse
+    await nodeHTTPRequestHandler({
+      req: nodeReq,
+      res: nodeRes,
       router: appRouter,
       createContext: () => {
-        // Extract client IP from Request headers (Web Standard API uses headers.get)
-        // Use safeRequest, not the original req
-        const forwardedFor = safeRequest.headers.get('x-forwarded-for');
-        const realIp = safeRequest.headers.get('x-real-ip');
-        const clientIp = forwardedFor?.split(',')[0]?.trim() || realIp || 'unknown';
+        // Extract client IP from req (VercelRequest headers can be string or array)
+        const forwardedFor = req.headers['x-forwarded-for'];
+        const realIp = req.headers['x-real-ip'];
+        const clientIp = typeof forwardedFor === 'string' 
+          ? forwardedFor.split(',')[0]?.trim() 
+          : Array.isArray(forwardedFor)
+            ? forwardedFor[0]?.split(',')[0]?.trim() || 'unknown'
+            : typeof realIp === 'string' 
+              ? realIp 
+              : Array.isArray(realIp)
+                ? realIp[0] || 'unknown'
+                : 'unknown';
         
-        // Parse cookies from request (Web Standard API)
-        const cookieHeader = safeRequest.headers.get('cookie') || '';
+        // Parse cookies from request (VercelRequest headers can be string or array)
+        const cookieHeader = typeof req.headers.cookie === 'string' 
+          ? req.headers.cookie 
+          : Array.isArray(req.headers.cookie)
+            ? req.headers.cookie[0]
+            : '';
         const parsedCookies = parseCookie(cookieHeader);
         
         // Parse user from session cookie
@@ -2340,32 +2343,27 @@ export default async function handler(req: Request): Promise<Response> {
         }
         
         // Create context with cookie management
-        // Cookies will be added to response headers after fetchRequestHandler returns
         return {
           user,
           clientIp,
           setCookie(name: string, value: string) {
-            cookies.push({
-              name,
-              value,
-              options: {
-                path: '/',
-                httpOnly: true,
-                secure: true,
-                sameSite: 'Lax',
-                maxAge: 365 * 24 * 60 * 60,
-              },
+            // Set cookie immediately on response using VercelResponse
+            const cookieString = createSetCookieHeader(name, value, {
+              path: '/',
+              httpOnly: true,
+              secure: true,
+              sameSite: 'Lax',
+              maxAge: 365 * 24 * 60 * 60,
             });
+            res.setHeader('Set-Cookie', cookieString);
           },
           clearCookie(name: string) {
-            cookies.push({
-              name,
-              value: '',
-              options: {
-                path: '/',
-                maxAge: -1,
-              },
+            // Clear cookie immediately on response using VercelResponse
+            const cookieString = createSetCookieHeader(name, '', {
+              path: '/',
+              maxAge: -1,
             });
+            res.setHeader('Set-Cookie', cookieString);
           },
         } as Context;
       },
@@ -2377,24 +2375,6 @@ export default async function handler(req: Request): Promise<Response> {
           stack: error.stack,
         });
       },
-    }).then((response) => {
-      // Add cookies to response headers
-      if (cookies.length > 0) {
-        const newHeaders = new Headers(response.headers);
-        
-        for (const { name, value, options } of cookies) {
-          const cookieString = createSetCookieHeader(name, value, options);
-          newHeaders.append('Set-Cookie', cookieString);
-        }
-        
-        return new Response(response.body, {
-          status: response.status,
-          statusText: response.statusText,
-          headers: newHeaders,
-        });
-      }
-      
-      return response;
     });
   } catch (error) {
     // Log the error with full details
@@ -2405,29 +2385,21 @@ export default async function handler(req: Request): Promise<Response> {
     console.error('[Vercel tRPC] Error stack:', errorStack);
     console.error('[Vercel tRPC] Request type:', typeof req);
     
-    // Return a proper error response using Response (Web Standard API)
-    return new Response(
-      JSON.stringify([
-        {
-          error: {
-            message: errorMessage.includes('headers.get') 
-              ? 'Request headers are not accessible in the expected format'
-              : 'Internal server error',
+    // Return a proper error response using VercelResponse
+    res.status(500).json([
+      {
+        error: {
+          message: errorMessage.includes('headers.get') 
+            ? 'Request headers are not accessible in the expected format'
+            : 'Internal server error',
+          code: 'INTERNAL_SERVER_ERROR',
+          data: {
             code: 'INTERNAL_SERVER_ERROR',
-            data: {
-              code: 'INTERNAL_SERVER_ERROR',
-              httpStatus: 500,
-            },
+            httpStatus: 500,
           },
         },
-      ]),
-      {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+      },
+    ]);
   }
 }
 
