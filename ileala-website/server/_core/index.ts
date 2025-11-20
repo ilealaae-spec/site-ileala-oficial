@@ -36,7 +36,6 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   
   // Apply rate limiting to tRPC endpoints
-  app.use("/api/trpc", trpcRateLimiterMiddleware);
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
   // tRPC API
