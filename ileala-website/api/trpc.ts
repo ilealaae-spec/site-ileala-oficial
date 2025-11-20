@@ -2293,43 +2293,44 @@ export default async function handler(
 ): Promise<void> {
   // IMMEDIATELY wrap in try-catch to catch ANY error
   try {
-    // CRITICAL: Create a proper IncomingMessage-compatible object
-    // nodeHTTPRequestHandler expects IncomingMessage which has headers as a plain object
-    // VercelRequest has headers as a plain object, but we need to ensure compatibility
-    const nodeReq = Object.assign(
-      Object.create(IncomingMessage.prototype),
-      {
-        ...req,
-        // Ensure headers is a plain object (IncomingMessage uses req.headers, not req.headers.get)
-        headers: req.headers,
-        // Add url property if missing (IncomingMessage has url)
-        url: req.url || (req as any).href || '',
-        // Add method property
-        method: req.method || 'GET',
-      }
-    ) as IncomingMessage;
+    // CRITICAL: Convert headers to plain object FIRST, before creating IncomingMessage
+    // This prevents ANY code from trying to call headers.get() on a Headers object
+    const plainHeaders: Record<string, string | string[]> = {};
     
-    // Ensure headers is a plain object, not a Headers object with .get() method
-    // This prevents the "headers.get is not a function" error
-    if (nodeReq.headers && typeof (nodeReq.headers as any).get === 'function') {
-      // Convert Headers object to plain object
-      const plainHeaders: Record<string, string | string[]> = {};
-      try {
-        (nodeReq.headers as any).forEach((value: string, key: string) => {
+    // Convert VercelRequest headers to plain object
+    if (req.headers) {
+      // VercelRequest headers can be string, string[], or undefined
+      for (const [key, value] of Object.entries(req.headers)) {
+        if (value !== undefined) {
           plainHeaders[key] = value;
-        });
-      } catch (e) {
-        // If forEach doesn't work, try entries
-        try {
-          for (const [key, value] of (nodeReq.headers as any).entries()) {
-            plainHeaders[key] = value;
-          }
-        } catch (e2) {
-          // Fallback: use original headers if conversion fails
         }
       }
-      nodeReq.headers = plainHeaders as any;
     }
+    
+    // CRITICAL: Create IncomingMessage with plain headers object
+    // Use Proxy to intercept ANY attempt to access headers.get() and throw helpful error
+    const nodeReq = new Proxy(
+      Object.assign(
+        Object.create(IncomingMessage.prototype),
+        {
+          ...req,
+          headers: plainHeaders, // Use plain object, never Headers with .get()
+          url: req.url || (req as any).href || '',
+          method: req.method || 'GET',
+        }
+      ) as IncomingMessage,
+      {
+        get(target, prop) {
+          // Intercept access to 'headers' property
+          if (prop === 'headers') {
+            // Return plain object, never allow access to Headers with .get()
+            return plainHeaders;
+          }
+          // For all other properties, return normally
+          return (target as any)[prop];
+        },
+      }
+    );
     
     const nodeRes = Object.assign(
       Object.create(ServerResponse.prototype),
