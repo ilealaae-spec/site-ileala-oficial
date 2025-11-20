@@ -22,9 +22,15 @@ O Railway detectará automaticamente:
 
 ### 3. Configurar Variáveis de Ambiente
 
-Adicione todas as variáveis abaixo no Railway:
+**⚠️ IMPORTANTE: Você precisa adicionar as variáveis MANUALMENTE no Railway.**
 
-**Settings → Variables → New Variable**
+**Opção 1: Usar arquivo de referência (Recomendado)**
+- Abra o arquivo `VARIAVEIS_RAILWAY.txt` na raiz do projeto
+- Copie cada variável e cole no Railway Dashboard
+
+**Opção 2: Seguir lista abaixo**
+- Adicione cada variável manualmente em **Settings → Variables → New Variable**
+- Substitua os valores placeholder pelos seus valores reais
 
 #### 🔴 CRÍTICAS (Obrigatórias)
 

@@ -1,0 +1,83 @@
+# ============================================================================
+# VARIÁVEIS DE AMBIENTE PARA RAILWAY
+# ============================================================================
+# Copie e cole estas variáveis no Railway Dashboard
+# Settings → Variables → New Variable
+# ============================================================================
+
+# ============================================================================
+# 🔴 CRÍTICAS (Obrigatórias - sem essas o site não funciona)
+# ============================================================================
+
+DATABASE_URL=postgresql://user:password@host.neon.tech:5432/dbname?sslmode=require
+JWT_SECRET=your_very_strong_random_secret_key_here_min_32_chars
+NODE_ENV=production
+PORT=3000
+
+# ============================================================================
+# 🟡 IMPORTANTES (Funcionalidades principais)
+# ============================================================================
+
+STRIPE_SECRET_KEY=sk_live_xxx_ou_sk_test_xxx
+STRIPE_WEBHOOK_SECRET=whsec_xxx
+RESEND_API_KEY=re_xxx
+SITE_URL=https://ileala.ae
+
+# ============================================================================
+# 🟢 FRONTEND (Vite - Build Time - necessárias para o build funcionar)
+# ============================================================================
+
+VITE_APP_TITLE=Ile Ala
+VITE_APP_ID=ileala-prod
+VITE_APP_LOGO=https://ileala.ae/logo.png
+VITE_APP_URL=https://www.ileala.ae
+VITE_SANITY_PROJECT_ID=anyz9zel
+VITE_SANITY_DATASET=production
+VITE_SANITY_TOKEN=
+VITE_SANITY_STUDIO_URL=https://ileala.ae/studio
+VITE_STRIPE_PUBLISHABLE_KEY=pk_live_xxx_ou_pk_test_xxx
+VITE_OAUTH_PORTAL_URL=https://placeholder.com
+OAUTH_SERVER_URL=https://placeholder.com
+OWNER_OPEN_ID=
+
+# ============================================================================
+# 🔵 OPCIONAIS (Apenas se você usar essas funcionalidades)
+# ============================================================================
+
+# AWS S3 (se usar storage na AWS)
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+AWS_REGION=us-east-1
+AWS_S3_BUCKET=ileala-uploads
+
+# Forge API (se usar)
+BUILT_IN_FORGE_API_URL=
+BUILT_IN_FORGE_API_KEY=
+VITE_FRONTEND_FORGE_API_URL=
+VITE_FRONTEND_FORGE_API_KEY=
+
+# Analytics (se usar)
+VITE_ANALYTICS_ENDPOINT=
+VITE_ANALYTICS_WEBSITE_ID=
+
+# OAuth completo (se não usar placeholder)
+VITE_OAUTH_CLIENT_ID=
+VITE_OAUTH_CLIENT_SECRET=
+
+# ============================================================================
+# INSTRUÇÕES:
+# ============================================================================
+# 1. No Railway Dashboard, vá em Settings → Variables
+# 2. Para cada variável acima:
+#    - Clique em "New Variable"
+#    - Cole o NOME da variável (ex: DATABASE_URL)
+#    - Cole o VALOR da variável (ex: postgresql://...)
+#    - Clique em "Add"
+# 3. IMPORTANTE: Substitua os valores placeholder pelos seus valores reais:
+#    - DATABASE_URL: Sua connection string do Neon
+#    - JWT_SECRET: Gere uma chave aleatória forte
+#    - STRIPE_SECRET_KEY: Sua chave do Stripe
+#    - RESEND_API_KEY: Sua chave do Resend
+#    - E assim por diante...
+# ============================================================================
+
