@@ -2595,9 +2595,26 @@ async function handleRequest(request: any): Promise<Response> {
         return context;
       };
       
+      // CRITICAL: Create a completely new Request object right before passing to fetchRequestHandler
+      // This ensures fetchRequestHandler receives a Request that has never been inspected
+      const isolatedRequest = new Request(finalRequest.url, {
+        method: finalRequest.method,
+        headers: new Headers(finalRequest.headers), // Create completely new Headers
+        body: finalRequest.body,
+        cache: finalRequest.cache,
+        credentials: finalRequest.credentials,
+        integrity: finalRequest.integrity,
+        keepalive: finalRequest.keepalive,
+        mode: finalRequest.mode,
+        redirect: finalRequest.redirect,
+        referrer: finalRequest.referrer,
+        referrerPolicy: finalRequest.referrerPolicy,
+        signal: finalRequest.signal,
+      });
+      
       response = await fetchRequestHandler({
       endpoint: '/api/trpc',
-        req: finalRequest,
+        req: isolatedRequest, // Use the completely isolated request
       router: appRouter,
         createContext,
         onError: ({ error, path, type }) => {
