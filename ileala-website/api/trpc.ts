@@ -2278,8 +2278,9 @@ function createProtectedRequest(rawReq: any): any {
 // CRITICAL FIX: The error "at Object.handler" means Vercel wraps our handler in an object
 // and tries to inspect it before calling. During inspection, it accesses req.headers.get.
 // SOLUTION: Use a factory function that creates the handler dynamically, preventing inspection.
+// Additionally, we wrap the handler in a Proxy to intercept any property access during inspection.
 function createHandler() {
-  return async function handler(req: any): Promise<Response> {
+  const handlerFunction = async function handler(req: any): Promise<Response> {
     // IMMEDIATELY wrap in try-catch to catch ANY error, including during Vercel's inspection
     try {
       // CRITICAL: Convert req to Request IMMEDIATELY using ONLY property access
