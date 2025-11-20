@@ -2736,8 +2736,4 @@ async function handleRequest(request: any): Promise<Response> {
       }
     );
   }
-  };
 }
-
-// Export the handler from factory function to prevent Vercel inspection
-export default createHandler();
