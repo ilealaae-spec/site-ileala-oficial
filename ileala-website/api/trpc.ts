@@ -2275,82 +2275,82 @@ function createProtectedRequest(rawReq: any): any {
 // The error occurs because Vercel tries to access req.headers.get during inspection.
 // SOLUTION: Use a factory function that creates the handler, preventing Vercel from inspecting it.
 // CRITICAL: The handler must NEVER access req.headers.get directly - always convert to Request first.
+// CRITICAL FIX: The error happens because Vercel inspects the handler before calling it.
+// During inspection, it tries to access req.headers.get, which fails.
+// SOLUTION: Create a completely isolated handler that never exposes the original req.
 export default async function handler(req: any): Promise<Response> {
-  // CRITICAL: The FIRST thing we do is convert req to a Request object
-  // We do this WITHOUT accessing any properties of req first
-  // This prevents Vercel from trying to inspect req.headers.get
-  
+  // IMMEDIATELY wrap in try-catch to catch ANY error, including during Vercel's inspection
   try {
-    // If req is already a proper Request, use it directly
-    // But we must check this WITHOUT accessing headers.get
-    let validRequest: Request;
+    // CRITICAL: Convert req to Request IMMEDIATELY using ONLY property access
+    // NEVER access req.headers.get or any method on req
+    let url = 'https://ileala.ae';
+    let method = 'GET';
+    const headers = new Headers();
     
-    if (req && typeof req === 'object' && 'url' in req && 'method' in req) {
-      // It looks like a Request object, but we can't trust it
-      // Create a new Request from scratch using only safe property access
-      try {
-        // Extract URL safely - use only property access
-        const url = typeof req.url === 'string' ? req.url : 
-                   typeof req.href === 'string' ? req.href : 
-                   'https://ileala.ae';
+    // Extract properties using ONLY bracket notation and typeof checks
+    // This prevents Vercel from trying to call methods during inspection
+    try {
+      if (req && typeof req === 'object') {
+        // Extract URL - use only property access
+        if ('url' in req && typeof req.url === 'string') {
+          url = req.url;
+        } else if ('href' in req && typeof req.href === 'string') {
+          url = req.href;
+        }
         
-        // Extract method safely
-        const method = typeof req.method === 'string' ? req.method : 'GET';
+        // Extract method - use only property access
+        if ('method' in req && typeof req.method === 'string') {
+          method = req.method;
+        }
         
-        // Extract headers safely - NEVER call .get() or .forEach()
-        const headers = new Headers();
-        if (req.headers && typeof req.headers === 'object' && !Array.isArray(req.headers)) {
-          // Use Object.keys to avoid calling any methods
+        // Extract headers - use ONLY Object.keys, NEVER call methods
+        if ('headers' in req && req.headers && typeof req.headers === 'object' && !Array.isArray(req.headers)) {
           try {
-            const keys = Object.keys(req.headers);
-            for (const key of keys) {
-              const value = req.headers[key];
-              if (typeof value === 'string') {
-                headers.set(key, value);
-              } else if (Array.isArray(value)) {
-                for (const v of value) {
-                  headers.append(key, String(v));
+            // Use Object.keys - this is safe and doesn't call methods
+            const headerKeys = Object.keys(req.headers);
+            for (const key of headerKeys) {
+              try {
+                const value = req.headers[key];
+                if (typeof value === 'string') {
+                  headers.set(key, value);
+                } else if (Array.isArray(value)) {
+                  for (const v of value) {
+                    headers.append(key, String(v));
+                  }
+                } else if (value != null && value !== undefined) {
+                  headers.set(key, String(value));
                 }
-              } else if (value != null) {
-                headers.set(key, String(value));
+              } catch (e) {
+                // Skip this header if we can't process it
               }
             }
           } catch (e) {
-            // If we can't extract headers, continue with empty headers
+            // If Object.keys fails, continue with empty headers
           }
         }
-        
-        // Create a new Request object from scratch
-        validRequest = new Request(url, {
-          method,
-          headers,
-          body: req.body,
-          cache: req.cache,
-          credentials: req.credentials,
-          integrity: req.integrity,
-          keepalive: req.keepalive,
-          mode: req.mode,
-          redirect: req.redirect,
-          referrer: req.referrer,
-          referrerPolicy: req.referrerPolicy,
-          signal: req.signal,
-        });
-      } catch (e) {
-        // If creating Request fails, create a minimal one
-        validRequest = new Request('https://ileala.ae', {
-          method: 'GET',
-          headers: new Headers(),
-        });
       }
-    } else {
-      // req is not a Request-like object, create a minimal one
-      validRequest = new Request('https://ileala.ae', {
-        method: 'GET',
-        headers: new Headers(),
-      });
+    } catch (e) {
+      // If extraction fails, use defaults (already set above)
     }
     
-    // Now process with the valid request
+    // Create a completely new Request object from extracted values
+    // This ensures no reference to the original req remains
+    const validRequest = new Request(url, {
+      method,
+      headers, // Fresh Headers object with no reference to original
+      body: req?.body,
+      cache: req?.cache,
+      credentials: req?.credentials,
+      integrity: req?.integrity,
+      keepalive: req?.keepalive,
+      mode: req?.mode,
+      redirect: req?.redirect,
+      referrer: req?.referrer,
+      referrerPolicy: req?.referrerPolicy,
+      signal: req?.signal,
+    });
+    
+    // Now process with the completely isolated request
     return await handleRequest(validRequest);
   } catch (error) {
     // Log the error with full details
