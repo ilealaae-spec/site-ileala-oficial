@@ -2289,11 +2289,17 @@ function createProtectedRequest(rawReq: any): any {
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   // IMMEDIATELY wrap in try-catch to catch ANY error
   try {
-    // nodeHTTPRequestHandler works directly with VercelRequest/VercelResponse
-    // This is the correct way to use tRPC on Vercel with Node.js runtime
+    // CRITICAL: nodeHTTPRequestHandler expects IncomingMessage/ServerResponse from Node.js
+    // VercelRequest/VercelResponse extend these types, but we need to ensure compatibility
+    // Convert VercelRequest to IncomingMessage-like object if needed
+    const nodeReq = req as any as import('http').IncomingMessage;
+    const nodeRes = res as any as import('http').ServerResponse;
+    
+    // nodeHTTPRequestHandler works with Node.js IncomingMessage/ServerResponse
+    // VercelRequest/VercelResponse are compatible but we cast to ensure type safety
     await nodeHTTPRequestHandler({
-      req,
-      res,
+      req: nodeReq,
+      res: nodeRes,
       router: appRouter,
       createContext: () => {
         // Extract client IP from req (VercelRequest headers can be string or array)
