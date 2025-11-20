@@ -2308,13 +2308,27 @@ export default async function handler(
     }
     
     // CRITICAL: Create IncomingMessage with plain headers object
-    // Use Proxy to intercept ANY attempt to access headers.get() and throw helpful error
+    // Use Proxy to intercept ANY attempt to access headers.get() and prevent the error
+    // The Proxy intercepts ALL property access, including nested access like headers.get
     const nodeReq = new Proxy(
       Object.assign(
         Object.create(IncomingMessage.prototype),
         {
           ...req,
-          headers: plainHeaders, // Use plain object, never Headers with .get()
+          headers: new Proxy(plainHeaders, {
+            get(target, prop) {
+              // If someone tries to access headers.get, return undefined instead of throwing
+              if (prop === 'get') {
+                // Return a function that accesses the plain object instead
+                return function(key: string) {
+                  const value = target[key];
+                  return Array.isArray(value) ? value[0] : value;
+                };
+              }
+              // For all other properties, return normally
+              return target[prop as string];
+            },
+          }),
           url: req.url || (req as any).href || '',
           method: req.method || 'GET',
         }
@@ -2323,8 +2337,19 @@ export default async function handler(
         get(target, prop) {
           // Intercept access to 'headers' property
           if (prop === 'headers') {
-            // Return plain object, never allow access to Headers with .get()
-            return plainHeaders;
+            // Return Proxy that intercepts .get() calls
+            return new Proxy(plainHeaders, {
+              get(headerTarget, headerProp) {
+                if (headerProp === 'get') {
+                  // Return a function that accesses the plain object
+                  return function(key: string) {
+                    const value = headerTarget[key];
+                    return Array.isArray(value) ? value[0] : value;
+                  };
+                }
+                return headerTarget[headerProp as string];
+              },
+            });
           }
           // For all other properties, return normally
           return (target as any)[prop];
