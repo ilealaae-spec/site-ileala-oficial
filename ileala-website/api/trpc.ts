@@ -2585,13 +2585,14 @@ async function handleRequest(request: any): Promise<Response> {
       // This ensures TypeScript recognizes the Context type in procedures
       const createContext = (): Context => {
         // Return the context object with explicit type
-        // CRITICAL: Type assertion to ensure TypeScript recognizes all properties
-        return {
+        // CRITICAL: Explicitly construct Context object to ensure TypeScript recognizes all properties
+        const context: Context = {
           user: ctx.user,
           clientIp: ctx.clientIp,
           setCookie: ctx.setCookie,
           clearCookie: ctx.clearCookie,
-        } as Context;
+        };
+        return context;
       };
       
       response = await fetchRequestHandler({
