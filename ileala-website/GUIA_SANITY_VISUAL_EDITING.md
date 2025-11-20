@@ -23,7 +23,7 @@ cd sanity-studio
 pnpm dev
 ```
 
-Isso vai iniciar o Sanity Studio em `http://localhost:3333`
+Isso vai iniciar o Sanity Studio em ttp://localhost:3333``h
 
 ### Passo 2: Iniciar o site (em outro terminal)
 
