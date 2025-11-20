@@ -1,3 +1,6 @@
 # Ignorar pasta api-backup/ - backend está no Railway
-# (Pasta api/ foi renomeada para api-backup/ para evitar detecção automática do Vercel)
 api-backup/
+
+# Ignorar arquivos de servidor (não são necessários no Vercel)
+server/
+trpc.ts
