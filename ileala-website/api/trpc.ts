@@ -2277,481 +2277,88 @@ function createProtectedRequest(rawReq: any): any {
 // The error occurs because Vercel tries to access req.headers.get during inspection.
 // SOLUTION: Use a factory function that creates the handler, preventing Vercel from inspecting it.
 // CRITICAL: The handler must NEVER access req.headers.get directly - always convert to Request first.
-// CRITICAL FIX: The error "at Object.handler" means Vercel wraps our handler in an object
-// and tries to inspect it before calling. During inspection, it accesses req.headers.get.
-// SOLUTION: Use a factory function that creates the handler dynamically, preventing inspection.
-// Additionally, we wrap the handler in a Proxy to intercept any property access during inspection.
-// CRITICAL: Export handler directly as an async function
-// This prevents Vercel from wrapping it in Object.handler
-// The error "at Object.handler" happens when Vercel wraps the handler
-// CRITICAL: Opção 2 do suporte Vercel - Converter VercelRequest para IncomingMessage
-// Edge Runtime não suporta bcryptjs e outras dependências Node.js
-// Precisamos usar Node.js runtime e converter VercelRequest para IncomingMessage
-export default async function handler(
-  req: VercelRequest,
-  res: VercelResponse
-): Promise<void> {
-  // IMMEDIATELY wrap in try-catch to catch ANY error
-  try {
-    // CRITICAL: Convert headers to plain object FIRST, before creating IncomingMessage
-    // This prevents ANY code from trying to call headers.get() on a Headers object
-    const plainHeaders: Record<string, string | string[]> = {};
-    
-    // Convert VercelRequest headers to plain object
-    if (req.headers) {
-      // VercelRequest headers can be string, string[], or undefined
-      for (const [key, value] of Object.entries(req.headers)) {
-        if (value !== undefined) {
-          plainHeaders[key] = value;
-        }
-      }
-    }
-    
-    // CRITICAL: Create IncomingMessage with plain headers object
-    // Use Proxy to intercept ANY attempt to access headers.get() and prevent the error
-    // The Proxy intercepts ALL property access, including nested access like headers.get
-    const nodeReq = new Proxy(
-      Object.assign(
-        Object.create(IncomingMessage.prototype),
-        {
-          ...req,
-          headers: new Proxy(plainHeaders, {
-            get(target, prop) {
-              // If someone tries to access headers.get, return undefined instead of throwing
-              if (prop === 'get') {
-                // Return a function that accesses the plain object instead
-                return function(key: string) {
-                  const value = target[key];
-                  return Array.isArray(value) ? value[0] : value;
-                };
-              }
-              // For all other properties, return normally
-              return target[prop as string];
-            },
-          }),
-          url: req.url || (req as any).href || '',
-          method: req.method || 'GET',
-        }
-      ) as IncomingMessage,
-      {
-        get(target, prop) {
-          // Intercept access to 'headers' property
-          if (prop === 'headers') {
-            // Return Proxy that intercepts .get() calls
-            return new Proxy(plainHeaders, {
-              get(headerTarget, headerProp) {
-                if (headerProp === 'get') {
-                  // Return a function that accesses the plain object
-                  return function(key: string) {
-                    const value = headerTarget[key];
-                    return Array.isArray(value) ? value[0] : value;
-                  };
-                }
-                return headerTarget[headerProp as string];
-              },
-            });
-          }
-          // For all other properties, return normally
-          return (target as any)[prop];
-        },
-      }
-    );
-    
-    const nodeRes = Object.assign(
-      Object.create(ServerResponse.prototype),
-      res
-    ) as ServerResponse;
-    
-    // nodeHTTPRequestHandler works with Node.js IncomingMessage/ServerResponse
-    await nodeHTTPRequestHandler({
-      req: nodeReq,
-      res: nodeRes,
-      router: appRouter,
-      createContext: () => {
-        // Extract client IP from req (VercelRequest headers can be string or array)
-        const forwardedFor = req.headers['x-forwarded-for'];
-        const realIp = req.headers['x-real-ip'];
-        const clientIp = typeof forwardedFor === 'string' 
-          ? forwardedFor.split(',')[0]?.trim() 
-          : Array.isArray(forwardedFor)
-            ? forwardedFor[0]?.split(',')[0]?.trim() || 'unknown'
-            : typeof realIp === 'string' 
-              ? realIp 
-              : Array.isArray(realIp)
-                ? realIp[0] || 'unknown'
-                : 'unknown';
-        
-        // Parse cookies from request (VercelRequest headers can be string or array)
-        const cookieHeader = typeof req.headers.cookie === 'string' 
-          ? req.headers.cookie 
-          : Array.isArray(req.headers.cookie)
-            ? req.headers.cookie[0]
-            : '';
-        const parsedCookies = parseCookie(cookieHeader);
-        
-        // Parse user from session cookie
-        let user = null;
-        try {
-          if (parsedCookies[COOKIE_NAME]) {
-            user = JSON.parse(parsedCookies[COOKIE_NAME]);
-          }
-        } catch (e) {
-          // Invalid session
-        }
-        
-        // Create context with cookie management
-        return {
-          user,
-          clientIp,
-          setCookie(name: string, value: string) {
-            // Set cookie immediately on response using VercelResponse
-            const cookieString = createSetCookieHeader(name, value, {
-              path: '/',
-              httpOnly: true,
-              secure: true,
-              sameSite: 'Lax',
-              maxAge: 365 * 24 * 60 * 60,
-            });
-            res.setHeader('Set-Cookie', cookieString);
-          },
-          clearCookie(name: string) {
-            // Clear cookie immediately on response using VercelResponse
-            const cookieString = createSetCookieHeader(name, '', {
-              path: '/',
-              maxAge: -1,
-            });
-            res.setHeader('Set-Cookie', cookieString);
-          },
-        } as Context;
-      },
-      onError: ({ error, path, type }) => {
-        console.error('[Vercel tRPC] Error in handler:', {
-          error: error.message,
-          path,
-          type,
-          stack: error.stack,
-        });
-      },
-    });
-  } catch (error) {
-    // Log the error with full details
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    const errorStack = error instanceof Error ? error.stack : 'No stack';
-    
-    console.error('[Vercel tRPC] Error in handler:', errorMessage);
-    console.error('[Vercel tRPC] Error stack:', errorStack);
-    console.error('[Vercel tRPC] Request type:', typeof req);
-    
-    // Return a proper error response using VercelResponse
-    res.status(500).json([
-      {
-        error: {
-          message: errorMessage.includes('headers.get') 
-            ? 'Request headers are not accessible in the expected format'
-            : 'Internal server error',
-          code: 'INTERNAL_SERVER_ERROR',
-          data: {
-            code: 'INTERNAL_SERVER_ERROR',
-            httpStatus: 500,
-          },
-        },
-      },
-    ]);
-  }
-}
-
-// OBSOLETO: Esta função não é mais usada - o handler principal usa nodeHTTPRequestHandler diretamente
-// Mantida apenas para referência histórica
-/*
-async function handleRequest(request: any): Promise<Response> {
-  // CRITICAL: Wrap everything in try-catch to ensure we ALWAYS return JSON
-  // Even if there's an error, we must return a JSON response, not HTML
-  try {
-  const cookies: Array<{ name: string; value: string; options: any }> = [];
-    
-    // FIRST: Create a valid Request object BEFORE accessing any properties
-    // This prevents "request.headers.get is not a function" errors
-    // The request parameter may not be a proper Request object from Vercel
-    let validRequest: Request;
-    try {
-    // Safely extract properties with fallbacks - use reqAny to avoid type errors
-    const reqAny = request;
-    const url = reqAny?.url || reqAny?.href || (typeof reqAny === 'string' ? reqAny : 'http://localhost');
-    const method = reqAny?.method || 'GET';
-    
-    // Extract headers safely - handle all possible formats
-    // NEVER call .get() or .forEach() directly - check if they exist first
-    const headers = new Headers();
-    if (reqAny?.headers) {
+// Solução conforme recomendação do suporte Vercel (Opção 2)
+// Se precisar manter nodeHTTPRequestHandler, garantir que o wrapper reconheça
+// a assinatura Node.js de forma não ambígua usando 'as any'
+// Isso evita que o Vercel tente inspecionar o handler como Fetch handler
+export default function handler(req: VercelRequest, res: VercelResponse): void {
+  // Usar 'as any' conforme sugerido pelo suporte Vercel para garantir
+  // que o wrapper reconheça a assinatura Node.js de forma não ambígua
+  nodeHTTPRequestHandler({
+    req: req as any,
+    res: res as any,
+    router: appRouter,
+    createContext: () => {
+      // Extract client IP from req (VercelRequest headers can be string or array)
+      const forwardedFor = req.headers['x-forwarded-for'];
+      const realIp = req.headers['x-real-ip'];
+      const clientIp = typeof forwardedFor === 'string' 
+        ? forwardedFor.split(',')[0]?.trim() 
+        : Array.isArray(forwardedFor)
+          ? forwardedFor[0]?.split(',')[0]?.trim() || 'unknown'
+          : typeof realIp === 'string' 
+            ? realIp 
+            : Array.isArray(realIp)
+              ? realIp[0] || 'unknown'
+              : 'unknown';
+      
+      // Parse cookies from request (VercelRequest headers can be string or array)
+      const cookieHeader = typeof req.headers.cookie === 'string' 
+        ? req.headers.cookie 
+        : Array.isArray(req.headers.cookie)
+          ? req.headers.cookie[0]
+          : '';
+      const parsedCookies = parseCookie(cookieHeader);
+      
+      // Parse user from session cookie
+      let user = null;
       try {
-        // Check if it's a Headers object with forEach (safest check)
-        if (reqAny.headers && typeof reqAny.headers.forEach === 'function') {
-          // Headers object (Fetch API) - has forEach method
-          reqAny.headers.forEach((value: string, key: string) => {
-            headers.set(key, value);
-          });
-        } else if (reqAny.headers && typeof reqAny.headers === 'object' && !Array.isArray(reqAny.headers)) {
-          // It's an object - try to iterate as plain object
-          // This handles both plain objects and Headers-like objects
-          try {
-            Object.entries(reqAny.headers).forEach(([key, value]) => {
-              if (typeof value === 'string') {
-                headers.set(key, value);
-              } else if (Array.isArray(value)) {
-                value.forEach((v: any) => headers.append(key, String(v)));
-              } else if (value != null) {
-                headers.set(key, String(value));
-              }
-            });
-          } catch (e) {
-            console.warn('[Vercel tRPC] Could not extract headers from object:', e);
-            // Continue with empty headers
-          }
+        if (parsedCookies[COOKIE_NAME]) {
+          user = JSON.parse(parsedCookies[COOKIE_NAME]);
         }
       } catch (e) {
-        console.warn('[Vercel tRPC] Error extracting headers:', e);
-        // Continue with empty headers - request can still be processed
-      }
-    }
-    
-    // Create a new Request object with all properties
-    validRequest = new Request(url, {
-      method,
-      headers,
-      body: reqAny?.body,
-      cache: reqAny?.cache,
-      credentials: reqAny?.credentials,
-      integrity: reqAny?.integrity,
-      keepalive: reqAny?.keepalive,
-      mode: reqAny?.mode,
-      redirect: reqAny?.redirect,
-      referrer: reqAny?.referrer,
-      referrerPolicy: reqAny?.referrerPolicy,
-      signal: reqAny?.signal,
-    });
-  } catch (e) {
-    console.error('[Vercel tRPC] Failed to create valid Request:', e);
-    // CRITICAL: Always return JSON in tRPC batch format
-    return new Response(
-      JSON.stringify([
-        {
-          error: {
-            message: 'Failed to process request',
-            code: 'REQUEST_CONVERSION_ERROR',
-            data: {
-              code: 'REQUEST_CONVERSION_ERROR',
-              httpStatus: 500,
-            },
-          },
-        },
-      ]),
-      {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      }
-    );
-  }
-  
-  // Now we can safely use validRequest
-  // Extract client IP for security logging and rate limiting
-  const forwardedFor = validRequest.headers.get('x-forwarded-for');
-  const realIp = validRequest.headers.get('x-real-ip');
-  const clientIp = forwardedFor?.split(',')[0]?.trim() || realIp || 'unknown';
-  
-  // Parse cookies from request
-  const cookieHeader = validRequest.headers.get('cookie');
-  const parsedCookies = parseCookie(cookieHeader);
-  
-  // Parse user from session cookie
-  let user = null;
-  try {
-    if (parsedCookies[COOKIE_NAME]) {
-      user = JSON.parse(parsedCookies[COOKIE_NAME]);
-    }
-  } catch (e) {
-    // Invalid session
-  }
-  
-  // Create context with explicit type
-  const ctx: Context = {
-    user,
-    clientIp,
-    setCookie(name: string, value: string) {
-      cookies.push({
-        name,
-        value,
-        options: {
-          path: '/',
-          httpOnly: true,
-          secure: true,
-          sameSite: 'Lax',
-          maxAge: 365 * 24 * 60 * 60, // 1 year
-        },
-      } );
-    },
-    clearCookie(name: string) {
-      cookies.push({
-        name,
-        value: '',
-        options: {
-          path: '/',
-          maxAge: -1,
-        },
-      });
-    },
-  };
-  
-  try {
-    console.log('[Vercel tRPC] Handling request:', validRequest.method, validRequest.url);
-    console.log('[Vercel tRPC] ValidRequest is Request instance:', validRequest instanceof Request);
-    console.log('[Vercel tRPC] ValidRequest headers type:', typeof validRequest.headers);
-    console.log('[Vercel tRPC] ValidRequest headers.get type:', typeof validRequest.headers.get);
-    
-    // CRITICAL: Create a completely new Request object with fresh Headers
-    // This ensures no reference to the original request object remains
-    // Extract all header values first to create a completely new Headers object
-    const finalHeaders = new Headers();
-    try {
-      // Use forEach safely - validRequest is already a proper Request object
-      validRequest.headers.forEach((value, key) => {
-        finalHeaders.set(key, value);
-      });
-    } catch (e) {
-      // If forEach fails, try to extract headers manually
-      try {
-        const headerEntries = Array.from(validRequest.headers.entries());
-        for (const [key, value] of headerEntries) {
-          finalHeaders.set(key, value);
-        }
-      } catch (e2) {
-        // If all else fails, continue with empty headers
-        structuredLog('warn', 'Could not extract headers for final request', { error: e instanceof Error ? e.message : String(e) });
-      }
-    }
-    
-    // Create a completely isolated Request object
-    // This prevents any access to the original request's headers.get method
-    // CRITICAL: Create Request from scratch with only primitive values
-    const finalRequest = new Request(validRequest.url, {
-      method: validRequest.method,
-      headers: finalHeaders, // Use the new Headers object, not the original
-      body: validRequest.body,
-      cache: validRequest.cache,
-      credentials: validRequest.credentials,
-      integrity: validRequest.integrity,
-      keepalive: validRequest.keepalive,
-      mode: validRequest.mode,
-      redirect: validRequest.redirect,
-      referrer: validRequest.referrer,
-      referrerPolicy: validRequest.referrerPolicy,
-      signal: validRequest.signal,
-    });
-    
-    // Verify the final request is completely isolated
-    if (typeof finalRequest.headers.get !== 'function') {
-      structuredLog('error', 'Final request headers.get is not a function', {
-        headersType: typeof finalRequest.headers,
-        isHeaders: finalRequest.headers instanceof Headers,
-      });
-      throw new Error('Failed to create valid Request object');
-    }
-    
-    let response: Response;
-    try {
-      // Create context function with explicit return type
-      // This ensures TypeScript recognizes the Context type in procedures
-      const createContext = (): Context => {
-        // Return the context object with explicit type
-        // CRITICAL: Explicitly construct Context object to ensure TypeScript recognizes all properties
-        const context: Context = {
-          user: ctx.user,
-          clientIp: ctx.clientIp,
-          setCookie: ctx.setCookie,
-          clearCookie: ctx.clearCookie,
-        };
-        return context;
-      };
-      
-      // CRITICAL: Create a completely new Request object right before passing to fetchRequestHandler
-      // Extract ALL header values first to create a completely isolated Headers object
-      const isolatedHeaders = new Headers();
-      try {
-        // Extract headers using entries() to avoid any method calls on original headers
-        const headerEntries: Array<[string, string]> = [];
-        try {
-          // Try to get entries from the Headers object
-          if (finalRequest.headers && typeof finalRequest.headers.entries === 'function') {
-            for (const [key, value] of finalRequest.headers.entries()) {
-              headerEntries.push([key, value]);
-            }
-          } else {
-            // Fallback: extract headers manually if entries() doesn't work
-            try {
-              const keys = Array.from(finalRequest.headers.keys?.() || []);
-              for (const key of keys) {
-                const value = finalRequest.headers.get?.(key);
-                if (value) headerEntries.push([key, value]);
-              }
-            } catch (e) {
-              // If all else fails, create empty headers
-            }
-          }
-        } catch (e) {
-          // Continue with empty headers if extraction fails
-        }
-        
-        // Now create new Headers from extracted entries
-        for (const [key, value] of headerEntries) {
-          isolatedHeaders.set(key, value);
-        }
-      } catch (e) {
-        // If header extraction fails completely, continue with empty headers
-        console.warn('[Vercel tRPC] Could not extract headers:', e);
+        // Invalid session
       }
       
-      // Create completely isolated Request with fresh Headers
-      const isolatedRequest = new Request(finalRequest.url, {
-        method: finalRequest.method,
-        headers: isolatedHeaders, // Use completely new Headers object
-        body: finalRequest.body,
-        cache: finalRequest.cache,
-        credentials: finalRequest.credentials,
-        integrity: finalRequest.integrity,
-        keepalive: finalRequest.keepalive,
-        mode: finalRequest.mode,
-        redirect: finalRequest.redirect,
-        referrer: finalRequest.referrer,
-        referrerPolicy: finalRequest.referrerPolicy,
-        signal: finalRequest.signal,
-      });
-      
-      // Verify isolatedRequest has valid headers.get before passing to fetchRequestHandler
-      if (typeof isolatedRequest.headers.get !== 'function') {
-        throw new Error('Failed to create Request with valid headers.get method');
-      }
-      
-      response = await fetchRequestHandler({
-      endpoint: '/api/trpc',
-        req: isolatedRequest, // Use the completely isolated request
-      router: appRouter,
-        createContext,
-        onError: ({ error, path, type }) => {
-          console.error('[Vercel tRPC] Error in handler:', {
-            error: error.message,
-            path,
-            type,
-            stack: error.stack,
+      // Create context with cookie management
+      return {
+        user,
+        clientIp,
+        setCookie(name: string, value: string) {
+          // Set cookie immediately on response using VercelResponse
+          const cookieString = createSetCookieHeader(name, value, {
+            path: '/',
+            httpOnly: true,
+            secure: true,
+            sameSite: 'Lax',
+            maxAge: 365 * 24 * 60 * 60,
           });
+          res.setHeader('Set-Cookie', cookieString);
         },
+        clearCookie(name: string) {
+          // Clear cookie immediately on response using VercelResponse
+          const cookieString = createSetCookieHeader(name, '', {
+            path: '/',
+            maxAge: -1,
+          });
+          res.setHeader('Set-Cookie', cookieString);
+        },
+      } as Context;
+    },
+    onError: ({ error, path, type }) => {
+      console.error('[Vercel tRPC] Error in handler:', {
+        error: error.message,
+        path,
+        type,
+        stack: error.stack,
       });
-    } catch (handlerError) {
-      // If fetchRequestHandler throws an error, return a JSON error response
-      console.error('[Vercel tRPC] fetchRequestHandler threw error:', handlerError);
-      return new Response(
-        JSON.stringify([
+      
+      // Se a resposta ainda não foi enviada, enviar erro JSON
+      if (!res.headersSent) {
+        res.status(500).json([
           {
             error: {
-              message: 'Internal server error',
+              message: error.message || 'Internal server error',
               code: 'INTERNAL_SERVER_ERROR',
               data: {
                 code: 'INTERNAL_SERVER_ERROR',
@@ -2759,96 +2366,26 @@ async function handleRequest(request: any): Promise<Response> {
               },
             },
           },
-        ]),
-        {
-          status: 500,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-    }
-    
-    // Ensure response is JSON - check status and content type
-    const contentType = response.headers.get('content-type') || '';
-    const isErrorStatus = response.status >= 400;
-    
-    if (isErrorStatus && !contentType.includes('application/json')) {
-      // Clone response before reading to avoid consuming body
-      const clonedResponse = response.clone();
-      const text = await clonedResponse.text().catch(() => 'Unknown error');
-      console.error('[Vercel tRPC] Non-JSON error response received:', text.substring(0, 200));
-      
-      // Return JSON error in tRPC batch format
-      return new Response(
-        JSON.stringify([
-          {
-            error: {
-              message: text.includes('server error') || text.includes('Server Error') 
-                ? 'A server error occurred. Please try again later.'
-                : 'An unexpected error occurred',
-              code: 'INTERNAL_SERVER_ERROR',
-              data: {
-                code: 'INTERNAL_SERVER_ERROR',
-                httpStatus: response.status || 500,
-              },
-            },
-          },
-        ]),
-        {
-          status: response.status || 500,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-    }
-    
-    // Add cookies to response
-    if (cookies.length > 0) {
-      const newHeaders = new Headers(response.headers);
-      
-      for (const { name, value, options } of cookies) {
-        const cookieString = createSetCookieHeader(name, value, options);
-        newHeaders.append('Set-Cookie', cookieString);
+        ]);
       }
-      
-      return new Response(response.body, {
-        status: response.status,
-        statusText: response.statusText,
-        headers: newHeaders,
-      });
-    }
-    
-    console.log('[Vercel tRPC] Request handled successfully');
-    return response;
-    
-  } catch (error) {
-    console.error('[Vercel tRPC] Error in handleRequest:', error);
-    console.error('[Vercel tRPC] Error stack:', error instanceof Error ? error.stack : 'No stack');
-    
-    // CRITICAL: Always return JSON, never HTML
-    // Return in tRPC batch format to ensure client can parse it
-    return new Response(
-      JSON.stringify([
+    },
+  }).catch((error) => {
+    // Tratar erros não capturados pelo onError
+    console.error('[Vercel tRPC] Unhandled error in handler:', error);
+    if (!res.headersSent) {
+      res.status(500).json([
         {
-        error: {
-          message: error instanceof Error ? error.message : 'Internal server error',
-          code: 'INTERNAL_SERVER_ERROR',
+          error: {
+            message: error instanceof Error ? error.message : 'Internal server error',
+            code: 'INTERNAL_SERVER_ERROR',
             data: {
               code: 'INTERNAL_SERVER_ERROR',
               httpStatus: 500,
-        },
+            },
           },
         },
-      ]),
-      {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
-    );
-  }
+      ]);
+    }
+  });
 }
-*/
+
