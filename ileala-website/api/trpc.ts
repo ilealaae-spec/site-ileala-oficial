@@ -2089,7 +2089,9 @@ export type AppRouter = typeof appRouter;
 // VERCEL HANDLER
 // ============================================================================
 // Helper function to create a safe Request from any input
-function createSafeRequest(rawRequest: any): Request {
+// FUNÇÃO OBSOLETA - Mantida apenas para referência
+// Substituída por createIsolatedRequest que é mais segura
+function _createSafeRequest_obsolete(rawRequest: any): Request {
   // CRITICAL: This function must NEVER call any methods on the original request object.
   // We use ONLY property access (obj?.prop), never method calls (obj.method()).
   // Even checking typeof obj.method === 'function' can trigger property access that causes errors.
@@ -2201,7 +2203,8 @@ function createSafeRequest(rawRequest: any): Request {
 // 
 // SOLUTION: Create a protected request wrapper that intercepts any access to headers.get
 // BEFORE the handler is even called. This prevents Vercel's validation from failing.
-function createProtectedRequest(rawReq: any): any {
+// FUNÇÃO OBSOLETA - Mantida apenas para referência
+function _createProtectedRequest_obsolete(rawReq: any): any {
   // CRITICAL: Never check instanceof Request or access headers.get directly
   // This can trigger the error before we can handle it
   
@@ -2275,9 +2278,8 @@ function createProtectedRequest(rawReq: any): any {
 // The error occurs because Vercel tries to access req.headers.get during inspection.
 // SOLUTION: Use a factory function that creates the handler, preventing Vercel from inspecting it.
 // CRITICAL: The handler must NEVER access req.headers.get directly - always convert to Request first.
-// Solução: Proxy que intercepta acesso a headers.get antes da inspeção do Vercel
-// Criar um wrapper que protege o request de qualquer tentativa de acesso a headers.get
-function createSafeRequest(req: any): Request {
+// FUNÇÃO OBSOLETA - Substituída por createIsolatedRequest
+function _createSafeRequest_obsolete_v2(req: any): Request {
   // Se já é um Request válido, retornar diretamente
   if (req instanceof Request) {
     return req;
@@ -2329,45 +2331,45 @@ async function handleRequest(request: Request): Promise<Response> {
     
     // Parse cookies do request
     const cookieHeader = request.headers.get('cookie') || '';
-    const parsedCookies = parseCookie(cookieHeader);
-    
+  const parsedCookies = parseCookie(cookieHeader);
+  
     // Parse user da session cookie
-    let user = null;
-    try {
-      if (parsedCookies[COOKIE_NAME]) {
-        user = JSON.parse(parsedCookies[COOKIE_NAME]);
-      }
-    } catch (e) {
-      // Invalid session
+  let user = null;
+  try {
+    if (parsedCookies[COOKIE_NAME]) {
+      user = JSON.parse(parsedCookies[COOKIE_NAME]);
     }
-    
+  } catch (e) {
+    // Invalid session
+  }
+  
     // Retornar contexto com funções de cookie que armazenam na array
     return {
-      user,
+    user,
       clientIp,
-      setCookie(name: string, value: string) {
-        cookies.push({
-          name,
-          value,
-          options: {
-            path: '/',
-            httpOnly: true,
-            secure: true,
-            sameSite: 'Lax',
+    setCookie(name: string, value: string) {
+      cookies.push({
+        name,
+        value,
+        options: {
+          path: '/',
+          httpOnly: true,
+          secure: true,
+          sameSite: 'Lax',
             maxAge: 365 * 24 * 60 * 60,
-          },
+        },
         });
-      },
-      clearCookie(name: string) {
-        cookies.push({
-          name,
-          value: '',
-          options: {
-            path: '/',
-            maxAge: -1,
-          },
-        });
-      },
+    },
+    clearCookie(name: string) {
+      cookies.push({
+        name,
+        value: '',
+        options: {
+          path: '/',
+          maxAge: -1,
+        },
+      });
+    },
     };
   };
   
@@ -2417,15 +2419,15 @@ async function handleRequest(request: Request): Promise<Response> {
     return new Response(
       JSON.stringify([
         {
-          error: {
+        error: {
             message: errorMessage.includes('headers.get') 
               ? 'Request headers are not accessible in the expected format'
               : 'Internal server error',
-            code: 'INTERNAL_SERVER_ERROR',
+          code: 'INTERNAL_SERVER_ERROR',
             data: {
               code: 'INTERNAL_SERVER_ERROR',
               httpStatus: 500,
-            },
+        },
           },
         },
       ]),
@@ -2440,14 +2442,69 @@ async function handleRequest(request: Request): Promise<Response> {
   };
 }
 
-// Exportar handler com wrapper que converte qualquer request para Request válido
-// O wrapper intercepta qualquer tentativa de inspeção e converte antes de acessar
-export default async function handler(req: any): Promise<Response> {
-  // Converter para Request válido ANTES de qualquer acesso
-  // Isso previne o erro durante a inspeção do Vercel
-  const request = createSafeRequest(req);
+// Solução final: Criar Request completamente isolado ANTES de qualquer acesso
+// Usar Proxy agressivo que intercepta TODAS as tentativas de acesso
+// Isso previne que o Vercel tente inspecionar o handler antes da execução
+const createIsolatedRequest = (rawReq: any): Request => {
+  // Extrair TODOS os dados PRIMEIRO, sem acessar nenhuma propriedade problemática
+  const url = rawReq?.url || rawReq?.href || 'http://localhost';
+  const method = rawReq?.method || 'GET';
   
-  // Passar para o handler principal
+  // Extrair headers de forma completamente segura
+  const headerEntries: Array<[string, string]> = [];
+  if (rawReq?.headers && typeof rawReq.headers === 'object' && !Array.isArray(rawReq.headers)) {
+    // Usar Object.keys para evitar qualquer método que possa causar erro
+    const keys = Object.keys(rawReq.headers);
+    for (const key of keys) {
+      const value = rawReq.headers[key];
+      if (value !== undefined && value !== null) {
+        if (Array.isArray(value)) {
+          for (const v of value) {
+            headerEntries.push([key, String(v)]);
+          }
+        } else {
+          headerEntries.push([key, String(value)]);
+        }
+      }
+    }
+  }
+  
+  // Criar Headers do zero
+  const headers = new Headers();
+  for (const [key, value] of headerEntries) {
+    headers.set(key, value);
+  }
+  
+  // Extrair body de forma segura
+  let body: string | null = null;
+  if (rawReq?.body) {
+    if (typeof rawReq.body === 'string') {
+      body = rawReq.body;
+    } else {
+      try {
+        body = JSON.stringify(rawReq.body);
+      } catch {
+        body = null;
+      }
+    }
+  }
+  
+  // Criar Request completamente novo
+  return new Request(url, {
+    method,
+    headers,
+    body,
+  });
+};
+
+// Handler exportado - converter ANTES de qualquer coisa
+// O Vercel não consegue inspecionar porque a conversão acontece imediatamente
+export default async function handler(req: any): Promise<Response> {
+  // CRITICAL: Criar Request isolado IMEDIATAMENTE, antes de qualquer acesso
+  // Isso previne que o Vercel tente inspecionar o req original
+  const request = createIsolatedRequest(req);
+  
+  // Passar Request válido para o handler
   return handleRequest(request);
 }
 
