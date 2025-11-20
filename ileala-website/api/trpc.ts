@@ -2454,13 +2454,20 @@ async function handleRequest(request: any): Promise<Response> {
     });
   } catch (e) {
     console.error('[Vercel tRPC] Failed to create valid Request:', e);
+    // CRITICAL: Always return JSON in tRPC batch format
     return new Response(
-      JSON.stringify({
-        error: {
-          message: 'Failed to process request',
-          code: 'REQUEST_CONVERSION_ERROR',
+      JSON.stringify([
+        {
+          error: {
+            message: 'Failed to process request',
+            code: 'REQUEST_CONVERSION_ERROR',
+            data: {
+              code: 'REQUEST_CONVERSION_ERROR',
+              httpStatus: 500,
+            },
+          },
         },
-      }),
+      ]),
       {
         status: 500,
         headers: { 'Content-Type': 'application/json' },
