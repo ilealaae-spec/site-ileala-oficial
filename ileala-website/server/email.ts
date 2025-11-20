@@ -3,7 +3,7 @@ import { Resend } from 'resend';
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 const FROM_EMAIL = 'ILE ALA <noreply@ileala.ae>';
-const SITE_URL = process.env.SITE_URL || 'https://site-ileala-oficial.onrender.com';
+const SITE_URL = process.env.SITE_URL || 'https://ileala.ae';
 
 export async function sendVerificationEmail(email: string, token: string, name: string) {
   const verificationUrl = `${SITE_URL}/verify-email?token=${token}`;

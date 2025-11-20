@@ -1,6 +1,9 @@
 import postgres from 'postgres';
 
-const DATABASE_URL = 'postgresql://ileala_database_user:dynamicAI2024@oregon-postgres.render.com/ileala_database';
+// OBSOLETO: Este arquivo usa Render PostgreSQL. 
+// O site agora usa Neon PostgreSQL via Vercel.
+// Se precisar usar este script, atualize para usar DATABASE_URL do Neon.
+const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://ileala_database_user:dynamicAI2024@oregon-postgres.render.com/ileala_database';
 
 const sql = postgres(DATABASE_URL, {
   ssl: 'require'
@@ -25,7 +28,7 @@ async function getResetToken() {
       console.log('Token:', result[0].reset_token);
       console.log('Expires:', result[0].reset_token_expires);
       console.log('\n🔗 Reset URL:');
-      console.log(`https://site-ileala-oficial.onrender.com/reset-password?token=${result[0].reset_token}`);
+      console.log(`https://ileala.ae/reset-password?token=${result[0].reset_token}`);
     } else {
       console.log('❌ No reset token found for this email');
     }
