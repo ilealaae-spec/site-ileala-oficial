@@ -2600,10 +2600,46 @@ async function handleRequest(request: any): Promise<Response> {
       };
       
       // CRITICAL: Create a completely new Request object right before passing to fetchRequestHandler
-      // This ensures fetchRequestHandler receives a Request that has never been inspected
+      // Extract ALL header values first to create a completely isolated Headers object
+      const isolatedHeaders = new Headers();
+      try {
+        // Extract headers using entries() to avoid any method calls on original headers
+        const headerEntries: Array<[string, string]> = [];
+        try {
+          // Try to get entries from the Headers object
+          if (finalRequest.headers && typeof finalRequest.headers.entries === 'function') {
+            for (const [key, value] of finalRequest.headers.entries()) {
+              headerEntries.push([key, value]);
+            }
+          } else {
+            // Fallback: extract headers manually if entries() doesn't work
+            try {
+              const keys = Array.from(finalRequest.headers.keys?.() || []);
+              for (const key of keys) {
+                const value = finalRequest.headers.get?.(key);
+                if (value) headerEntries.push([key, value]);
+              }
+            } catch (e) {
+              // If all else fails, create empty headers
+            }
+          }
+        } catch (e) {
+          // Continue with empty headers if extraction fails
+        }
+        
+        // Now create new Headers from extracted entries
+        for (const [key, value] of headerEntries) {
+          isolatedHeaders.set(key, value);
+        }
+      } catch (e) {
+        // If header extraction fails completely, continue with empty headers
+        console.warn('[Vercel tRPC] Could not extract headers:', e);
+      }
+      
+      // Create completely isolated Request with fresh Headers
       const isolatedRequest = new Request(finalRequest.url, {
         method: finalRequest.method,
-        headers: new Headers(finalRequest.headers), // Create completely new Headers
+        headers: isolatedHeaders, // Use completely new Headers object
         body: finalRequest.body,
         cache: finalRequest.cache,
         credentials: finalRequest.credentials,
@@ -2615,6 +2651,11 @@ async function handleRequest(request: any): Promise<Response> {
         referrerPolicy: finalRequest.referrerPolicy,
         signal: finalRequest.signal,
       });
+      
+      // Verify isolatedRequest has valid headers.get before passing to fetchRequestHandler
+      if (typeof isolatedRequest.headers.get !== 'function') {
+        throw new Error('Failed to create Request with valid headers.get method');
+      }
       
       response = await fetchRequestHandler({
       endpoint: '/api/trpc',
