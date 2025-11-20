@@ -636,9 +636,9 @@ const appRouter = router({
       }))
       .mutation(async ({ input, ctx }) => {
         // Get client IP for rate limiting and logging
-        const clientIp = ctx.req?.headers?.['x-forwarded-for'] || 
-                        ctx.req?.headers?.['x-real-ip'] || 
-                        'unknown';
+        // Type assertion to ensure TypeScript recognizes Context type
+        const context = ctx as Context;
+        const clientIp = context.clientIp || 'unknown';
         
         // Rate limiting: max 5 login attempts per IP per 15 minutes
         const rateLimitKey = `login:${clientIp}`;
