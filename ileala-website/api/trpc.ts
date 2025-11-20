@@ -2,7 +2,7 @@
 import { initTRPC } from '@trpc/server';
 import { nodeHTTPRequestHandler } from '@trpc/server/adapters/node-http';
 import { z } from 'zod';
-import type { IncomingMessage, ServerResponse } from 'http';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { neon } from '@neondatabase/serverless';
 import bcrypt from 'bcryptjs';
 import { nanoid } from 'nanoid';
