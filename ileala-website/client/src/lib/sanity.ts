@@ -2,13 +2,26 @@ import { createClient } from '@sanity/client';
 import imageUrlBuilder from '@sanity/image-url';
 import type { SanityImageSource } from '@sanity/image-url/lib/types/types';
 
+// Verificar se estamos em modo preview (visual editing)
+const isPreview = typeof window !== 'undefined' && (
+  window.location.search.includes('sanityPreview') ||
+  window.location.search.includes('preview') ||
+  import.meta.env.DEV ||
+  import.meta.env.VITE_SANITY_VISUAL_EDITING === 'true'
+);
+
 // Configuração do cliente Sanity
 export const sanityClient = createClient({
   projectId: import.meta.env.VITE_SANITY_PROJECT_ID || 'anyz9zel',
   dataset: import.meta.env.VITE_SANITY_DATASET || 'production',
-  useCdn: true, // Use CDN para melhor performance em leituras públicas
+  useCdn: !isPreview, // Desabilitar CDN em modo preview para ver rascunhos
   apiVersion: '2024-11-10',
   token: import.meta.env.VITE_SANITY_TOKEN, // Token para operações autenticadas
+  perspective: isPreview ? 'previewDrafts' : 'published', // Usar previewDrafts em modo preview
+  stega: isPreview ? {
+    enabled: true,
+    studioUrl: import.meta.env.VITE_SANITY_STUDIO_URL || 'http://localhost:3333',
+  } : undefined,
 });
 
 // Helper para gerar URLs de imagens otimizadas
