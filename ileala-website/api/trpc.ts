@@ -2386,14 +2386,17 @@ export default async function handler(req: any): Promise<Response> {
   }
 }
 
-async function handleRequest(request: any) {
-  const cookies: Array<{ name: string; value: string; options: any }> = [];
-  
-  // FIRST: Create a valid Request object BEFORE accessing any properties
-  // This prevents "request.headers.get is not a function" errors
-  // The request parameter may not be a proper Request object from Vercel
-  let validRequest: Request;
+async function handleRequest(request: any): Promise<Response> {
+  // CRITICAL: Wrap everything in try-catch to ensure we ALWAYS return JSON
+  // Even if there's an error, we must return a JSON response, not HTML
   try {
+    const cookies: Array<{ name: string; value: string; options: any }> = [];
+    
+    // FIRST: Create a valid Request object BEFORE accessing any properties
+    // This prevents "request.headers.get is not a function" errors
+    // The request parameter may not be a proper Request object from Vercel
+    let validRequest: Request;
+    try {
     // Safely extract properties with fallbacks - use reqAny to avoid type errors
     const reqAny = request;
     const url = reqAny?.url || reqAny?.href || (typeof reqAny === 'string' ? reqAny : 'http://localhost');
@@ -2681,13 +2684,21 @@ async function handleRequest(request: any) {
     console.error('[Vercel tRPC] Error in handleRequest:', error);
     console.error('[Vercel tRPC] Error stack:', error instanceof Error ? error.stack : 'No stack');
     
+    // CRITICAL: Always return JSON, never HTML
+    // Return in tRPC batch format to ensure client can parse it
     return new Response(
-      JSON.stringify({
-        error: {
-          message: error instanceof Error ? error.message : 'Internal server error',
-          code: 'INTERNAL_SERVER_ERROR',
+      JSON.stringify([
+        {
+          error: {
+            message: error instanceof Error ? error.message : 'Internal server error',
+            code: 'INTERNAL_SERVER_ERROR',
+            data: {
+              code: 'INTERNAL_SERVER_ERROR',
+              httpStatus: 500,
+            },
+          },
         },
-      }),
+      ]),
       {
         status: 500,
         headers: {
