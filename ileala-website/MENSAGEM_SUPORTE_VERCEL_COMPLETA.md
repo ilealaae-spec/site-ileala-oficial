@@ -8,6 +8,20 @@ Olá equipe do suporte Vercel,
 
 Estou enfrentando um erro crítico e persistente que impede 100% das requisições ao meu endpoint tRPC no Vercel. O erro ocorre ANTES do handler ser executado, durante a inspeção/validação do Vercel.
 
+## ÁREA ESPECÍFICA DO PROBLEMA
+
+**Categoria:** Serverless Functions / API Routes  
+**Tipo de problema:** Runtime Error (ocorre antes da execução do handler)  
+**Componente afetado:** Handler de API Route (`api/trpc.ts`)  
+**Runtime:** Node.js 20.x  
+**Adapter:** tRPC `nodeHTTPRequestHandler` de `@trpc/server/adapters/node-http`
+
+**Problema específico:**
+- O erro ocorre durante a **inspeção/validação do handler pelo Vercel**, ANTES do código do handler ser executado
+- Stack trace mostra `at Object.handler`, indicando que o Vercel está wrappando o handler em um objeto
+- Durante essa wrapping/inspeção, algo tenta acessar `request.headers.get()`, mas `VercelRequest` não tem esse método
+- O erro acontece no momento em que o Vercel processa o handler exportado, não durante a execução da lógica do handler
+
 ## ERRO PERSISTENTE
 
 ```
