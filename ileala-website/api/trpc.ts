@@ -8,6 +8,68 @@ import { neon } from '@neondatabase/serverless';
 import bcrypt from 'bcryptjs';
 import { nanoid } from 'nanoid';
 
+// Helper para converter VercelRequest para IncomingMessage de forma segura
+function createIncomingMessage(req: VercelRequest): IncomingMessage {
+  const msg = Object.create(IncomingMessage.prototype);
+  
+  // Converter headers para objeto simples (sem métodos .get())
+  const headers: Record<string, string | string[]> = {};
+  for (const [key, value] of Object.entries(req.headers || {})) {
+    if (value !== undefined) {
+      headers[key.toLowerCase()] = value;
+    }
+  }
+  
+  // Criar objeto IncomingMessage com todas as propriedades necessárias
+  Object.assign(msg, {
+    headers,
+    url: req.url || '',
+    method: req.method || 'GET',
+    httpVersion: '1.1',
+    httpVersionMajor: 1,
+    httpVersionMinor: 1,
+    complete: false,
+    rawHeaders: [],
+    rawTrailers: [],
+    trailers: {},
+    aborted: false,
+    upgrade: false,
+    statusCode: null,
+    statusMessage: null,
+    socket: null,
+    destroy: () => {},
+    setTimeout: () => {},
+    setEncoding: () => {},
+    pause: () => msg,
+    resume: () => msg,
+    read: () => null,
+    addListener: () => msg,
+    on: () => msg,
+    once: () => msg,
+    removeListener: () => msg,
+    off: () => msg,
+    removeAllListeners: () => msg,
+    setMaxListeners: () => msg,
+    getMaxListeners: () => 10,
+    listeners: () => [],
+    rawListeners: () => [],
+    emit: () => false,
+    listenerCount: () => 0,
+    prependListener: () => msg,
+    prependOnceListener: () => msg,
+    eventNames: () => [],
+  });
+  
+  return msg as IncomingMessage;
+}
+
+// Helper para converter VercelResponse para ServerResponse
+function createServerResponse(res: VercelResponse): ServerResponse {
+  const srvRes = Object.create(ServerResponse.prototype);
+  Object.assign(srvRes, res);
+  return srvRes as ServerResponse;
+}
+
 // ============================================================================
 // ENVIRONMENT VALIDATION
 // ============================================================================
@@ -2277,16 +2339,18 @@ function createProtectedRequest(rawReq: any): any {
 // The error occurs because Vercel tries to access req.headers.get during inspection.
 // SOLUTION: Use a factory function that creates the handler, preventing Vercel from inspecting it.
 // CRITICAL: The handler must NEVER access req.headers.get directly - always convert to Request first.
-// Solução conforme recomendação do suporte Vercel (Opção 2)
-// Se precisar manter nodeHTTPRequestHandler, garantir que o wrapper reconheça
-// a assinatura Node.js de forma não ambígua usando 'as any'
-// Isso evita que o Vercel tente inspecionar o handler como Fetch handler
+// Solução: Converter VercelRequest/VercelResponse para IncomingMessage/ServerResponse
+// antes de passar para nodeHTTPRequestHandler, evitando que o Vercel tente
+// inspecionar o handler e acesse métodos que não existem
 export default function handler(req: VercelRequest, res: VercelResponse): void {
-  // Usar 'as any' conforme sugerido pelo suporte Vercel para garantir
-  // que o wrapper reconheça a assinatura Node.js de forma não ambígua
+  // Converter VercelRequest para IncomingMessage de forma segura
+  // Isso cria um objeto válido sem métodos .get() que causam o erro
+  const nodeReq = createIncomingMessage(req);
+  const nodeRes = createServerResponse(res);
+  
   nodeHTTPRequestHandler({
-    req: req as any,
-    res: res as any,
+    req: nodeReq,
+    res: nodeRes,
     router: appRouter,
     createContext: () => {
       // Extract client IP from req (VercelRequest headers can be string or array)

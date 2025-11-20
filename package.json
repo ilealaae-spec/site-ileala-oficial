@@ -8,6 +8,7 @@
     "preview": "cd ileala-website && npm run preview"
   },
   "dependencies": {
+    "@sanity/visual-editing": "^4.0.0",
     "postgres": "^3.4.7",
     "resend": "^6.4.2"
   },

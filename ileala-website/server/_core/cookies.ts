@@ -54,7 +54,7 @@ function isSecureRequest(req: any): boolean {
 
 export function getSessionCookieOptions(
   req: any
-): Pick<CookieOptions, "domain" | "httpOnly" | "path" | "sameSite" | "secure"> {
+): Pick<CookieOptions, "httpOnly" | "path" | "sameSite" | "secure"> {
   // const hostname = req.hostname;
   // const shouldSetDomain =
   //   hostname &&
@@ -75,5 +75,6 @@ export function getSessionCookieOptions(
     path: "/",
     sameSite: "none",
     secure: isSecureRequest(req),
+    // domain removido do tipo de retorno pois não está sendo usado
   };
 }
