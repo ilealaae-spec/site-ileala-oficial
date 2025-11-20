@@ -2293,12 +2293,43 @@ export default async function handler(
 ): Promise<void> {
   // IMMEDIATELY wrap in try-catch to catch ANY error
   try {
-    // CRITICAL: Convert VercelRequest to IncomingMessage using Object.assign and Object.create
-    // This is the recommended approach from Vercel support (Opção 2)
+    // CRITICAL: Create a proper IncomingMessage-compatible object
+    // nodeHTTPRequestHandler expects IncomingMessage which has headers as a plain object
+    // VercelRequest has headers as a plain object, but we need to ensure compatibility
     const nodeReq = Object.assign(
       Object.create(IncomingMessage.prototype),
-      req
+      {
+        ...req,
+        // Ensure headers is a plain object (IncomingMessage uses req.headers, not req.headers.get)
+        headers: req.headers,
+        // Add url property if missing (IncomingMessage has url)
+        url: req.url || (req as any).href || '',
+        // Add method property
+        method: req.method || 'GET',
+      }
     ) as IncomingMessage;
+    
+    // Ensure headers is a plain object, not a Headers object with .get() method
+    // This prevents the "headers.get is not a function" error
+    if (nodeReq.headers && typeof (nodeReq.headers as any).get === 'function') {
+      // Convert Headers object to plain object
+      const plainHeaders: Record<string, string | string[]> = {};
+      try {
+        (nodeReq.headers as any).forEach((value: string, key: string) => {
+          plainHeaders[key] = value;
+        });
+      } catch (e) {
+        // If forEach doesn't work, try entries
+        try {
+          for (const [key, value] of (nodeReq.headers as any).entries()) {
+            plainHeaders[key] = value;
+          }
+        } catch (e2) {
+          // Fallback: use original headers if conversion fails
+        }
+      }
+      nodeReq.headers = plainHeaders as any;
+    }
     
     const nodeRes = Object.assign(
       Object.create(ServerResponse.prototype),
