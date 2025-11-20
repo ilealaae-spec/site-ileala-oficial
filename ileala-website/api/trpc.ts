@@ -2275,51 +2275,46 @@ function createProtectedRequest(rawReq: any): any {
 // The error occurs because Vercel tries to access req.headers.get during inspection.
 // SOLUTION: Use a factory function that creates the handler, preventing Vercel from inspecting it.
 // CRITICAL: The handler must NEVER access req.headers.get directly - always convert to Request first.
-// Solução: Factory function que cria o handler dinamicamente
-// Isso evita que o Vercel inspecione o handler antes da execução
-// O handler só é criado quando necessário, não durante a inspeção
-function createHandler() {
-  return async function handler(
-    req: Request | any
-  ): Promise<Response> {
-    // Se o Vercel passar um VercelRequest, converter para Request
-    let request: Request;
-    
-    if (req instanceof Request) {
-      // Já é um Request válido
-      request = req;
-    } else {
-      // É um VercelRequest - converter para Request
-      // CRITICAL: Não acessar req.headers.get() aqui - converter manualmente
-      const url = req.url || (req as any).href || 'http://localhost';
-      const method = req.method || 'GET';
-      
-      // Converter headers de VercelRequest para Headers
-      // NUNCA acessar req.headers.get() - sempre usar Object.entries
-      const headers = new Headers();
-      if (req.headers && typeof req.headers === 'object') {
-        for (const [key, value] of Object.entries(req.headers)) {
-          if (value !== undefined) {
-            if (Array.isArray(value)) {
-              for (const v of value) {
-                headers.append(key, String(v));
-              }
-            } else {
-              headers.set(key, String(value));
-            }
+// Solução: Proxy que intercepta acesso a headers.get antes da inspeção do Vercel
+// Criar um wrapper que protege o request de qualquer tentativa de acesso a headers.get
+function createSafeRequest(req: any): Request {
+  // Se já é um Request válido, retornar diretamente
+  if (req instanceof Request) {
+    return req;
+  }
+  
+  // Extrair dados do VercelRequest sem acessar headers.get()
+  const url = req.url || (req as any).href || 'http://localhost';
+  const method = req.method || 'GET';
+  
+  // Converter headers manualmente usando Object.entries
+  const headers = new Headers();
+  if (req.headers && typeof req.headers === 'object') {
+    for (const [key, value] of Object.entries(req.headers)) {
+      if (value !== undefined) {
+        if (Array.isArray(value)) {
+          for (const v of value) {
+            headers.append(key, String(v));
           }
+        } else {
+          headers.set(key, String(value));
         }
       }
-      
-      // Criar Request com body se existir
-      const body = req.body ? JSON.stringify(req.body) : null;
-      
-      request = new Request(url, {
-        method,
-        headers,
-        body,
-      });
     }
+  }
+  
+  // Criar Request com body se existir
+  const body = req.body ? JSON.stringify(req.body) : null;
+  
+  return new Request(url, {
+    method,
+    headers,
+    body,
+  });
+}
+
+// Handler principal - sempre recebe um Request válido
+async function handleRequest(request: Request): Promise<Response> {
   // Array para armazenar cookies que serão adicionados à resposta
   const cookies: Array<{ name: string; value: string; options: any }> = [];
   
@@ -2445,7 +2440,14 @@ function createHandler() {
   };
 }
 
-// Exportar handler criado pela factory function
-// Isso evita que o Vercel inspecione o handler antes da execução
-export default createHandler();
+// Exportar handler com wrapper que converte qualquer request para Request válido
+// O wrapper intercepta qualquer tentativa de inspeção e converte antes de acessar
+export default async function handler(req: any): Promise<Response> {
+  // Converter para Request válido ANTES de qualquer acesso
+  // Isso previne o erro durante a inspeção do Vercel
+  const request = createSafeRequest(req);
+  
+  // Passar para o handler principal
+  return handleRequest(request);
+}
 
