@@ -10,11 +10,16 @@ Estou enfrentando um erro crítico e persistente que impede 100% das requisiçõ
 
 ## ÁREA ESPECÍFICA DO PROBLEMA
 
-**Categoria:** Serverless Functions / API Routes  
+**Categoria:** Funções sem servidor (Serverless Functions)  
 **Tipo de problema:** Runtime Error (ocorre antes da execução do handler)  
 **Componente afetado:** Handler de API Route (`api/trpc.ts`)  
-**Runtime:** Node.js 20.x  
+**Runtime:** Node.js 20.x (não Edge Runtime)  
 **Adapter:** tRPC `nodeHTTPRequestHandler` de `@trpc/server/adapters/node-http`
+
+**Confirmação:**
+- ✅ É uma **Serverless Function** (arquivo em `api/trpc.ts`)
+- ❌ NÃO é Edge Function (estamos usando Node.js runtime)
+- ❌ NÃO é Middleware (é um handler de API Route)
 
 **Problema específico:**
 - O erro ocorre durante a **inspeção/validação do handler pelo Vercel**, ANTES do código do handler ser executado
