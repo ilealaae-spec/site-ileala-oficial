@@ -2283,29 +2283,38 @@ function createProtectedRequest(rawReq: any): any {
 // CRITICAL: Export handler directly as an async function
 // This prevents Vercel from wrapping it in Object.handler
 // The error "at Object.handler" happens when Vercel wraps the handler
-// CRITICAL: Use nodeHTTPRequestHandler instead of fetchRequestHandler
-// This is more compatible with Vercel's Node.js runtime and doesn't require Request/Response objects
-export default async function handler(req: IncomingMessage, res: ServerResponse): Promise<void> {
+// CRITICAL: Use VercelRequest/VercelResponse with nodeHTTPRequestHandler
+// This is the recommended approach for tRPC on Vercel with Node.js runtime
+// VercelRequest/VercelResponse are the correct types, not IncomingMessage/ServerResponse
+export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   // IMMEDIATELY wrap in try-catch to catch ANY error
   try {
-    // nodeHTTPRequestHandler works directly with Node.js IncomingMessage/ServerResponse
-    // No need to convert to Request/Response - this avoids the headers.get error
+    // nodeHTTPRequestHandler works directly with VercelRequest/VercelResponse
+    // This is the correct way to use tRPC on Vercel with Node.js runtime
     await nodeHTTPRequestHandler({
       req,
       res,
       router: appRouter,
       createContext: () => {
-        // Extract client IP from req
+        // Extract client IP from req (VercelRequest headers can be string or array)
         const forwardedFor = req.headers['x-forwarded-for'];
         const realIp = req.headers['x-real-ip'];
         const clientIp = typeof forwardedFor === 'string' 
           ? forwardedFor.split(',')[0]?.trim() 
-          : typeof realIp === 'string' 
-            ? realIp 
-            : 'unknown';
+          : Array.isArray(forwardedFor)
+            ? forwardedFor[0]?.split(',')[0]?.trim() || 'unknown'
+            : typeof realIp === 'string' 
+              ? realIp 
+              : Array.isArray(realIp)
+                ? realIp[0] || 'unknown'
+                : 'unknown';
         
-        // Parse cookies from request
-        const cookieHeader = req.headers.cookie;
+        // Parse cookies from request (VercelRequest headers can be string or array)
+        const cookieHeader = typeof req.headers.cookie === 'string' 
+          ? req.headers.cookie 
+          : Array.isArray(req.headers.cookie)
+            ? req.headers.cookie[0]
+            : '';
         const parsedCookies = parseCookie(cookieHeader);
         
         // Parse user from session cookie
@@ -2319,24 +2328,11 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         }
         
         // Create context with cookie management
-  const cookies: Array<{ name: string; value: string; options: any }> = [];
-        
         return {
           user,
           clientIp,
           setCookie(name: string, value: string) {
-            cookies.push({
-              name,
-              value,
-              options: {
-                path: '/',
-                httpOnly: true,
-                secure: true,
-                sameSite: 'Lax',
-                maxAge: 365 * 24 * 60 * 60, // 1 year
-              },
-            });
-            // Set cookie immediately on response
+            // Set cookie immediately on response using VercelResponse
             const cookieString = createSetCookieHeader(name, value, {
               path: '/',
               httpOnly: true,
@@ -2347,15 +2343,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
             res.setHeader('Set-Cookie', cookieString);
           },
           clearCookie(name: string) {
-            cookies.push({
-              name,
-              value: '',
-              options: {
-                path: '/',
-                maxAge: -1,
-              },
-            });
-            // Clear cookie immediately on response
+            // Clear cookie immediately on response using VercelResponse
             const cookieString = createSetCookieHeader(name, '', {
               path: '/',
               maxAge: -1,
@@ -2383,10 +2371,8 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     console.error('[Vercel tRPC] Request type:', typeof req);
     console.error('[Vercel tRPC] Request keys:', req ? Object.keys(req).slice(0, 10) : 'null');
     
-    // Return a proper error response using ServerResponse
-    res.statusCode = 500;
-    res.setHeader('Content-Type', 'application/json');
-    res.end(JSON.stringify([
+    // Return a proper error response using VercelResponse
+    res.status(500).json([
       {
         error: {
           message: errorMessage.includes('headers.get') 
@@ -2399,7 +2385,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
           },
         },
       },
-    ]));
+    ]);
   }
 }
 
