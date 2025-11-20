@@ -146,19 +146,26 @@ Este documento lista TODAS as variáveis que você precisa adicionar no Railway,
 - **Exemplo:** `pk_live_51AbC123dEf456gHi789jKl012mNo345pQr678sTu901vWx234yZ567`
 - **Prioridade:** 🟢 FRONTEND (se você tem pagamentos)
 
-### 18. `VITE_OAUTH_PORTAL_URL`
+### 18. `VITE_API_URL`
+- **O que é:** URL completa da API no Railway (para o frontend conectar)
+- **Valor:** `https://ileala-website-production.up.railway.app/api/trpc`
+- **Onde encontrar:** URL do seu projeto Railway + `/api/trpc`
+- **Importante:** Necessário para o frontend no Vercel se conectar ao backend no Railway
+- **Prioridade:** 🟢 FRONTEND (CRÍTICA se usar Vercel para frontend)
+
+### 19. `VITE_OAUTH_PORTAL_URL`
 - **O que é:** URL do portal OAuth
 - **Valor:** `https://placeholder.com`
 - **Nota:** Valor temporário se você não usa OAuth completo
 - **Prioridade:** 🟢 FRONTEND
 
-### 19. `OAUTH_SERVER_URL`
+### 20. `OAUTH_SERVER_URL`
 - **O que é:** URL do servidor OAuth
 - **Valor:** `https://placeholder.com`
 - **Nota:** Valor temporário se você não usa OAuth completo
 - **Prioridade:** 🟡 IMPORTANTE
 
-### 20. `OWNER_OPEN_ID`
+### 21. `OWNER_OPEN_ID`
 - **O que é:** OpenID do proprietário (para OAuth)
 - **Valor:** (deixe vazio se não usar OAuth completo)
 - **Onde encontrar:** Dashboard do seu provedor OAuth
@@ -170,7 +177,7 @@ Este documento lista TODAS as variáveis que você precisa adicionar no Railway,
 
 **Apenas adicione se você usar essas funcionalidades.**
 
-### 21. `AWS_ACCESS_KEY_ID`
+### 22. `AWS_ACCESS_KEY_ID`
 - **O que é:** Access Key da AWS para S3
 - **Onde encontrar:**
   - AWS Console → **IAM → Users → Security credentials**
@@ -178,48 +185,48 @@ Este documento lista TODAS as variáveis que você precisa adicionar no Railway,
 - **Formato:** `AKIA...`
 - **Prioridade:** 🔵 OPCIONAL (apenas se usar S3)
 
-### 22. `AWS_SECRET_ACCESS_KEY`
+### 23. `AWS_SECRET_ACCESS_KEY`
 - **O que é:** Secret Key da AWS para S3
 - **Onde encontrar:** Mesmo lugar da Access Key
 - **Formato:** String longa
 - **Prioridade:** 🔵 OPCIONAL (apenas se usar S3)
 
-### 23. `AWS_REGION`
+### 24. `AWS_REGION`
 - **O que é:** Região do bucket S3
 - **Valor:** `us-east-1` (ou sua região)
 - **Prioridade:** 🔵 OPCIONAL (apenas se usar S3)
 
-### 24. `AWS_S3_BUCKET`
+### 25. `AWS_S3_BUCKET`
 - **O que é:** Nome do bucket S3
 - **Valor:** `ileala-uploads` (ou seu bucket)
 - **Prioridade:** 🔵 OPCIONAL (apenas se usar S3)
 
-### 25. `BUILT_IN_FORGE_API_URL`
+### 26. `BUILT_IN_FORGE_API_URL`
 - **O que é:** URL da API Forge (se usar)
 - **Valor:** (deixe vazio se não usar)
 - **Prioridade:** 🔵 OPCIONAL
 
-### 26. `BUILT_IN_FORGE_API_KEY`
+### 27. `BUILT_IN_FORGE_API_KEY`
 - **O que é:** Chave da API Forge (se usar)
 - **Valor:** (deixe vazio se não usar)
 - **Prioridade:** 🔵 OPCIONAL
 
-### 27. `VITE_FRONTEND_FORGE_API_URL`
+### 28. `VITE_FRONTEND_FORGE_API_URL`
 - **O que é:** URL da API Forge para frontend (se usar)
 - **Valor:** (deixe vazio se não usar)
 - **Prioridade:** 🔵 OPCIONAL
 
-### 28. `VITE_FRONTEND_FORGE_API_KEY`
+### 29. `VITE_FRONTEND_FORGE_API_KEY`
 - **O que é:** Chave da API Forge para frontend (se usar)
 - **Valor:** (deixe vazio se não usar)
 - **Prioridade:** 🔵 OPCIONAL
 
-### 29. `VITE_ANALYTICS_ENDPOINT`
+### 30. `VITE_ANALYTICS_ENDPOINT`
 - **O que é:** Endpoint de analytics (se usar)
 - **Valor:** (deixe vazio se não usar)
 - **Prioridade:** 🔵 OPCIONAL
 
-### 30. `VITE_ANALYTICS_WEBSITE_ID`
+### 31. `VITE_ANALYTICS_WEBSITE_ID`
 - **O que é:** ID do site no analytics (se usar)
 - **Valor:** (deixe vazio se não usar)
 - **Prioridade:** 🔵 OPCIONAL
