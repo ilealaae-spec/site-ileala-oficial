@@ -2289,17 +2289,21 @@ function createProtectedRequest(rawReq: any): any {
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   // IMMEDIATELY wrap in try-catch to catch ANY error
   try {
-    // CRITICAL: nodeHTTPRequestHandler expects IncomingMessage/ServerResponse from Node.js
-    // VercelRequest/VercelResponse extend these types, but we need to ensure compatibility
-    // Convert VercelRequest to IncomingMessage-like object if needed
-    const nodeReq = req as any as import('http').IncomingMessage;
-    const nodeRes = res as any as import('http').ServerResponse;
+    // CRITICAL: Create a safe wrapper for req that prevents any access to headers.get
+    // This prevents Vercel from trying to inspect the handler and access headers.get
+    const safeReq = {
+      ...req,
+      headers: req.headers, // Use headers directly, not headers.get
+      // Ensure no headers.get method exists that could be called during inspection
+    } as any as import('http').IncomingMessage;
+    
+    const safeRes = res as any as import('http').ServerResponse;
     
     // nodeHTTPRequestHandler works with Node.js IncomingMessage/ServerResponse
-    // VercelRequest/VercelResponse are compatible but we cast to ensure type safety
+    // We pass the safe wrapper to prevent any access to headers.get during inspection
     await nodeHTTPRequestHandler({
-      req: nodeReq,
-      res: nodeRes,
+      req: safeReq,
+      res: safeRes,
       router: appRouter,
       createContext: () => {
         // Extract client IP from req (VercelRequest headers can be string or array)
