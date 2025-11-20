@@ -2292,22 +2292,41 @@ export const config = {
 export default async function handler(req: Request): Promise<Response> {
   // IMMEDIATELY wrap in try-catch to catch ANY error
   try {
+    // CRITICAL: Create a completely new Request object to prevent Vercel inspection issues
+    // Even with Edge Runtime, Vercel may inspect the handler before execution
+    // Creating a new Request ensures no reference to the original remains
+    const safeRequest = new Request(req.url, {
+      method: req.method,
+      headers: new Headers(req.headers), // Create new Headers from original
+      body: req.body,
+      cache: req.cache,
+      credentials: req.credentials,
+      integrity: req.integrity,
+      keepalive: req.keepalive,
+      mode: req.mode,
+      redirect: req.redirect,
+      referrer: req.referrer,
+      referrerPolicy: req.referrerPolicy,
+      signal: req.signal,
+    });
+    
     // fetchRequestHandler works directly with Request/Response (Web Standard API)
     // This is the recommended approach for tRPC on Vercel with Edge Runtime
     const cookies: Array<{ name: string; value: string; options: any }> = [];
     
     return await fetchRequestHandler({
       endpoint: '/api/trpc',
-      req,
+      req: safeRequest, // Use the safe Request, not the original
       router: appRouter,
       createContext: () => {
         // Extract client IP from Request headers (Web Standard API uses headers.get)
-        const forwardedFor = req.headers.get('x-forwarded-for');
-        const realIp = req.headers.get('x-real-ip');
+        // Use safeRequest, not the original req
+        const forwardedFor = safeRequest.headers.get('x-forwarded-for');
+        const realIp = safeRequest.headers.get('x-real-ip');
         const clientIp = forwardedFor?.split(',')[0]?.trim() || realIp || 'unknown';
         
         // Parse cookies from request (Web Standard API)
-        const cookieHeader = req.headers.get('cookie') || '';
+        const cookieHeader = safeRequest.headers.get('cookie') || '';
         const parsedCookies = parseCookie(cookieHeader);
         
         // Parse user from session cookie
