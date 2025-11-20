@@ -1,3 +1,3 @@
-# Ignorar pasta api/ - backend está no Railway
-api/
-
+# Ignorar pasta api-backup/ - backend está no Railway
+# (Pasta api/ foi renomeada para api-backup/ para evitar detecção automática do Vercel)
+api-backup/
