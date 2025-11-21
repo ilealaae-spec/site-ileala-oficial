@@ -23,5 +23,6 @@ RUN npm install -g serve
 # Railway injects PORT as environment variable
 # Use ENV to set default, then use it in CMD
 ENV PORT=3000
-CMD ["sh", "-c", "serve -s dist -l $PORT"]
+# Use exec form to ensure PORT is properly expanded
+CMD ["sh", "-c", "exec serve -s dist -l \"${PORT:-3000}\""]
 
