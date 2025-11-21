@@ -449,7 +449,22 @@ export const appRouter = router({
       }),
     myOrders: protectedProcedure.query(async ({ ctx }) => {
       if (!ctx.user) throw new Error('Not authenticated');
-      return await db.getUserOrders(ctx.user.id);
+      const orders = await db.getUserOrders(ctx.user.id);
+      
+      // Incluir itens de cada pedido
+      const ordersWithItems = await Promise.all(
+        orders.map(async (order) => {
+          const items = await db.getOrderItems(order.id);
+          return { ...order, items };
+        })
+      );
+      
+      // Ordenar por data mais recente primeiro
+      return ordersWithItems.sort((a, b) => {
+        const dateA = new Date(a.createdAt).getTime();
+        const dateB = new Date(b.createdAt).getTime();
+        return dateB - dateA;
+      });
     }),
   }),
 
