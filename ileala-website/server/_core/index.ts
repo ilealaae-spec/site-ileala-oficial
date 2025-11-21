@@ -40,6 +40,35 @@ async function startServer() {
   // Trust proxy (Railway uses proxies, so we need to trust X-Forwarded-For headers)
   app.set('trust proxy', true);
   
+  // ============================================
+  // REDIRECTS: Force HTTPS and www (SEO)
+  // ============================================
+  // Preferred domain: https://www.ileala.ae
+  // This ensures Google only indexes one version of the site
+  app.use((req, res, next) => {
+    const host = req.get('host') || '';
+    const protocol = req.protocol;
+    const url = req.url;
+    
+    // Skip redirects for health check and static assets
+    if (url === '/health' || url.startsWith('/api/') || url.startsWith('/_') || url.match(/\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$/)) {
+      return next();
+    }
+    
+    // Force HTTPS
+    if (protocol === 'http') {
+      return res.redirect(301, `https://www.ileala.ae${url}`);
+    }
+    
+    // Force www (redirect non-www to www)
+    if (host === 'ileala.ae' || host.startsWith('ileala.ae:')) {
+      return res.redirect(301, `https://www.ileala.ae${url}`);
+    }
+    
+    // If already https://www.ileala.ae, continue
+    next();
+  });
+  
   // Configure CORS to allow requests from the frontend domain
   app.use((req, res, next) => {
     const origin = req.headers.origin;

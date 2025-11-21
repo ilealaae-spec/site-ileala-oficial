@@ -45,12 +45,21 @@ export default function SEO({
       ...(keywords ? [{ name: 'keywords', content: keywords }] : []),
       ...(noindex ? [{ name: 'robots', content: 'noindex, nofollow' }] : []),
       
-      // Open Graph
+      // Open Graph - Always use www.ileala.ae as preferred domain
       { property: 'og:title', content: `${title} | ILE ALA` },
       { property: 'og:description', content: description },
-      { property: 'og:image', content: `${window.location.origin}${ogImage}` },
+      { property: 'og:image', content: `https://www.ileala.ae${ogImage}` },
       { property: 'og:type', content: ogType },
-      { property: 'og:url', content: canonical || window.location.href },
+      { property: 'og:url', content: (() => {
+        try {
+          const url = new URL(canonical || window.location.href);
+          url.hostname = 'www.ileala.ae';
+          url.protocol = 'https:';
+          return url.toString();
+        } catch {
+          return `https://www.ileala.ae${window.location.pathname}${window.location.search}`;
+        }
+      })() },
       { property: 'og:site_name', content: 'ILE ALA' },
       
       // Twitter Card
@@ -71,7 +80,7 @@ export default function SEO({
       createdElements.push(meta);
     });
 
-    // Set canonical URL
+    // Set canonical URL - Always use https://www.ileala.ae as preferred domain
     let canonicalLink = document.querySelector('link[rel="canonical"]') as HTMLLinkElement;
     let createdCanonical = false;
     if (!canonicalLink) {
@@ -82,7 +91,20 @@ export default function SEO({
       createdCanonical = true;
       createdElements.push(canonicalLink);
     }
-    canonicalLink.href = canonical || window.location.href;
+    
+    // Normalize canonical URL to always use www.ileala.ae
+    let canonicalUrl = canonical || window.location.href;
+    try {
+      const url = new URL(canonicalUrl);
+      // Replace hostname with www.ileala.ae (preferred domain)
+      url.hostname = 'www.ileala.ae';
+      url.protocol = 'https:';
+      canonicalUrl = url.toString();
+    } catch (e) {
+      // If URL parsing fails, use default
+      canonicalUrl = canonical || `https://www.ileala.ae${window.location.pathname}${window.location.search}`;
+    }
+    canonicalLink.href = canonicalUrl;
 
     return () => {
       // Cleanup on unmount - safely remove only elements we created
