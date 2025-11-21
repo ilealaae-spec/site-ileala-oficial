@@ -4,18 +4,22 @@ const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
 
 const FROM_EMAIL = 'ILE ALA <noreply@ileala.ae>';
-const SITE_URL = process.env.SITE_URL || 'https://ileala.ae';
+// Ensure SITE_URL always uses https
+const SITE_URL = (process.env.SITE_URL || 'https://ileala.ae').replace(/^http:/, 'https:');
 
 // Modo desenvolvimento: permite cadastro sem email se RESEND_API_KEY não estiver configurado
 const ALLOW_REGISTRATION_WITHOUT_EMAIL = process.env.NODE_ENV !== 'production' || process.env.ALLOW_REGISTRATION_WITHOUT_EMAIL === 'true';
 
 export async function sendVerificationEmail(email: string, token: string, name: string) {
-  const verificationUrl = `${SITE_URL}/verify-email?token=${token}`;
+  // Encode token for URL to prevent issues with email clients
+  const encodedToken = encodeURIComponent(token);
+  const verificationUrl = `${SITE_URL}/verify-email?token=${encodedToken}`;
   
   console.log(`[Email] Attempting to send verification email to ${email}`);
   console.log(`[Email] FROM: ${FROM_EMAIL}`);
   console.log(`[Email] Resend API Key configured: ${!!RESEND_API_KEY}`);
   console.log(`[Email] Allow registration without email: ${ALLOW_REGISTRATION_WITHOUT_EMAIL}`);
+  console.log(`[Email] Verification URL: ${verificationUrl}`);
   
   // Se não há API key e não permite registro sem email, lança erro
   if (!resend && !ALLOW_REGISTRATION_WITHOUT_EMAIL) {
@@ -55,8 +59,14 @@ export async function sendVerificationEmail(email: string, token: string, name: 
               <p>Thank you for creating an account with ILE ALA. To complete your registration and start shopping, please verify your email address.</p>
               
               <div style="text-align: center; margin: 30px 0;">
-                <a href="${verificationUrl}" style="background: #8B9D83; color: white; padding: 14px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">
+                <a href="${verificationUrl}" style="background: #8B9D83; color: white; padding: 14px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold; cursor: pointer; -webkit-text-size-adjust: none; mso-hide: all;">
                   Verify Email Address
+                </a>
+              </div>
+              <!-- Fallback link in case button doesn't work in email client -->
+              <div style="text-align: center; margin: 20px 0;">
+                <a href="${verificationUrl}" style="color: #8B9D83; text-decoration: underline; font-size: 14px; word-break: break-all;">
+                  ${verificationUrl}
                 </a>
               </div>
               
