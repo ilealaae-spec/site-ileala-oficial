@@ -12,37 +12,45 @@ export default function PaymentSuccess() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const [sessionIdState, setSessionIdState] = useState<string | null>(null);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const sid = params.get('session_id');
     setSessionId(sid);
-    
-    // Verificar pagamento e criar pedido se necessário
-    if (sid) {
-      verifyPaymentAndCreateOrder(sid);
-    } else {
-      setLoading(false);
-    }
+    setSessionIdState(sid);
   }, [location]);
 
-  const verifyPaymentMutation = trpc.payment.verifyPayment.useQuery(
-    { sessionId: sessionId || '' },
-    { enabled: !!sessionId && loading }
+  // Verificar pagamento quando sessionId estiver disponível
+  const { data: paymentData, isLoading: verifyingPayment } = trpc.payment.verifyPayment.useQuery(
+    { sessionId: sessionIdState || '' },
+    { 
+      enabled: !!sessionIdState,
+      retry: 2,
+      onSuccess: (data) => {
+        console.log('[PaymentSuccess] Payment verified:', data);
+        if (data.paymentStatus === 'paid') {
+          toast.success(language === 'en' ? 'Payment confirmed! Order created successfully.' : 'Pagamento confirmado! Pedido criado com sucesso.');
+        }
+        setLoading(false);
+      },
+      onError: (error) => {
+        console.error('[PaymentSuccess] Error verifying payment:', error);
+        toast.error(language === 'en' ? 'Failed to verify payment' : 'Falha ao verificar pagamento');
+        setLoading(false);
+      },
+    }
   );
 
-  const verifyPaymentAndCreateOrder = async (sid: string) => {
-    try {
+  useEffect(() => {
+    if (sessionIdState && !verifyingPayment && paymentData) {
+      setLoading(false);
+    } else if (sessionIdState && verifyingPayment) {
       setLoading(true);
-      // A verificação do pagamento será feita automaticamente pelo query acima
-      // O backend já atualiza o status do pedido se necessário
-      console.log('[PaymentSuccess] Verifying payment for session:', sid);
-    } catch (error) {
-      console.error('[PaymentSuccess] Error verifying payment:', error);
-      toast.error(language === 'en' ? 'Failed to verify payment' : 'Falha ao verificar pagamento');
-    } finally {
+    } else if (!sessionIdState) {
       setLoading(false);
     }
-  };
+  }, [sessionIdState, verifyingPayment, paymentData]);
 
   if (loading) {
     return (
