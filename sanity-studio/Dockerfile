@@ -3,11 +3,11 @@ FROM node:20-alpine
 WORKDIR /app
 
 # Copy package files first (for better caching)
-COPY package.json package-lock.json* ./
+COPY package.json ./
 COPY .npmrc* ./
 
-# Install dependencies
-RUN npm install --legacy-peer-deps || npm install --legacy-peer-deps --no-package-lock
+# Install dependencies (no package-lock.json because .npmrc has package-lock=false)
+RUN npm install --legacy-peer-deps --no-package-lock
 
 # Copy source files
 COPY . .
