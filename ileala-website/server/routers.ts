@@ -665,17 +665,97 @@ export const appRouter = router({
       .input(z.object({
         sessionId: z.string(),
       }))
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }) => {
+        if (!ctx.user) throw new Error('Not authenticated');
+        
         const session = await stripe.checkout.sessions.retrieve(input.sessionId);
         
+        // Se já existe orderId no metadata, apenas atualiza o status
         if (session.payment_status === 'paid' && session.metadata?.orderId) {
           const orderId = parseInt(session.metadata.orderId);
           await db.updateOrderPaymentStatus(orderId, 'paid');
+          return {
+            paymentStatus: session.payment_status,
+            orderId: session.metadata.orderId,
+          };
+        }
+        
+        // Se não existe orderId mas o pagamento foi pago e é de produtos Sanity, criar pedido
+        if (session.payment_status === 'paid' && 
+            (session.metadata?.source === 'sanity' || session.metadata?.source === 'sanity-cart') &&
+            !session.metadata?.orderId) {
+          
+          console.log('[verifyPayment] Creating order for Sanity product payment');
+          
+          // Buscar informações do cliente da sessão
+          const customerEmail = session.customer_details?.email || ctx.user.email;
+          const customerName = session.customer_details?.name || ctx.user.name || 'Customer';
+          
+          // Calcular total do pagamento (em fils, converter para AED)
+          const totalAmount = session.amount_total || 0; // Já está em fils
+          
+          // Criar pedido
+          const orderId = await db.createOrder({
+            userId: ctx.user.id,
+            totalAmount: totalAmount,
+            shippingAddress: session.shipping_details?.address 
+              ? `${session.shipping_details.address.line1 || ''}, ${session.shipping_details.address.city || ''}, ${session.shipping_details.address.country || ''}`
+              : 'Address not provided',
+            customerName: customerName,
+            customerEmail: customerEmail,
+            customerPhone: session.customer_details?.phone || '',
+            status: 'pending',
+            paymentStatus: 'paid',
+            paymentIntentId: session.payment_intent as string,
+          });
+          
+          // Criar itens do pedido a partir dos line items do Stripe
+          // Nota: Para produtos Sanity, não temos productId no banco de dados
+          // Por enquanto, apenas registramos o pedido sem os itens individuais
+          // O total e informações do pedido já estão salvos
+          try {
+            const lineItems = await stripe.checkout.sessions.listLineItems(input.sessionId, { limit: 100 });
+            console.log('[verifyPayment] Line items retrieved:', lineItems.data.length);
+            // TODO: Adicionar suporte para orderItems de produtos Sanity quando o schema permitir
+          } catch (lineItemsError) {
+            console.error('[verifyPayment] Failed to retrieve line items:', lineItemsError);
+            // Não bloquear se falhar
+          }
+          
+          // Enviar email de confirmação
+          try {
+            const { sendOrderConfirmationEmail } = await import('./email');
+            const order = await db.getOrderById(orderId);
+            if (order) {
+              const items = await db.getOrderItems(orderId);
+              await sendOrderConfirmationEmail(
+                customerEmail,
+                customerName,
+                orderId,
+                totalAmount,
+                items.map(item => ({
+                  name: item.product?.nameEN || 'Product',
+                  quantity: item.quantity,
+                  price: item.priceAtPurchase,
+                }))
+              );
+            }
+          } catch (emailError) {
+            console.error('[verifyPayment] Failed to send confirmation email:', emailError);
+            // Não bloquear se o email falhar
+          }
+          
+          console.log('[verifyPayment] Order created successfully:', orderId);
+          
+          return {
+            paymentStatus: session.payment_status,
+            orderId: orderId.toString(),
+          };
         }
         
         return {
           paymentStatus: session.payment_status,
-          orderId: session.metadata?.orderId,
+          orderId: session.metadata?.orderId || null,
         };
       }),
     // Sanity Product Checkout
