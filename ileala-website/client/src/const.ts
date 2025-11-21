@@ -50,7 +50,15 @@ export const isOAuthAvailable = () => {
 export const getGoogleLoginUrl = (redirectTo: string = '/') => {
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
   
+  // Debug logging
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[Google OAuth] VITE_GOOGLE_CLIENT_ID:', googleClientId ? 'Configured' : 'NOT CONFIGURED');
+  }
+  
   if (!googleClientId || googleClientId.includes('placeholder')) {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[Google OAuth] Google OAuth is not configured. Add VITE_GOOGLE_CLIENT_ID to Railway variables.');
+    }
     return null;
   }
   

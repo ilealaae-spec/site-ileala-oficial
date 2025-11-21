@@ -161,6 +161,12 @@ export default function Login() {
           const params = new URLSearchParams(window.location.search);
           const redirectTo = params.get('redirect') || '/cart';
           const googleLoginUrl = getGoogleLoginUrl(redirectTo);
+          
+          // Debug: Log if Google OAuth is not available
+          if (!googleLoginUrl && process.env.NODE_ENV === 'development') {
+            console.warn('[Login] Google OAuth button not shown - VITE_GOOGLE_CLIENT_ID not configured');
+          }
+          
           if (!googleLoginUrl) return null; // Don't show Google button if not configured
           
           return (
