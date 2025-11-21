@@ -38,20 +38,23 @@ export default function Register() {
   const utils = trpc.useUtils();
 
   const registerMutation = trpc.auth.register.useMutation({
-    onSuccess: () => {
-      toast.success(language === 'en' ? 'Account created successfully!' : 'Conta criada com sucesso!');
+    onSuccess: (data) => {
+      console.log('[Register] Registration successful:', data);
+      toast.success(language === 'en' ? 'Account created successfully! Please check your email to verify your account.' : 'Conta criada com sucesso! Por favor, verifique seu email para confirmar sua conta.');
       utils.auth.me.invalidate();
       
-      // Redirect to cart or home - use setTimeout to avoid React errors during navigation
-      const params = new URLSearchParams(window.location.search);
-      const redirect = params.get('redirect') || '/cart';
+      // Aguardar um pouco antes de redirecionar para garantir que o cookie foi definido
       setTimeout(() => {
+        const params = new URLSearchParams(window.location.search);
+        const redirect = params.get('redirect') || '/cart';
+        console.log('[Register] Redirecting to:', redirect);
         setLocation(redirect);
-      }, 100);
+      }, 500);
     },
     onError: (error) => {
       console.error('[Register] Registration error:', error);
-      toast.error(error.message || (language === 'en' ? 'Failed to create account' : 'Falha ao criar conta'));
+      const errorMessage = error.message || (language === 'en' ? 'Failed to create account' : 'Falha ao criar conta');
+      toast.error(errorMessage);
     },
   });
 

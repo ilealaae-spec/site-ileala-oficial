@@ -1,41 +1,26 @@
 import { Resend } from 'resend';
 
-const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const FROM_EMAIL = 'ILE ALA <noreply@ileala.ae>';
-// Ensure SITE_URL always uses https and www (preferred domain)
-const SITE_URL = (process.env.SITE_URL || 'https://www.ileala.ae')
-  .replace(/^http:/, 'https:')
-  .replace(/^https:\/\/ileala\.ae/, 'https://www.ileala.ae'); // Force www
-
-// Modo desenvolvimento: permite cadastro sem email se RESEND_API_KEY não estiver configurado
-const ALLOW_REGISTRATION_WITHOUT_EMAIL = process.env.NODE_ENV !== 'production' || process.env.ALLOW_REGISTRATION_WITHOUT_EMAIL === 'true';
+// Sempre usar www.ileala.ae como URL canônica
+const SITE_URL = process.env.SITE_URL || 'https://www.ileala.ae';
+// Garantir que sempre use www
+const getSiteUrl = () => {
+  const url = process.env.SITE_URL || 'https://www.ileala.ae';
+  return url.replace('https://ileala.ae', 'https://www.ileala.ae');
+};
 
 export async function sendVerificationEmail(email: string, token: string, name: string) {
-  // Encode token for URL to prevent issues with email clients
+  const siteUrl = getSiteUrl();
+  // Codificar o token para URL
   const encodedToken = encodeURIComponent(token);
-  const verificationUrl = `${SITE_URL}/verify-email?token=${encodedToken}`;
+  const verificationUrl = `${siteUrl}/verify-email?token=${encodedToken}`;
   
   console.log(`[Email] Attempting to send verification email to ${email}`);
   console.log(`[Email] FROM: ${FROM_EMAIL}`);
-  console.log(`[Email] Resend API Key configured: ${!!RESEND_API_KEY}`);
-  console.log(`[Email] Allow registration without email: ${ALLOW_REGISTRATION_WITHOUT_EMAIL}`);
+  console.log(`[Email] Resend API Key configured: ${!!process.env.RESEND_API_KEY}`);
   console.log(`[Email] Verification URL: ${verificationUrl}`);
-  
-  // Se não há API key e não permite registro sem email, lança erro
-  if (!resend && !ALLOW_REGISTRATION_WITHOUT_EMAIL) {
-    const error = new Error('RESEND_API_KEY is not configured. Cannot send verification email.');
-    console.error('[Email] ERROR:', error.message);
-    throw error;
-  }
-  
-  // Se não há API key mas permite registro sem email, apenas loga e retorna true
-  if (!resend && ALLOW_REGISTRATION_WITHOUT_EMAIL) {
-    console.warn('[Email] WARNING: RESEND_API_KEY not configured. Skipping email send (development mode).');
-    console.warn(`[Email] Verification URL would be: ${verificationUrl}`);
-    return true;
-  }
   
   try {
     const result = await resend.emails.send({
@@ -60,18 +45,20 @@ export async function sendVerificationEmail(email: string, token: string, name: 
               
               <p>Thank you for creating an account with ILE ALA. To complete your registration and start shopping, please verify your email address.</p>
               
-              <!-- Button using table for better email client compatibility -->
-              <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 30px auto;">
-                <tr>
-                  <td style="background: #8B9D83; border-radius: 5px; text-align: center;">
-                    <a href="${verificationUrl}" style="display: block; padding: 14px 30px; color: #ffffff; text-decoration: none; font-weight: bold; font-size: 16px; border-radius: 5px;">
-                      Verify Email Address
-                    </a>
-                  </td>
-                </tr>
-              </table>
+              <div style="text-align: center; margin: 30px 0;">
+                <!-- Button usando tabela para melhor compatibilidade com clientes de email -->
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">
+                  <tr>
+                    <td style="background: #8B9D83; border-radius: 5px; text-align: center;">
+                      <a href="${verificationUrl}" style="display: block; padding: 14px 30px; color: #ffffff; text-decoration: none; font-weight: bold; font-size: 16px; border-radius: 5px; cursor: pointer;">
+                        Verify Email Address
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+              </div>
               
-              <!-- Fallback: Plain text link that always works -->
+              <!-- Fallback: Link de texto que sempre funciona -->
               <div style="text-align: center; margin: 20px 0; padding: 15px; background: #f5f5f5; border-radius: 5px;">
                 <p style="color: #666; font-size: 12px; margin: 0 0 10px 0;">If the button doesn't work, click this link:</p>
                 <a href="${verificationUrl}" style="color: #8B9D83; text-decoration: underline; font-size: 14px; word-break: break-all; display: block;">
@@ -92,8 +79,8 @@ export async function sendVerificationEmail(email: string, token: string, name: 
             <div style="text-align: center; padding: 20px; color: #999; font-size: 12px;">
               <p>© ${new Date().getFullYear()} ILE ALA. All rights reserved.</p>
               <p>
-                <a href="${SITE_URL}" style="color: #8B9D83; text-decoration: none;">Visit our website</a> | 
-                <a href="${SITE_URL}/contact" style="color: #8B9D83; text-decoration: none;">Contact us</a>
+                <a href="${siteUrl}" style="color: #8B9D83; text-decoration: none;">Visit our website</a> | 
+                <a href="${siteUrl}/contact" style="color: #8B9D83; text-decoration: none;">Contact us</a>
               </p>
             </div>
           </body>
@@ -101,21 +88,8 @@ export async function sendVerificationEmail(email: string, token: string, name: 
       `,
     });
     
-    console.log(`[Email] Resend API response:`, JSON.stringify(result, null, 2));
-    
-    // Verificar se o resultado indica sucesso
-    if (result.error) {
-      console.error('[Email] Resend API returned error:', result.error);
-      throw new Error(`Resend API error: ${JSON.stringify(result.error)}`);
-    }
-    
-    if (!result.data || !result.data.id) {
-      console.error('[Email] Resend API response missing data:', result);
-      throw new Error('Resend API response missing email ID');
-    }
-    
+    console.log(`[Email] Resend API response:`, JSON.stringify(result));
     console.log(`[Email] Verification email sent successfully to ${email}`);
-    console.log(`[Email] Email ID: ${result.data.id}`);
     return true;
   } catch (error) {
     console.error('[Email] ERROR sending verification email:', error);
@@ -124,21 +98,12 @@ export async function sendVerificationEmail(email: string, token: string, name: 
       console.error('[Email] Error message:', error.message);
       console.error('[Email] Error stack:', error.stack);
     }
-    
-    // Se permite registro sem email, apenas loga o erro mas não falha
-    if (ALLOW_REGISTRATION_WITHOUT_EMAIL) {
-      console.warn('[Email] Email send failed, but continuing (development mode)');
-      return true;
-    }
-    
-    // Em produção, loga o erro mas não lança - permite cadastro completar
-    // O usuário pode usar "resend verification" depois
-    console.warn('[Email] Email send failed, but registration will continue. User can resend verification email.');
     return false;
   }
 }
 
 export async function sendWelcomeEmail(email: string, name: string) {
+  const siteUrl = getSiteUrl();
   try {
     await resend.emails.send({
       from: FROM_EMAIL,
@@ -163,9 +128,16 @@ export async function sendWelcomeEmail(email: string, name: string) {
               <p>Your email has been verified successfully. You're now ready to explore our exclusive collection of handcrafted tableware and home décor.</p>
               
               <div style="text-align: center; margin: 30px 0;">
-                <a href="${SITE_URL}/shop" style="background: #8B9D83; color: white; padding: 14px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">
-                  Start Shopping
-                </a>
+                <!-- Button usando tabela para melhor compatibilidade com clientes de email -->
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">
+                  <tr>
+                    <td style="background: #8B9D83; border-radius: 5px; text-align: center;">
+                      <a href="${siteUrl}/shop" style="display: block; padding: 14px 30px; color: #ffffff; text-decoration: none; font-weight: bold; font-size: 16px; border-radius: 5px; cursor: pointer;">
+                        Start Shopping
+                      </a>
+                    </td>
+                  </tr>
+                </table>
               </div>
               
               <p>Everything you need to create your unique style and elevate your everyday life.</p>
@@ -291,9 +263,10 @@ export async function sendOrderConfirmationEmail(
 export async function sendPasswordResetEmail(email: string, token: string, name: string) {
   console.log('[sendPasswordResetEmail] Called with token:', token);
   console.log('[sendPasswordResetEmail] Token length:', token.length);
+  const siteUrl = getSiteUrl();
   // Use encodeURIComponent to protect token from being corrupted by email clients
   const encodedToken = encodeURIComponent(token);
-  const resetUrl = `${SITE_URL}/reset-password?token=${encodedToken}`;
+  const resetUrl = `${siteUrl}/reset-password?token=${encodedToken}`;
   console.log('[sendPasswordResetEmail] Encoded token:', encodedToken);
   console.log('[sendPasswordResetEmail] Reset URL:', resetUrl);
   
@@ -322,18 +295,20 @@ export async function sendPasswordResetEmail(email: string, token: string, name:
               
               <p>We received a request to reset your password for your ILE ALA account. Click the button below to create a new password:</p>
               
-              <!-- Button using table for better email client compatibility -->
-              <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 30px auto;">
-                <tr>
-                  <td style="background: #8B9D83; border-radius: 5px; text-align: center;">
-                    <a href="${resetUrl}" style="display: block; padding: 14px 30px; color: #ffffff; text-decoration: none; font-weight: bold; font-size: 16px; border-radius: 5px;">
-                      Reset Password
-                    </a>
-                  </td>
-                </tr>
-              </table>
+              <div style="text-align: center; margin: 30px 0;">
+                <!-- Button usando tabela para melhor compatibilidade com clientes de email -->
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">
+                  <tr>
+                    <td style="background: #8B9D83; border-radius: 5px; text-align: center;">
+                      <a href="${resetUrl}" style="display: block; padding: 14px 30px; color: #ffffff; text-decoration: none; font-weight: bold; font-size: 16px; border-radius: 5px; cursor: pointer;">
+                        Reset Password
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+              </div>
               
-              <!-- Fallback: Plain text link that always works -->
+              <!-- Fallback: Link de texto que sempre funciona -->
               <div style="text-align: center; margin: 20px 0; padding: 15px; background: #f5f5f5; border-radius: 5px;">
                 <p style="color: #666; font-size: 12px; margin: 0 0 10px 0;">If the button doesn't work, click this link:</p>
                 <a href="${resetUrl}" style="color: #8B9D83; text-decoration: underline; font-size: 14px; word-break: break-all; display: block;">

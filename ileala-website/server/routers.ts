@@ -1,7 +1,7 @@
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, router, protectedProcedure, adminProcedure } from "./_core/trpc";
+import { publicProcedure, router, protectedProcedure } from "./_core/trpc";
 import { z } from "zod";
 import * as db from "./db";
 import { getUserByEmailRaw, createUserRaw, generateEmailVerificationTokenRaw, verifyEmailTokenRaw, getAllUsersRaw, verifyUserCredentialsRaw, generatePasswordResetTokenRaw, resetPasswordWithTokenRaw } from "./db-raw";
@@ -41,32 +41,77 @@ export const appRouter = router({
           console.log('[Register] Starting registration for:', input.email);
           const existingUser = await getUserByEmailRaw(input.email);
           console.log('[Register] User exists:', !!existingUser);
-          if (existingUser) throw new Error('User with this email already exists');
-          console.log('[Register] Creating user...');
-          const user = await createUserRaw({ email: input.email, name: input.name, password: input.password, phone: input.phone || '', address: input.address || '', city: input.city || '', state: input.state || '', poBox: input.poBox, country: input.country || '' });
-          console.log('[Register] User created:', user.id);
-          if (!user) throw new Error('Failed to create user');
-          const token = await generateEmailVerificationTokenRaw(user.id);
-          const { sendVerificationEmail } = await import('./email');
-          try {
-            const emailSent = await sendVerificationEmail(user.email, token, user.name || 'Customer');
-            if (!emailSent) {
-              console.warn('[Register] Email send returned false, but continuing registration');
-            }
-          } catch (error) {
-            console.error('[Register] Failed to send verification email:', error);
-            // Log o erro mas não falha o cadastro - o usuário pode usar "resend verification" depois
-            // Isso permite que o cadastro complete mesmo se houver problema temporário com email
-            console.warn('[Register] Registration completed, but email verification may need to be resent');
+          if (existingUser) {
+            throw new Error('User with this email already exists');
           }
+          
+          console.log('[Register] Creating user...');
+          const user = await createUserRaw({ 
+            email: input.email, 
+            name: input.name, 
+            password: input.password, 
+            phone: input.phone || '', 
+            address: input.address || '', 
+            city: input.city || '', 
+            state: input.state || '', 
+            poBox: input.poBox, 
+            country: input.country || '' 
+          });
+          
+          console.log('[Register] User created:', user.id);
+          if (!user) {
+            throw new Error('Failed to create user');
+          }
+          
+          // Gerar token de verificação
+          console.log('[Register] Generating verification token...');
+          const token = await generateEmailVerificationTokenRaw(user.id);
+          console.log('[Register] Token generated');
+          
+          // Enviar email de verificação (não bloquear se falhar)
+          console.log('[Register] Sending verification email...');
+          try {
+            const { sendVerificationEmail } = await import('./email');
+            const emailSent = await sendVerificationEmail(user.email, token, user.name || 'Customer');
+            if (emailSent) {
+              console.log('[Register] Verification email sent successfully');
+            } else {
+              console.warn('[Register] Verification email failed to send, but registration continues');
+            }
+          } catch (emailError) {
+            console.error('[Register] Email sending failed:', emailError);
+            // Não bloquear o registro se o email falhar
+            console.warn('[Register] Continuing registration despite email failure');
+          }
+          
+          // Criar sessão
+          console.log('[Register] Setting session cookie...');
           const cookieOptions = getSessionCookieOptions(ctx.req);
-          ctx.res.cookie(COOKIE_NAME, JSON.stringify({ id: user.id, email: user.email, name: user.name, role: user.role }), cookieOptions);
-          console.log('[Register] Success!');
-          return { success: true, user: { id: user.id, email: user.email, name: user.name, role: user.role } };
+          ctx.res.cookie(COOKIE_NAME, JSON.stringify({ 
+            id: user.id, 
+            email: user.email, 
+            name: user.name, 
+            role: user.role 
+          }), cookieOptions);
+          
+          console.log('[Register] Success! User registered and session created');
+          return { 
+            success: true, 
+            user: { 
+              id: user.id, 
+              email: user.email, 
+              name: user.name, 
+              role: user.role 
+            } 
+          };
         } catch (error) {
           console.error('[Register] ERROR:', error);
+          console.error('[Register] Error message:', error instanceof Error ? error.message : 'Unknown error');
           console.error('[Register] Stack:', error instanceof Error ? error.stack : 'No stack');
-          throw error;
+          
+          // Retornar mensagem de erro mais amigável
+          const errorMessage = error instanceof Error ? error.message : 'Failed to create account';
+          throw new Error(errorMessage);
         }
       }),
     login: publicProcedure
@@ -412,7 +457,7 @@ export const appRouter = router({
   admin: router({
     // Products management
     products: router({
-      create: adminProcedure
+      create: protectedProcedure
         .input(z.object({
           nameEN: z.string(),
           namePT: z.string(),
@@ -425,7 +470,9 @@ export const appRouter = router({
           stock: z.number().default(0),
           featured: z.number().default(0),
         }))
-        .mutation(async ({ input }) => {
+        .mutation(async ({ input, ctx }) => {
+          if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+          
           // Generate slug from nameEN
           const slug = input.nameEN.toLowerCase()
             .replace(/[^a-z0-9]+/g, '-')
@@ -439,24 +486,9 @@ export const appRouter = router({
           
           return { id: productId };
         }),
-      update: adminProcedure
+      update: protectedProcedure
         .input(z.object({
           id: z.number(),
-          data: z.object({
-            name: z.string().optional(),
-            nameEN: z.string().optional(),
-            namePT: z.string().optional(),
-            descriptionEN: z.string().optional(),
-            descriptionPT: z.string().optional(),
-            price: z.number().optional(),
-            imageUrl: z.string().optional(),
-            collection: z.string().optional(),
-            category: z.string().optional(),
-            stock: z.number().optional(),
-            featured: z.number().optional(),
-            active: z.number().optional(),
-          }).optional(),
-          // Also support flat structure for backward compatibility
           nameEN: z.string().optional(),
           namePT: z.string().optional(),
           descriptionEN: z.string().optional(),
@@ -469,15 +501,16 @@ export const appRouter = router({
           featured: z.number().optional(),
           active: z.number().optional(),
         }))
-        .mutation(async ({ input }) => {
-          const { id, data, ...flatUpdates } = input;
-          const updates = data || flatUpdates;
+        .mutation(async ({ input, ctx }) => {
+          if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+          const { id, ...updates } = input;
           await db.updateProduct(id, updates);
           return { success: true };
         }),
-      delete: adminProcedure
+      delete: protectedProcedure
         .input(z.object({ id: z.number() }))
-        .mutation(async ({ input }) => {
+        .mutation(async ({ input, ctx }) => {
+          if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
           await db.deleteProduct(input.id);
           return { success: true };
         }),
@@ -485,28 +518,32 @@ export const appRouter = router({
     
     // Orders management
     orders: router({
-      list: adminProcedure.query(async () => {
+      list: protectedProcedure.query(async ({ ctx }) => {
+        if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
         return await db.getAllOrders();
       }),
-      updateStatus: adminProcedure
+      updateStatus: protectedProcedure
         .input(z.object({
           id: z.number(),
           status: z.enum(['pending', 'processing', 'shipped', 'delivered', 'cancelled']),
         }))
-        .mutation(async ({ input }) => {
+        .mutation(async ({ input, ctx }) => {
+          if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
           await db.updateOrderStatus(input.id, input.status);
           return { success: true };
         }),
     }),
     
     // Image upload
-    uploadImage: adminProcedure
+    uploadImage: protectedProcedure
       .input(z.object({
         fileName: z.string(),
         fileData: z.string(), // base64 encoded
         contentType: z.string(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+        
         // Decode base64
         const buffer = Buffer.from(input.fileData, 'base64');
         
@@ -523,17 +560,19 @@ export const appRouter = router({
     
     // Customers management
     customers: router({
-      list: adminProcedure.query(async () => {
+      list: protectedProcedure.query(async ({ ctx }) => {
+        if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
         return await getAllUsersRaw();
       }),
     }),
     
     // Coupons management
     coupons: router({
-      list: adminProcedure.query(async () => {
+      list: protectedProcedure.query(async ({ ctx }) => {
+        if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
         return await db.getAllCoupons();
       }),
-      create: adminProcedure
+      create: protectedProcedure
         .input(z.object({
           code: z.string(),
           discountType: z.enum(['percentage', 'fixed']),
@@ -544,11 +583,12 @@ export const appRouter = router({
           validFrom: z.date().optional(),
           validUntil: z.date().optional(),
         }))
-        .mutation(async ({ input }) => {
+        .mutation(async ({ input, ctx }) => {
+          if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
           const couponId = await db.createCoupon(input as any);
           return { id: couponId };
         }),
-      update: adminProcedure
+      update: protectedProcedure
         .input(z.object({
           id: z.number(),
           code: z.string().optional(),
@@ -559,14 +599,16 @@ export const appRouter = router({
           active: z.number().optional(),
           validUntil: z.date().optional(),
         }))
-        .mutation(async ({ input }) => {
+        .mutation(async ({ input, ctx }) => {
+          if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
           const { id, ...updates } = input;
           await db.updateCoupon(id, updates as any);
           return { success: true };
         }),
-      delete: adminProcedure
+      delete: protectedProcedure
         .input(z.object({ id: z.number() }))
-        .mutation(async ({ input }) => {
+        .mutation(async ({ input, ctx }) => {
+          if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
           await db.deleteCoupon(input.id);
           return { success: true };
         }),
