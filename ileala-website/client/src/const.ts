@@ -13,10 +13,15 @@ export const getLoginUrl = () => {
   const oauthPortalUrl = import.meta.env.VITE_OAUTH_PORTAL_URL;
   const appId = import.meta.env.VITE_APP_ID;
   
-  // If OAuth is not configured, return a placeholder URL
-  if (!oauthPortalUrl || !appId) {
+  // Check if OAuth is properly configured (not placeholder)
+  const isPlaceholder = oauthPortalUrl?.includes('placeholder.com') || 
+                         oauthPortalUrl === 'https://placeholder.com' ||
+                         !oauthPortalUrl || 
+                         !appId;
+  
+  if (isPlaceholder) {
     console.warn('OAuth is not configured. Please set VITE_OAUTH_PORTAL_URL and VITE_APP_ID environment variables.');
-    return '#';
+    return null; // Return null instead of '#' to indicate not configured
   }
   
   try {
@@ -32,6 +37,11 @@ export const getLoginUrl = () => {
     return url.toString();
   } catch (error) {
     console.error('Failed to construct login URL:', error);
-    return '#';
+    return null;
   }
+};
+
+// Check if OAuth is available
+export const isOAuthAvailable = () => {
+  return getLoginUrl() !== null;
 };

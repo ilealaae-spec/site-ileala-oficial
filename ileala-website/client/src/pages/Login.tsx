@@ -156,33 +156,37 @@ export default function Login() {
           </div>
         </form>
 
-        {/* OAuth Login Button */}
-        <div className="mt-6">
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-sage-300" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-2 text-sage-500">
-                {language === 'en' ? 'Or continue with' : 'Ou continue com'}
-              </span>
-            </div>
-          </div>
+        {/* OAuth Login Button - Only show if OAuth is configured */}
+        {(() => {
+          const loginUrl = getLoginUrl();
+          if (!loginUrl) return null; // Don't show OAuth button if not configured
           
-          <div className="mt-4">
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              onClick={() => {
-                const loginUrl = getLoginUrl();
-                if (loginUrl && loginUrl !== '#') {
-                  window.location.href = loginUrl;
-                } else {
-                  toast.error(language === 'en' ? 'OAuth is not configured' : 'OAuth não está configurado');
-                }
-              }}
-            >
+          return (
+            <div className="mt-6">
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-sage-300" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-white px-2 text-sage-500">
+                    {language === 'en' ? 'Or continue with' : 'Ou continue com'}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="mt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {
+                    if (loginUrl) {
+                      window.location.href = loginUrl;
+                    } else {
+                      toast.error(language === 'en' ? 'OAuth is not configured' : 'OAuth não está configurado');
+                    }
+                  }}
+                >
               <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
                 <path
                   d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -202,9 +206,11 @@ export default function Login() {
                 />
               </svg>
               {language === 'en' ? 'Sign in with Google' : 'Entrar com Google'}
-            </Button>
-          </div>
-        </div>
+                </Button>
+              </div>
+            </div>
+          );
+        })()}
 
         <div className="mt-6 text-center">
           <p className="text-sage-600">
