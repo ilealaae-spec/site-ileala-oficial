@@ -13,15 +13,10 @@ export const getLoginUrl = () => {
   const oauthPortalUrl = import.meta.env.VITE_OAUTH_PORTAL_URL;
   const appId = import.meta.env.VITE_APP_ID;
   
-  // Check if OAuth is properly configured (not placeholder)
-  const isPlaceholder = oauthPortalUrl?.includes('placeholder.com') || 
-                         oauthPortalUrl === 'https://placeholder.com' ||
-                         !oauthPortalUrl || 
-                         !appId;
-  
-  if (isPlaceholder) {
+  // If OAuth is not configured, return a placeholder URL
+  if (!oauthPortalUrl || !appId) {
     console.warn('OAuth is not configured. Please set VITE_OAUTH_PORTAL_URL and VITE_APP_ID environment variables.');
-    return null; // Return null instead of '#' to indicate not configured
+    return '#';
   }
   
   try {
@@ -37,33 +32,21 @@ export const getLoginUrl = () => {
     return url.toString();
   } catch (error) {
     console.error('Failed to construct login URL:', error);
-    return null;
+    return '#';
   }
-};
-
-// Check if OAuth is available
-export const isOAuthAvailable = () => {
-  return getLoginUrl() !== null;
 };
 
 // Generate Google OAuth login URL
 export const getGoogleLoginUrl = (redirectTo: string = '/') => {
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
   
-  // Always log to browser console (not just development) to help diagnose
-  console.log('[Google OAuth] Checking configuration...');
-  console.log('[Google OAuth] VITE_GOOGLE_CLIENT_ID exists:', !!googleClientId);
-  console.log('[Google OAuth] VITE_GOOGLE_CLIENT_ID value:', googleClientId ? `${googleClientId.substring(0, 20)}...` : 'undefined');
-  console.log('[Google OAuth] All VITE env vars:', Object.keys(import.meta.env).filter(k => k.startsWith('VITE_')));
-  
-  if (!googleClientId || googleClientId.includes('placeholder') || googleClientId.trim() === '') {
-    console.warn('[Google OAuth] ❌ Google OAuth is NOT configured.');
-    console.warn('[Google OAuth] Add VITE_GOOGLE_CLIENT_ID to Railway variables and redeploy.');
-    console.warn('[Google OAuth] Note: VITE_* variables are injected at BUILD TIME, so you need to redeploy after adding.');
+  // Always log to browser console for easier debugging in production
+  console.log('[Google OAuth] VITE_GOOGLE_CLIENT_ID:', googleClientId ? 'Configured' : 'NOT CONFIGURED');
+
+  if (!googleClientId || googleClientId.includes('placeholder')) {
+    console.warn('[Google OAuth] Google OAuth is not configured. Add VITE_GOOGLE_CLIENT_ID to Railway variables.');
     return null;
   }
-  
-  console.log('[Google OAuth] ✅ Google OAuth is configured!');
   
   const state = encodeURIComponent(redirectTo);
   const redirectUri = `${window.location.origin}/api/oauth/google/callback`;
