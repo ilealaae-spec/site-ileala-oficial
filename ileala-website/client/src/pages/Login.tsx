@@ -7,7 +7,7 @@ import { Link, useLocation } from 'wouter';
 import { trpc } from '@/lib/trpc';
 import { toast } from 'sonner';
 import { Loader2, Mail, Lock, LogIn, Eye, EyeOff } from 'lucide-react';
-import { getLoginUrl, getGoogleLoginUrl, isGoogleOAuthAvailable } from '@/const';
+import { getGoogleLoginUrl, isGoogleOAuthAvailable } from '@/const';
 
 export default function Login() {
   const { language } = useLanguage();
@@ -159,18 +159,13 @@ export default function Login() {
         {/* Google OAuth Login Button - Only show if Google OAuth is configured */}
         {(() => {
           const params = new URLSearchParams(window.location.search);
-          const redirectTo = params.get('redirect') || '/cart';
+          const redirectTo = params.get('redirect') || '/';
           const googleLoginUrl = getGoogleLoginUrl(redirectTo);
           
-          // Always log to help diagnose
           if (!googleLoginUrl) {
-            console.warn('[Login] ⚠️ Google OAuth button will NOT be shown');
-            console.warn('[Login] Reason: VITE_GOOGLE_CLIENT_ID is not configured or invalid');
-            console.warn('[Login] Solution: Add VITE_GOOGLE_CLIENT_ID to Railway variables and redeploy');
+            console.warn('[Login] Google OAuth button not shown - VITE_GOOGLE_CLIENT_ID not configured');
             return null; // Don't show Google button if not configured
           }
-          
-          console.log('[Login] ✅ Google OAuth button will be shown');
           
           return (
             <div className="mt-6">
@@ -191,8 +186,9 @@ export default function Login() {
                   variant="outline"
                   className="w-full"
                   onClick={() => {
-                    if (googleLoginUrl) {
-                      window.location.href = googleLoginUrl;
+                    const url = getGoogleLoginUrl(redirectTo);
+                    if (url) {
+                      window.location.href = url;
                     } else {
                       toast.error(language === 'en' ? 'Google OAuth is not configured' : 'Google OAuth não está configurado');
                     }
