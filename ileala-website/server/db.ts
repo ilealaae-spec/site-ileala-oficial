@@ -622,6 +622,37 @@ export async function updateUserPassword(userId: number, newPassword: string) {
     .where(eq(users.id, userId));
 }
 
+export async function updateUser(userId: number, data: {
+  name?: string;
+  phone?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  poBox?: string;
+  country?: string;
+}) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  const updateData: Record<string, unknown> = {
+    updatedAt: new Date(),
+  };
+
+  if (data.name !== undefined) updateData.name = data.name;
+  if (data.phone !== undefined) updateData.phone = data.phone;
+  if (data.address !== undefined) updateData.address = data.address;
+  if (data.city !== undefined) updateData.city = data.city;
+  if (data.state !== undefined) updateData.state = data.state;
+  if (data.poBox !== undefined) updateData.poBox = data.poBox;
+  if (data.country !== undefined) updateData.country = data.country;
+
+  await db.update(users)
+    .set(updateData)
+    .where(eq(users.id, userId));
+}
+
 
 // ===== NEWSLETTER =====
 
@@ -631,28 +662,22 @@ export async function subscribeToNewsletter(email: string, name?: string, source
   
   try {
     console.log('[Newsletter] Attempting to subscribe:', { email, name, source });
-    // Use raw SQL - subscribed_at has DEFAULT, so we don't need to pass it
+    // Use raw SQL to avoid Drizzle including all schema fields
+    const now = new Date();
     const active = 1;
     if (name && name.trim()) {
       // If name is provided, include it in the query
       console.log('[Newsletter] Inserting with name');
       await db.execute(sql`
-        INSERT INTO newsletter (email, name, source, active)
-        VALUES (${email}, ${name.trim()}, ${source}, ${active})
-        ON CONFLICT (email) DO UPDATE SET
-          active = ${active},
-          source = ${source},
-          name = COALESCE(${name.trim()}, newsletter.name)
+        INSERT INTO newsletter (email, name, source, active, subscribed_at)
+        VALUES (${email}, ${name.trim()}, ${source}, ${active}, ${now})
       `);
     } else {
       // If name is not provided, don't include it in the query
       console.log('[Newsletter] Inserting without name');
       await db.execute(sql`
-        INSERT INTO newsletter (email, source, active)
-        VALUES (${email}, ${source}, ${active})
-        ON CONFLICT (email) DO UPDATE SET
-          active = ${active},
-          source = ${source}
+        INSERT INTO newsletter (email, source, active, subscribed_at)
+        VALUES (${email}, ${source}, ${active}, ${now})
       `);
     }
     console.log('[Newsletter] Successfully inserted');

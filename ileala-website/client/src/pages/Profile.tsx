@@ -82,10 +82,41 @@ export default function Profile() {
     { code: 'GB', name: language === 'en' ? 'United Kingdom' : 'Reino Unido' },
   ];
 
+  const utils = trpc.useUtils();
+  
+  const updateProfileMutation = trpc.auth.updateProfile.useMutation({
+    onSuccess: () => {
+      toast.success(language === 'en' ? 'Profile updated successfully!' : 'Perfil atualizado com sucesso!');
+      utils.auth.me.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message || (language === 'en' ? 'Failed to update profile' : 'Falha ao atualizar perfil'));
+    },
+  });
+
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success(language === 'en' ? 'Profile updated successfully!' : 'Perfil atualizado com sucesso!');
+    
+    updateProfileMutation.mutate({
+      name: formData.name,
+      phone: formData.phone,
+      address: formData.address,
+      city: formData.city,
+      state: formData.state,
+      poBox: formData.poBox,
+      country: formData.country,
+    });
   };
+
+  const changePasswordMutation = trpc.auth.changePassword.useMutation({
+    onSuccess: () => {
+      toast.success(language === 'en' ? 'Password changed successfully!' : 'Senha alterada com sucesso!');
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    },
+    onError: (error) => {
+      toast.error(error.message || (language === 'en' ? 'Failed to change password' : 'Falha ao alterar senha'));
+    },
+  });
 
   const handleChangePassword = (e: React.FormEvent) => {
     e.preventDefault();
@@ -102,8 +133,10 @@ export default function Profile() {
       return;
     }
 
-    toast.success(language === 'en' ? 'Password changed successfully!' : 'Senha alterada com sucesso!');
-    setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    changePasswordMutation.mutate({
+      currentPassword: passwordData.currentPassword,
+      newPassword: passwordData.newPassword,
+    });
   };
 
   if (!isAuthenticated || !user) {
@@ -288,9 +321,19 @@ export default function Profile() {
               type="submit"
               className="w-full bg-sage-600 hover:bg-sage-700"
               size="lg"
+              disabled={updateProfileMutation.isPending}
             >
-              <Save className="w-5 h-5 mr-2" />
-              {language === 'en' ? 'Save Changes' : 'Salvar Alterações'}
+              {updateProfileMutation.isPending ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  {language === 'en' ? 'Saving...' : 'Salvando...'}
+                </>
+              ) : (
+                <>
+                  <Save className="w-5 h-5 mr-2" />
+                  {language === 'en' ? 'Save Changes' : 'Salvar Alterações'}
+                </>
+              )}
             </Button>
           </form>
         </Card>
@@ -359,9 +402,19 @@ export default function Profile() {
               type="submit"
               className="w-full bg-sage-600 hover:bg-sage-700"
               size="lg"
+              disabled={changePasswordMutation.isPending}
             >
-              <Lock className="w-5 h-5 mr-2" />
-              {language === 'en' ? 'Change Password' : 'Alterar Senha'}
+              {changePasswordMutation.isPending ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  {language === 'en' ? 'Changing...' : 'Alterando...'}
+                </>
+              ) : (
+                <>
+                  <Lock className="w-5 h-5 mr-2" />
+                  {language === 'en' ? 'Change Password' : 'Alterar Senha'}
+                </>
+              )}
             </Button>
           </form>
         </Card>

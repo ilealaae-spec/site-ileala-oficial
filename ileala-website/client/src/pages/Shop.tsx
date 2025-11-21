@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCart } from '@/contexts/CartContext';
+import { useAuth } from '@/_core/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { sanityClient, urlFor } from '@/lib/sanity';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import { ShoppingCart, Loader2, Search, CreditCard } from 'lucide-react';
 import { toast } from 'sonner';
 import { trpc } from '@/lib/trpc';
@@ -39,6 +40,13 @@ export default function Shop() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [buyingProductId, setBuyingProductId] = useState<string | null>(null);
+
+  const { isAuthenticated } = useAuth();
+  const [, setLocation] = useLocation();
+  
+  const { data: profileValidation } = trpc.auth.validateProfile.useQuery(undefined, {
+    enabled: isAuthenticated,
+  });
 
   const createCheckoutMutation = trpc.payment.createSanityCheckout.useMutation({
     onSuccess: (data) => {
@@ -122,6 +130,38 @@ export default function Shop() {
 
   // Handle Buy Now button click
   const handleBuyNow = (product: SanityProduct) => {
+    // Check if user is authenticated
+    if (!isAuthenticated) {
+      toast.error(language === 'en' ? 'Please sign in to continue' : 'Por favor, faça login para continuar');
+      setLocation(`/login?redirect=/shop`);
+      return;
+    }
+
+    // Validate profile data before checkout
+    if (profileValidation && !profileValidation.isValid) {
+      const missingFields = profileValidation.missingFields;
+      const fieldNames: Record<string, string> = {
+        name: language === 'en' ? 'Full Name' : 'Nome Completo',
+        phone: language === 'en' ? 'Phone Number' : 'Telefone',
+        address: language === 'en' ? 'Address' : 'Endereço',
+        city: language === 'en' ? 'City' : 'Cidade',
+        state: language === 'en' ? 'State/Emirate' : 'Estado/Emirado',
+        country: language === 'en' ? 'Country' : 'País',
+      };
+      
+      const missingFieldNames = missingFields.map(field => fieldNames[field] || field).join(', ');
+      
+      toast.error(
+        language === 'en' 
+          ? `Please complete your profile before checkout. Missing: ${missingFieldNames}` 
+          : `Por favor, complete seu perfil antes de finalizar a compra. Faltando: ${missingFieldNames}`,
+        { duration: 5000 }
+      );
+      
+      setLocation('/profile');
+      return;
+    }
+
     const imageUrl = getImageUrl(product.mainImage);
     const displayPrice = product.onSale && product.salePrice ? product.salePrice : product.price;
     

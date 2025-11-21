@@ -52,6 +52,10 @@ export default function SanityProductDetail() {
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
 
+  const { data: profileValidation } = trpc.auth.validateProfile.useQuery(undefined, {
+    enabled: isAuthenticated,
+  });
+
   const createCheckoutMutation = trpc.payment.createSanityCheckout.useMutation({
     onSuccess: (data) => {
       if (data.url) {
@@ -115,6 +119,31 @@ export default function SanityProductDetail() {
     if (!isAuthenticated) {
       toast.error(language === 'en' ? 'Please sign in to continue' : 'Por favor, faça login para continuar');
       setLocation(`/login?redirect=/sanity-products/${params?.slug}`);
+      return;
+    }
+
+    // Validate profile data before checkout
+    if (profileValidation && !profileValidation.isValid) {
+      const missingFields = profileValidation.missingFields;
+      const fieldNames: Record<string, string> = {
+        name: language === 'en' ? 'Full Name' : 'Nome Completo',
+        phone: language === 'en' ? 'Phone Number' : 'Telefone',
+        address: language === 'en' ? 'Address' : 'Endereço',
+        city: language === 'en' ? 'City' : 'Cidade',
+        state: language === 'en' ? 'State/Emirate' : 'Estado/Emirado',
+        country: language === 'en' ? 'Country' : 'País',
+      };
+      
+      const missingFieldNames = missingFields.map(field => fieldNames[field] || field).join(', ');
+      
+      toast.error(
+        language === 'en' 
+          ? `Please complete your profile before checkout. Missing: ${missingFieldNames}` 
+          : `Por favor, complete seu perfil antes de finalizar a compra. Faltando: ${missingFieldNames}`,
+        { duration: 5000 }
+      );
+      
+      setLocation('/profile');
       return;
     }
     
