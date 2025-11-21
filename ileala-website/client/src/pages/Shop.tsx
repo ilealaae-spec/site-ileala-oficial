@@ -81,10 +81,22 @@ export default function Shop() {
         
         const data = await sanityClient.fetch(query);
         console.log('Products fetched from Sanity:', data);
-        setProducts(data);
-      } catch (err) {
+        console.log('Number of products:', data?.length || 0);
+        
+        if (!data || data.length === 0) {
+          console.warn('No products found in Sanity');
+          setError('No products available. Please add products in Sanity CMS.');
+        } else {
+          setProducts(data);
+        }
+      } catch (err: any) {
         console.error('Error fetching products from Sanity:', err);
-        setError('Failed to load products');
+        console.error('Error details:', {
+          message: err?.message,
+          statusCode: err?.statusCode,
+          response: err?.response,
+        });
+        setError(err?.message || 'Failed to load products. Please check console for details.');
       } finally {
         setLoading(false);
       }
