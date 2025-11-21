@@ -7,7 +7,6 @@ import { registerOAuthRoutes } from "./oauth";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
-import { trpcRateLimiterMiddleware } from "../middleware/trpcRateLimiter";
 import { apiLimiter } from "../middleware/rateLimiter";
 import { neon } from "@neondatabase/serverless";
 import bcrypt from "bcryptjs";
@@ -84,8 +83,8 @@ async function startServer() {
   // NOW configure routes and middleware (after server is listening)
   console.log("🔧 Configuring routes and middleware...");
   
-  // Apply rate limiting to tRPC endpoints
-  app.use("/api/trpc", trpcRateLimiterMiddleware);
+  // Apply general API rate limiting (tRPC rate limiting is handled in individual procedures)
+  app.use("/api", apiLimiter);
   
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
