@@ -219,6 +219,86 @@ export const appRouter = router({
         
         return { success: true, message: 'Password updated successfully' };
       }),
+    updateProfile: protectedProcedure
+      .input(z.object({
+        name: z.string().min(2).optional(),
+        phone: z.string().optional(),
+        address: z.string().optional(),
+        city: z.string().optional(),
+        state: z.string().optional(),
+        poBox: z.string().optional(),
+        country: z.string().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user) throw new Error('Not authenticated');
+        
+        await db.updateUser(ctx.user.id, {
+          name: input.name,
+          phone: input.phone,
+          address: input.address,
+          city: input.city,
+          state: input.state,
+          poBox: input.poBox,
+          country: input.country,
+        });
+        
+        return { success: true };
+      }),
+    changePassword: protectedProcedure
+      .input(z.object({
+        currentPassword: z.string(),
+        newPassword: z.string().min(6),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user) throw new Error('Not authenticated');
+        
+        // Verify current password
+        const user = await verifyUserCredentialsRaw(ctx.user.email, input.currentPassword);
+        if (!user) {
+          throw new Error('Current password is incorrect');
+        }
+        
+        // Update password
+        await db.updateUserPassword(ctx.user.id, input.newPassword);
+        
+        return { success: true };
+      }),
+    validateProfile: protectedProcedure
+      .query(async ({ ctx }) => {
+        if (!ctx.user) throw new Error('Not authenticated');
+        
+        const user = await db.getUserById(ctx.user.id);
+        if (!user) {
+          throw new Error('User not found');
+        }
+        
+        // Check required fields for checkout
+        const missingFields: string[] = [];
+        
+        if (!user.name || user.name.trim() === '') {
+          missingFields.push('name');
+        }
+        if (!user.phone || user.phone.trim() === '') {
+          missingFields.push('phone');
+        }
+        if (!user.address || user.address.trim() === '') {
+          missingFields.push('address');
+        }
+        if (!user.city || user.city.trim() === '') {
+          missingFields.push('city');
+        }
+        if (!user.state || user.state.trim() === '') {
+          missingFields.push('state');
+        }
+        if (!user.country || user.country.trim() === '') {
+          missingFields.push('country');
+        }
+        
+        return {
+          isValid: missingFields.length === 0,
+          missingFields,
+        };
+      }),
   }),
 
   // Products router
