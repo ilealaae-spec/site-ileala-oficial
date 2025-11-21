@@ -154,20 +154,7 @@ async function startServer() {
           email: EMERGENCY_EMAIL,
           instructions: [
             'You can now login at: https://ileala.ae/admin-emergency-login',
-            `Email: $Passo 1: Configurar no Google Cloud Console
-            Acesse: Google Cloud Console
-            Crie um projeto (se ainda não tiver)
-            Ative a Google+ API ou People API
-            Crie credenciais OAuth 2.0:
-            Tipo: Aplicativo da Web
-            URIs de redirecionamento autorizados:
-            https://www.ileala.ae/api/oauth/google/callback
-            https://ileala.ae/api/oauth/google/callback
-            Copie:
-            ID do cliente (ex: 123456789-abc.apps.googleusercontent.com)
-            Segredo do cliente (ex: GOCSPX-abc123...)
-            Passo 2: Adicionar variáveis no Railway
-            {EMERGENCY_EMAIL}`,
+            `Email: ${EMERGENCY_EMAIL}`,
             'Password: IleAla2025!Admin#Emergency',
             'After login, you will be redirected to the admin panel.',
           ],
