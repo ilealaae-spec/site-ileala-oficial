@@ -14,16 +14,24 @@ const isPreview = typeof window !== 'undefined' && (
 // Token é opcional - apenas necessário para operações autenticadas (preview, escrita)
 // Para leitura pública de dados publicados, o token não é necessário
 const sanityToken = import.meta.env.VITE_SANITY_TOKEN;
-const hasToken = sanityToken && sanityToken.trim() !== '';
+// Verificar se o token é válido (não vazio, não placeholder, não começa com erro)
+const hasValidToken = sanityToken && 
+  sanityToken.trim() !== '' && 
+  !sanityToken.includes('placeholder') &&
+  sanityToken.length > 10; // Tokens válidos são longos
+
+console.log('[Sanity Client] Token configurado:', hasValidToken ? 'Sim (oculto)' : 'Não');
+console.log('[Sanity Client] Project ID:', import.meta.env.VITE_SANITY_PROJECT_ID || 'anyz9zel');
+console.log('[Sanity Client] Dataset:', import.meta.env.VITE_SANITY_DATASET || 'production');
 
 export const sanityClient = createClient({
   projectId: import.meta.env.VITE_SANITY_PROJECT_ID || 'anyz9zel',
   dataset: import.meta.env.VITE_SANITY_DATASET || 'production',
   useCdn: !isPreview, // Desabilitar CDN em modo preview para ver rascunhos
   apiVersion: '2024-11-10',
-  // Apenas passar token se estiver configurado e não estiver vazio
-  // Para leitura pública, o token não é necessário
-  ...(hasToken ? { token: sanityToken } : {}),
+  // Apenas passar token se for válido
+  // Para leitura pública, o token não é necessário e pode causar erro 401 se inválido
+  ...(hasValidToken ? { token: sanityToken } : {}),
   perspective: isPreview ? 'previewDrafts' : 'published', // Usar previewDrafts em modo preview
   stega: isPreview ? {
     enabled: true,
