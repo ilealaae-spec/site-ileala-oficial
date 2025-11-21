@@ -37,6 +37,9 @@ async function startServer() {
   const app = express();
   const server = createServer(app);
   
+  // Trust proxy (Railway uses proxies, so we need to trust X-Forwarded-For headers)
+  app.set('trust proxy', true);
+  
   // Configure CORS to allow requests from the frontend domain
   app.use((req, res, next) => {
     const origin = req.headers.origin;

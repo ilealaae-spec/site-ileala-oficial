@@ -298,24 +298,42 @@ export async function resetPasswordWithTokenRaw(token: string, newPassword: stri
     }
     
     // Find user by token
-    // Decode token in case it was URL encoded
+    // Decode token in case it was URL encoded (email clients may encode URLs)
     let decodedToken = token;
     try {
+      // Try decoding - URLSearchParams.get already decodes once, but email clients may encode
       decodedToken = decodeURIComponent(token);
+      // If it was double-encoded, decode again
+      if (decodedToken !== token) {
+        try {
+          decodedToken = decodeURIComponent(decodedToken);
+        } catch (e2) {
+          // Already decoded, use as-is
+        }
+      }
     } catch (e) {
       // If decoding fails, use original token
       console.warn('[resetPasswordWithTokenRaw] Failed to decode token, using as-is');
+      decodedToken = token;
     }
     
+    // Clean token (remove any whitespace)
+    const cleanToken = token.trim();
+    const cleanDecodedToken = decodedToken.trim();
+    
     console.log('[resetPasswordWithTokenRaw] Searching for user with token...');
-    console.log('[resetPasswordWithTokenRaw] Original token preview:', token ? `${token.substring(0, 8)}...${token.substring(token.length - 8)}` : 'EMPTY');
-    console.log('[resetPasswordWithTokenRaw] Decoded token preview:', decodedToken ? `${decodedToken.substring(0, 8)}...${decodedToken.substring(decodedToken.length - 8)}` : 'EMPTY');
+    console.log('[resetPasswordWithTokenRaw] Original token length:', token ? token.length : 0);
+    console.log('[resetPasswordWithTokenRaw] Decoded token length:', decodedToken ? decodedToken.length : 0);
     console.log('[resetPasswordWithTokenRaw] Current server time:', new Date().toISOString());
     
     // Try both encoded and decoded token (in case of double encoding or no encoding)
+    // Also try trimmed versions
     const users = await client`
       SELECT *, "passwordResetExpires", NOW() as current_time FROM users 
-      WHERE "passwordResetToken" = ${decodedToken} OR "passwordResetToken" = ${token}
+      WHERE "passwordResetToken" = ${cleanDecodedToken} 
+         OR "passwordResetToken" = ${cleanToken}
+         OR "passwordResetToken" = ${decodedToken}
+         OR "passwordResetToken" = ${token}
       LIMIT 1
     `;
     console.log('[resetPasswordWithTokenRaw] Query result count:', users.length);
