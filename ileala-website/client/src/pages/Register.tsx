@@ -42,12 +42,15 @@ export default function Register() {
       toast.success(language === 'en' ? 'Account created successfully!' : 'Conta criada com sucesso!');
       utils.auth.me.invalidate();
       
-      // Redirect to cart or home
+      // Redirect to cart or home - use setTimeout to avoid React errors during navigation
       const params = new URLSearchParams(window.location.search);
       const redirect = params.get('redirect') || '/cart';
-      setLocation(redirect);
+      setTimeout(() => {
+        setLocation(redirect);
+      }, 100);
     },
     onError: (error) => {
+      console.error('[Register] Registration error:', error);
       toast.error(error.message || (language === 'en' ? 'Failed to create account' : 'Falha ao criar conta'));
     },
   });

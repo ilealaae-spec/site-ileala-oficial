@@ -20,12 +20,24 @@ export default function SEO({
   noindex = false,
 }: SEOProps) {
   useEffect(() => {
+    // Store references to elements we create
+    const createdElements: (HTMLElement | null)[] = [];
+
     // Set document title
     document.title = `${title} | ILE ALA`;
 
-    // Remove existing meta tags
+    // Remove existing meta tags safely
     const existingMetas = document.querySelectorAll('meta[data-seo]');
-    existingMetas.forEach(meta => meta.remove());
+    existingMetas.forEach(meta => {
+      try {
+        if (meta.parentNode) {
+          meta.parentNode.removeChild(meta);
+        }
+      } catch (error) {
+        // Element may have already been removed, ignore
+        console.warn('[SEO] Could not remove existing meta:', error);
+      }
+    });
 
     // Create meta tags
     const metaTags = [
@@ -56,21 +68,34 @@ export default function SEO({
       if (property) meta.setAttribute('property', property);
       meta.setAttribute('content', content);
       document.head.appendChild(meta);
+      createdElements.push(meta);
     });
 
     // Set canonical URL
     let canonicalLink = document.querySelector('link[rel="canonical"]') as HTMLLinkElement;
+    let createdCanonical = false;
     if (!canonicalLink) {
       canonicalLink = document.createElement('link');
       canonicalLink.rel = 'canonical';
+      canonicalLink.setAttribute('data-seo', 'true');
       document.head.appendChild(canonicalLink);
+      createdCanonical = true;
+      createdElements.push(canonicalLink);
     }
     canonicalLink.href = canonical || window.location.href;
 
     return () => {
-      // Cleanup on unmount
-      const metas = document.querySelectorAll('meta[data-seo]');
-      metas.forEach(meta => meta.remove());
+      // Cleanup on unmount - safely remove only elements we created
+      createdElements.forEach(element => {
+        try {
+          if (element && element.parentNode) {
+            element.parentNode.removeChild(element);
+          }
+        } catch (error) {
+          // Element may have already been removed, ignore
+          console.warn('[SEO] Could not remove element during cleanup:', error);
+        }
+      });
     };
   }, [title, description, keywords, ogImage, ogType, canonical, noindex]);
 

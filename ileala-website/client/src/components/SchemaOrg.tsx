@@ -2,6 +2,10 @@ import { useEffect } from 'react';
 
 export default function SchemaOrg() {
   useEffect(() => {
+    // Store references to scripts we create
+    let orgScript: HTMLScriptElement | null = null;
+    let webScript: HTMLScriptElement | null = null;
+
     // Organization Schema
     const organizationSchema = {
       "@context": "https://schema.org",
@@ -50,27 +54,50 @@ export default function SchemaOrg() {
       }
     };
 
-    // Remove existing schema scripts
+    // Remove existing schema scripts safely
     const existingSchemas = document.querySelectorAll('script[type="application/ld+json"][data-schema]');
-    existingSchemas.forEach(script => script.remove());
+    existingSchemas.forEach(script => {
+      try {
+        if (script.parentNode) {
+          script.parentNode.removeChild(script);
+        }
+      } catch (error) {
+        // Element may have already been removed, ignore
+        console.warn('[SchemaOrg] Could not remove existing schema:', error);
+      }
+    });
 
     // Add Organization Schema
-    const orgScript = document.createElement('script');
+    orgScript = document.createElement('script');
     orgScript.type = 'application/ld+json';
     orgScript.setAttribute('data-schema', 'organization');
     orgScript.text = JSON.stringify(organizationSchema);
     document.head.appendChild(orgScript);
 
     // Add Website Schema
-    const webScript = document.createElement('script');
+    webScript = document.createElement('script');
     webScript.type = 'application/ld+json';
     webScript.setAttribute('data-schema', 'website');
     webScript.text = JSON.stringify(websiteSchema);
     document.head.appendChild(webScript);
 
     return () => {
-      const schemas = document.querySelectorAll('script[data-schema]');
-      schemas.forEach(script => script.remove());
+      // Cleanup: remove only the scripts we created
+      try {
+        if (orgScript && orgScript.parentNode) {
+          orgScript.parentNode.removeChild(orgScript);
+        }
+      } catch (error) {
+        // Element may have already been removed, ignore
+      }
+      
+      try {
+        if (webScript && webScript.parentNode) {
+          webScript.parentNode.removeChild(webScript);
+        }
+      } catch (error) {
+        // Element may have already been removed, ignore
+      }
     };
   }, []);
 
