@@ -110,7 +110,9 @@ export default function SEO({
       // Cleanup on unmount - safely remove only elements we created
       createdElements.forEach(element => {
         try {
-          if (element && element.parentNode) {
+          if (element && element.parentNode === document.head) {
+            document.head.removeChild(element);
+          } else if (element && element.parentNode) {
             element.parentNode.removeChild(element);
           }
         } catch (error) {

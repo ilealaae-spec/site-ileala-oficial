@@ -84,19 +84,25 @@ export default function SchemaOrg() {
     return () => {
       // Cleanup: remove only the scripts we created
       try {
-        if (orgScript && orgScript.parentNode) {
+        if (orgScript && orgScript.parentNode === document.head) {
+          document.head.removeChild(orgScript);
+        } else if (orgScript && orgScript.parentNode) {
           orgScript.parentNode.removeChild(orgScript);
         }
       } catch (error) {
         // Element may have already been removed, ignore
+        console.warn('[SchemaOrg] Could not remove orgScript:', error);
       }
       
       try {
-        if (webScript && webScript.parentNode) {
+        if (webScript && webScript.parentNode === document.head) {
+          document.head.removeChild(webScript);
+        } else if (webScript && webScript.parentNode) {
           webScript.parentNode.removeChild(webScript);
         }
       } catch (error) {
         // Element may have already been removed, ignore
+        console.warn('[SchemaOrg] Could not remove webScript:', error);
       }
     };
   }, []);
