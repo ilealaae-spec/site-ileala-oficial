@@ -4,8 +4,10 @@ const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
 
 const FROM_EMAIL = 'ILE ALA <noreply@ileala.ae>';
-// Ensure SITE_URL always uses https
-const SITE_URL = (process.env.SITE_URL || 'https://ileala.ae').replace(/^http:/, 'https:');
+// Ensure SITE_URL always uses https and www (preferred domain)
+const SITE_URL = (process.env.SITE_URL || 'https://www.ileala.ae')
+  .replace(/^http:/, 'https:')
+  .replace(/^https:\/\/ileala\.ae/, 'https://www.ileala.ae'); // Force www
 
 // Modo desenvolvimento: permite cadastro sem email se RESEND_API_KEY não estiver configurado
 const ALLOW_REGISTRATION_WITHOUT_EMAIL = process.env.NODE_ENV !== 'production' || process.env.ALLOW_REGISTRATION_WITHOUT_EMAIL === 'true';
