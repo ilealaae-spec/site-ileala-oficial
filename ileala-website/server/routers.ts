@@ -746,24 +746,74 @@ export const appRouter = router({
           
           // Enviar email de confirmação
           try {
+            console.log('[verifyPayment] Preparing to send confirmation email...');
             const { sendOrderConfirmationEmail } = await import('./email');
             const order = await db.getOrderById(orderId);
+            
             if (order) {
-              const items = await db.getOrderItems(orderId);
-              await sendOrderConfirmationEmail(
+              console.log('[verifyPayment] Order found, fetching items...');
+              let items = await db.getOrderItems(orderId);
+              console.log('[verifyPayment] Items from database:', items.length);
+              
+              // Se não houver itens no banco (produtos Sanity), criar item genérico a partir do Stripe
+              if (items.length === 0) {
+                console.log('[verifyPayment] No items in database, fetching from Stripe...');
+                try {
+                  const lineItems = await stripe.checkout.sessions.listLineItems(input.sessionId, { limit: 100 });
+                  items = lineItems.data.map((item, index) => ({
+                    id: index + 1,
+                    orderId: orderId,
+                    productId: null,
+                    product: null,
+                    quantity: item.quantity || 1,
+                    priceAtPurchase: (item.amount_total || 0) / (item.quantity || 1), // Preço unitário em fils
+                    createdAt: new Date(),
+                  }));
+                  console.log('[verifyPayment] Created items from Stripe:', items.length);
+                } catch (stripeError) {
+                  console.error('[verifyPayment] Failed to fetch Stripe line items:', stripeError);
+                  // Criar item genérico se falhar
+                  items = [{
+                    id: 1,
+                    orderId: orderId,
+                    productId: null,
+                    product: null,
+                    quantity: 1,
+                    priceAtPurchase: totalAmount,
+                    createdAt: new Date(),
+                  }];
+                }
+              }
+              
+              const emailItems = items.map(item => ({
+                name: item.product?.nameEN || item.product?.name || 'Product',
+                quantity: item.quantity,
+                price: item.priceAtPurchase,
+              }));
+              
+              console.log('[verifyPayment] Sending confirmation email to:', customerEmail);
+              console.log('[verifyPayment] Email items:', emailItems.length);
+              
+              const emailSent = await sendOrderConfirmationEmail(
                 customerEmail,
                 customerName,
                 orderId,
                 totalAmount,
-                items.map(item => ({
-                  name: item.product?.nameEN || 'Product',
-                  quantity: item.quantity,
-                  price: item.priceAtPurchase,
-                }))
+                emailItems
               );
+              
+              if (emailSent) {
+                console.log('[verifyPayment] Confirmation email sent successfully!');
+              } else {
+                console.error('[verifyPayment] Failed to send confirmation email (returned false)');
+              }
+            } else {
+              console.error('[verifyPayment] Order not found after creation:', orderId);
             }
           } catch (emailError) {
             console.error('[verifyPayment] Failed to send confirmation email:', emailError);
+            console.error('[verifyPayment] Email error details:', emailError instanceof Error ? emailError.message : 'Unknown error');
+            console.error('[verifyPayment] Email error stack:', emailError instanceof Error ? emailError.stack : 'No stack');
             // Não bloquear se o email falhar
           }
           

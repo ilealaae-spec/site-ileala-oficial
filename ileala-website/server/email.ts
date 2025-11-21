@@ -170,12 +170,25 @@ export async function sendOrderConfirmationEmail(
   totalAmount: number,
   items: Array<{ name: string; quantity: number; price: number }>
 ) {
+  console.log(`[Email] Attempting to send order confirmation email to ${email}`);
+  console.log(`[Email] Order ID: ${orderId}`);
+  console.log(`[Email] Total amount: ${totalAmount} fils`);
+  console.log(`[Email] Items count: ${items.length}`);
+  console.log(`[Email] Resend API Key configured: ${!!process.env.RESEND_API_KEY}`);
+  
   const formatPrice = (priceInFils: number) => {
     const aed = priceInFils / 100;
     return `AED ${aed.toFixed(2)}`;
   };
 
-  const itemsHtml = items.map(item => `
+  // Se não houver itens, criar um item genérico
+  const emailItems = items.length > 0 ? items : [{
+    name: 'Product',
+    quantity: 1,
+    price: totalAmount,
+  }];
+
+  const itemsHtml = emailItems.map(item => `
     <tr>
       <td style="padding: 10px; border-bottom: 1px solid #e0e0e0;">${item.name}</td>
       <td style="padding: 10px; border-bottom: 1px solid #e0e0e0; text-align: center;">${item.quantity}</td>
@@ -183,8 +196,10 @@ export async function sendOrderConfirmationEmail(
     </tr>
   `).join('');
 
+  const siteUrl = getSiteUrl();
+
   try {
-    await resend.emails.send({
+    const result = await resend.emails.send({
       from: FROM_EMAIL,
       to: email,
       subject: `Order Confirmation #${orderId} - ILE ALA`,
@@ -233,9 +248,16 @@ export async function sendOrderConfirmationEmail(
               </table>
               
               <div style="text-align: center; margin: 30px 0;">
-                <a href="${SITE_URL}/orders" style="background: #8B9D83; color: white; padding: 14px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">
-                  View Order Status
-                </a>
+                <!-- Button usando tabela para melhor compatibilidade com clientes de email -->
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">
+                  <tr>
+                    <td style="background: #8B9D83; border-radius: 5px; text-align: center;">
+                      <a href="${siteUrl}/orders" style="display: block; padding: 14px 30px; color: #ffffff; text-decoration: none; font-weight: bold; font-size: 16px; border-radius: 5px; cursor: pointer;">
+                        View Order Status
+                      </a>
+                    </td>
+                  </tr>
+                </table>
               </div>
               
               <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;">
@@ -251,10 +273,16 @@ export async function sendOrderConfirmationEmail(
       `,
     });
     
-    console.log(`[Email] Order confirmation sent to ${email}`);
+    console.log(`[Email] Order confirmation email sent successfully to ${email}`);
+    console.log(`[Email] Resend API response:`, JSON.stringify(result));
     return true;
   } catch (error) {
-    console.error('[Email] Failed to send order confirmation:', error);
+    console.error('[Email] ERROR sending order confirmation email:', error);
+    console.error('[Email] Error details:', JSON.stringify(error, null, 2));
+    if (error instanceof Error) {
+      console.error('[Email] Error message:', error.message);
+      console.error('[Email] Error stack:', error.stack);
+    }
     return false;
   }
 }
