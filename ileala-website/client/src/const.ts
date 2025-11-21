@@ -45,3 +45,31 @@ export const getLoginUrl = () => {
 export const isOAuthAvailable = () => {
   return getLoginUrl() !== null;
 };
+
+// Generate Google OAuth login URL
+export const getGoogleLoginUrl = (redirectTo: string = '/') => {
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+  
+  if (!googleClientId || googleClientId.includes('placeholder')) {
+    return null;
+  }
+  
+  const state = encodeURIComponent(redirectTo);
+  const redirectUri = `${window.location.origin}/api/oauth/google/callback`;
+  const params = new URLSearchParams({
+    client_id: googleClientId,
+    redirect_uri: redirectUri,
+    response_type: 'code',
+    scope: 'openid email profile',
+    access_type: 'offline',
+    prompt: 'consent',
+    state,
+  });
+  
+  return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+};
+
+// Check if Google OAuth is available
+export const isGoogleOAuthAvailable = () => {
+  return getGoogleLoginUrl() !== null;
+};
