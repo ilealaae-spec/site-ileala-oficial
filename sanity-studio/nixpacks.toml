@@ -3,17 +3,24 @@ nixPkgs = ["nodejs_20", "npm"]
 
 [phases.install]
 cmds = [
+  "cd sanity-studio || true",
   "rm -f package-lock.json || true",
   "rm -f ../package-lock.json || true",
+  "rm -f ../../package-lock.json || true",
   "npm config set package-lock false",
   "npm config set prefer-offline false",
   "npm config set ci false",
-  "npm install --no-package-lock --legacy-peer-deps --no-audit --no-fund"
+  "npm config set fund false",
+  "npm config set audit false",
+  "npm install --no-package-lock --legacy-peer-deps --no-audit --no-fund --prefer-offline=false"
 ]
 
 [phases.build]
-cmds = ["npm run build"]
+cmds = [
+  "cd sanity-studio || true",
+  "npm run build"
+]
 
 [start]
-cmd = "npx serve -s dist -l $PORT"
+cmd = "cd sanity-studio && npx serve -s dist -l $PORT"
 
