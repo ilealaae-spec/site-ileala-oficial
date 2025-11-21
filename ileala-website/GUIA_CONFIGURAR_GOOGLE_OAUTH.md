@@ -58,54 +58,132 @@
 
 ---
 
-## 🔧 PASSO 2: Instalar Dependências
-
-Vou criar uma implementação que usa Google OAuth diretamente. Primeiro, vamos verificar as dependências:
-
-```bash
-cd ileala-website
-npm install google-auth-library
-```
-
----
-
-## 🔧 PASSO 3: Criar Implementação Google OAuth
-
-Vou criar uma nova rota OAuth que usa Google diretamente, mantendo compatibilidade com o sistema existente.
-
----
-
-## 🔧 PASSO 4: Configurar Variáveis no Railway
+## 🔧 PASSO 2: Configurar Variáveis no Railway
 
 **Railway Dashboard → Service: `ileala-website` → Variables**
 
-Adicione/atualize:
+Adicione/atualize as seguintes variáveis:
 
 ```
 GOOGLE_CLIENT_ID=seu_client_id_aqui.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=GOCSPX-seu_secret_aqui
 VITE_GOOGLE_CLIENT_ID=seu_client_id_aqui.apps.googleusercontent.com
+GOOGLE_REDIRECT_URI=https://www.ileala.ae/api/oauth/google/callback
 ```
 
 **Onde encontrar:**
-- `GOOGLE_CLIENT_ID` = ID do cliente do Google Cloud Console
-- `GOOGLE_CLIENT_SECRET` = Segredo do cliente do Google Cloud Console
+- `GOOGLE_CLIENT_ID` = ID do cliente do Google Cloud Console (copiado no Passo 1.3)
+- `GOOGLE_CLIENT_SECRET` = Segredo do cliente do Google Cloud Console (copiado no Passo 1.3)
 - `VITE_GOOGLE_CLIENT_ID` = Mesmo ID do cliente (para o frontend)
+- `GOOGLE_REDIRECT_URI` = URL de callback (deve corresponder ao configurado no Google Cloud Console)
+
+**⚠️ IMPORTANTE:**
+- O `GOOGLE_REDIRECT_URI` deve ser **exatamente igual** ao configurado no Google Cloud Console
+- Use `https://www.ileala.ae` (com www) para produção
+- Para desenvolvimento local, use `http://localhost:3000`
 
 ---
 
-## 🔧 PASSO 5: Atualizar Frontend
+## ✅ IMPLEMENTAÇÃO COMPLETA
 
-O botão Google já existe, mas precisa ser atualizado para usar Google OAuth diretamente.
+A implementação Google OAuth já foi criada! ✅
+
+### O que foi implementado:
+
+1. ✅ **Backend (`server/_core/googleOAuth.ts`)**
+   - Rotas `/api/oauth/google` (inicia OAuth)
+   - Rotas `/api/oauth/google/callback` (recebe callback)
+   - Integração com banco de dados
+   - Compatível com sistema de autenticação existente
+
+2. ✅ **Frontend (`client/src/pages/Login.tsx`)**
+   - Botão "Entrar com Google" atualizado
+   - Usa Google OAuth diretamente
+   - Aparece automaticamente quando configurado
+
+3. ✅ **Funções auxiliares (`client/src/const.ts`)**
+   - `getGoogleLoginUrl()` - Gera URL de autorização
+   - `isGoogleOAuthAvailable()` - Verifica se está configurado
 
 ---
 
-## ✅ PRÓXIMOS PASSOS
+## 🧪 PASSO 3: Testar
 
-Após seguir este guia, vou:
-1. ✅ Criar a implementação Google OAuth no backend
-2. ✅ Atualizar o frontend para usar Google OAuth
-3. ✅ Testar a integração
+### 3.1 Após adicionar variáveis no Railway:
+
+1. Railway fará **redeploy automático**
+2. Aguarde o deploy completar
+3. Acesse: `https://www.ileala.ae/login`
+4. Você deve ver o botão **"Entrar com Google"**
+
+### 3.2 Testar login:
+
+1. Clique em **"Entrar com Google"**
+2. Você será redirecionado para Google
+3. Faça login com sua conta Google
+4. Autorize o acesso
+5. Você será redirecionado de volta para o site
+6. Deve estar logado automaticamente
+
+---
+
+## 🔍 TROUBLESHOOTING
+
+### Problema: Botão Google não aparece
+
+**Solução:**
+- Verifique se `VITE_GOOGLE_CLIENT_ID` está configurado no Railway
+- Verifique se não contém `placeholder.com`
+- Faça redeploy do serviço
+
+### Problema: Erro "redirect_uri_mismatch"
+
+**Solução:**
+- Verifique se o `GOOGLE_REDIRECT_URI` no Railway corresponde ao configurado no Google Cloud Console
+- Deve ser exatamente: `https://www.ileala.ae/api/oauth/google/callback`
+- Atualize no Google Cloud Console se necessário
+
+### Problema: Erro "invalid_client"
+
+**Solução:**
+- Verifique se `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET` estão corretos
+- Verifique se não há espaços extras
+- Copie e cole novamente do Google Cloud Console
+
+### Problema: Email não verificado
+
+**Solução:**
+- O Google só permite login com emails verificados
+- Verifique se o email da conta Google está verificado
+
+---
+
+## 📋 CHECKLIST FINAL
+
+- [ ] Projeto criado no Google Cloud Console
+- [ ] Google+ API ou People API ativada
+- [ ] Credenciais OAuth 2.0 criadas
+- [ ] URIs de redirecionamento configuradas no Google Cloud Console
+- [ ] `GOOGLE_CLIENT_ID` adicionado no Railway
+- [ ] `GOOGLE_CLIENT_SECRET` adicionado no Railway
+- [ ] `VITE_GOOGLE_CLIENT_ID` adicionado no Railway
+- [ ] `GOOGLE_REDIRECT_URI` adicionado no Railway (opcional, tem valor padrão)
+- [ ] Railway fez redeploy
+- [ ] Botão "Entrar com Google" aparece na página de login
+- [ ] Login com Google funciona corretamente
+
+---
+
+## 🎯 RESULTADO ESPERADO
+
+Após configurar tudo:
+
+1. ✅ Botão "Entrar com Google" aparece na página de login
+2. ✅ Clicar no botão redireciona para Google
+3. ✅ Após autorizar, usuário é redirecionado de volta
+4. ✅ Usuário está logado automaticamente
+5. ✅ Dados do usuário são salvos no banco de dados
+6. ✅ Sessão funciona normalmente
 
 ---
 
