@@ -38,6 +38,15 @@ async function startServer() {
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   
+  // Health check endpoint for Railway
+  app.get("/health", (_req, res) => {
+    res.status(200).json({ 
+      status: "ok", 
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || "development"
+    });
+  });
+
   // Apply rate limiting to tRPC endpoints
   app.use("/api/trpc", trpcRateLimiterMiddleware);
   
@@ -153,11 +162,34 @@ async function startServer() {
     console.log(`🚀 Server running on http://0.0.0.0:${port}/`);
     console.log(`📦 Environment: ${process.env.NODE_ENV || "development"}`);
     if (process.env.DATABASE_URL) {
-      console.log(`✅ Database: Connected`);
+      console.log(`✅ Database: DATABASE_URL configured`);
     } else {
       console.warn(`⚠️  Database: DATABASE_URL not configured`);
     }
+    console.log(`✅ Health check available at http://0.0.0.0:${port}/health`);
+  });
+
+  // Handle server errors
+  server.on("error", (error: any) => {
+    console.error("❌ Server error:", error);
+    if (error.code === "EADDRINUSE") {
+      console.error(`Port ${port} is already in use`);
+    }
+    process.exit(1);
+  });
+
+  // Handle uncaught errors
+  process.on("unhandledRejection", (reason, promise) => {
+    console.error("Unhandled Rejection at:", promise, "reason:", reason);
+  });
+
+  process.on("uncaughtException", (error) => {
+    console.error("Uncaught Exception:", error);
+    process.exit(1);
   });
 }
 
-startServer().catch(console.error);
+startServer().catch((error) => {
+  console.error("❌ Failed to start server:", error);
+  process.exit(1);
+});
