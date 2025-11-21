@@ -12,7 +12,7 @@ RUN npm install -g pnpm@9.15.2
 # Install dependencies
 FROM base AS build
 COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --no-frozen-lockfile
+RUN pnpm install --no-frozen-lockfile --shamefully-hoist
 
 # Copy application code
 COPY . .
@@ -22,7 +22,11 @@ RUN pnpm run build
 
 # Final stage for app image
 FROM base
-COPY --from=build /app /app
+
+# Copy node_modules and built files
+COPY --from=build /app/node_modules /app/node_modules
+COPY --from=build /app/dist /app/dist
+COPY --from=build /app/package.json /app/package.json
 
 # Start the server
 EXPOSE 3000
