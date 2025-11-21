@@ -17,7 +17,7 @@ export default function OrdersTab() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
 
-  const { data: orders, isLoading } = trpc.orders.list.useQuery();
+  const { data: orders, isLoading } = trpc.admin.orders.list.useQuery();
 
   const filteredOrders = orders?.filter(order =>
     order.id.toString().includes(searchTerm) ||

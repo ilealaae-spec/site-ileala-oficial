@@ -7,7 +7,7 @@ export default function DashboardTab() {
   const { language } = useLanguage();
 
   const { data: products, isLoading: productsLoading } = trpc.products.list.useQuery();
-  const { data: orders, isLoading: ordersLoading } = trpc.orders.list.useQuery();
+  const { data: orders, isLoading: ordersLoading } = trpc.admin.orders.list.useQuery();
   const { data: newsletterStats, isLoading: newsletterLoading } = trpc.newsletter.stats.useQuery();
 
   const isLoading = productsLoading || ordersLoading || newsletterLoading;
