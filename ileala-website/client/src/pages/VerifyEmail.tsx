@@ -14,7 +14,17 @@ export default function VerifyEmail() {
 
   // Get token from URL
   const urlParams = new URLSearchParams(window.location.search);
-  const token = urlParams.get('token');
+  let token = urlParams.get('token') || '';
+  
+  // Decode the token if it was URL encoded
+  if (token) {
+    try {
+      token = decodeURIComponent(token);
+    } catch (e) {
+      // If decoding fails, use original token
+      console.warn('[VerifyEmail] Failed to decode token, using as-is');
+    }
+  }
 
   const verifyMutation = trpc.auth.verifyEmail.useMutation({
     onSuccess: () => {
