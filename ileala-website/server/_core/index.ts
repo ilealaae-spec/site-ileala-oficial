@@ -37,6 +37,30 @@ async function startServer() {
   const app = express();
   const server = createServer(app);
   
+  // Configure CORS to allow requests from the frontend domain
+  app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    const allowedOrigins = [
+      'https://www.ileala.ae',
+      'https://ileala.ae',
+      'http://localhost:3000',
+      'http://localhost:5173',
+    ];
+    
+    if (origin && allowedOrigins.includes(origin)) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    
+    if (req.method === 'OPTIONS') {
+      return res.sendStatus(200);
+    }
+    
+    next();
+  });
+  
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
@@ -130,7 +154,20 @@ async function startServer() {
           email: EMERGENCY_EMAIL,
           instructions: [
             'You can now login at: https://ileala.ae/admin-emergency-login',
-            `Email: ${EMERGENCY_EMAIL}`,
+            `Email: $Passo 1: Configurar no Google Cloud Console
+            Acesse: Google Cloud Console
+            Crie um projeto (se ainda não tiver)
+            Ative a Google+ API ou People API
+            Crie credenciais OAuth 2.0:
+            Tipo: Aplicativo da Web
+            URIs de redirecionamento autorizados:
+            https://www.ileala.ae/api/oauth/google/callback
+            https://ileala.ae/api/oauth/google/callback
+            Copie:
+            ID do cliente (ex: 123456789-abc.apps.googleusercontent.com)
+            Segredo do cliente (ex: GOCSPX-abc123...)
+            Passo 2: Adicionar variáveis no Railway
+            {EMERGENCY_EMAIL}`,
             'Password: IleAla2025!Admin#Emergency',
             'After login, you will be redirected to the admin panel.',
           ],
@@ -205,3 +242,41 @@ startServer().catch((error) => {
   console.error("❌ Failed to start server:", error);
   process.exit(1);
 });
+O que você precisa fazer agora
+Passo 1: Configurar no Google Cloud Console
+Acesse: Google Cloud Console
+Crie um projeto (se ainda não tiver)
+Ative a Google+ API ou People API
+Crie credenciais OAuth 2.0:
+Tipo: Aplicativo da Web
+URIs de redirecionamento autorizados:
+https://www.ileala.ae/api/oauth/google/callback
+https://ileala.ae/api/oauth/google/callback
+Copie:
+ID do cliente (ex: 123456789-abc.apps.googleusercontent.com)
+Segredo do cliente (ex: GOCSPX-abc123...)
+Passo 2: Adicionar variáveis no Railway
+Railway Dashboard → Service: ileala-website → Variables
+Adicione estas variáveis:
+GOOGLE_CLIENT_ID=seu_client_id_aqui.apps.googleusercontent.comGOOGLE_CLIENT_SECRET=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LIENT_ID=seu_client_id_aqui.apps.googleusercontent.com
+Importante:
+Substitua pelos valores reais do Google Cloud Console
+Não use placeholder.com
+O Railway fará redeploy automaticamente
+Passo 3: Testar
+Após o deploy:
+Acesse: https://www.ileala.ae/login
+Você deve ver o botão "Entrar com Google"
+Clique e teste o login
+Documentação
+Criei o arquivo GUIA_CONFIGURAR_GOOGLE_OAUTH.md com:
+Passo a passo detalhado
+Screenshots e exemplos
+Troubleshooting
+Checklist final
+Status
+Implementação: concluída
+Código: enviado para o repositório
+Próximo passo: configurar no Google Cloud Console e adicionar variáveis no Railway
+Após configurar as variáveis no Railway, o botão Google aparecerá automaticamente e o login funcionará.
+Precisa de ajuda com algum passo específico?
