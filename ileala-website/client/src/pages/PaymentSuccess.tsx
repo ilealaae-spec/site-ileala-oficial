@@ -1,19 +1,61 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'wouter';
-import { CheckCircle, Package, ArrowRight } from 'lucide-react';
+import { CheckCircle, Package, ArrowRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { trpc } from '@/lib/trpc';
+import { toast } from 'sonner';
 
 export default function PaymentSuccess() {
-  const { t } = useLanguage();
+  const { language } = useLanguage();
   const [location] = useLocation();
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const sid = params.get('session_id');
     setSessionId(sid);
+    
+    // Verificar pagamento e criar pedido se necessário
+    if (sid) {
+      verifyPaymentAndCreateOrder(sid);
+    } else {
+      setLoading(false);
+    }
   }, [location]);
+
+  const verifyPaymentMutation = trpc.payment.verifyPayment.useQuery(
+    { sessionId: sessionId || '' },
+    { enabled: !!sessionId && loading }
+  );
+
+  const verifyPaymentAndCreateOrder = async (sid: string) => {
+    try {
+      setLoading(true);
+      // A verificação do pagamento será feita automaticamente pelo query acima
+      // O backend já atualiza o status do pedido se necessário
+      console.log('[PaymentSuccess] Verifying payment for session:', sid);
+    } catch (error) {
+      console.error('[PaymentSuccess] Error verifying payment:', error);
+      toast.error(language === 'en' ? 'Failed to verify payment' : 'Falha ao verificar pagamento');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-sage-50 to-white flex items-center justify-center px-4">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 animate-spin text-sage-600 mx-auto mb-4" />
+          <p className="text-sage-600">
+            {language === 'en' ? 'Processing your payment...' : 'Processando seu pagamento...'}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-sage-50 to-white flex items-center justify-center px-4">
@@ -25,16 +67,16 @@ export default function PaymentSuccess() {
           </div>
           
           <h1 className="font-display text-4xl text-sage-900 mb-4">
-            {t('Payment Successful!')}
+            {language === 'en' ? 'Payment Successful!' : 'Pagamento Realizado com Sucesso!'}
           </h1>
           
           <p className="text-lg text-sage-600 mb-2">
-            {t('Thank you for your purchase')}
+            {language === 'en' ? 'Thank you for your purchase' : 'Obrigado pela sua compra'}
           </p>
           
           {sessionId && (
             <p className="text-sm text-sage-500">
-              {t('Order ID')}: {sessionId.slice(-12)}
+              {language === 'en' ? 'Order ID' : 'ID do Pedido'}: {sessionId.slice(-12)}
             </p>
           )}
         </div>
@@ -47,24 +89,24 @@ export default function PaymentSuccess() {
             </div>
             <div className="flex-1">
               <h2 className="font-display text-2xl text-sage-900 mb-2">
-                {t('What happens next?')}
+                {language === 'en' ? 'What happens next?' : 'O que acontece agora?'}
               </h2>
               <div className="space-y-3 text-sage-600">
                 <p className="flex items-start gap-2">
                   <span className="flex-shrink-0 w-6 h-6 bg-sage-100 rounded-full flex items-center justify-center text-sm font-medium">1</span>
-                  <span>{t('You will receive a confirmation email shortly with your order details')}</span>
+                  <span>{language === 'en' ? 'You will receive a confirmation email shortly with your order details' : 'Você receberá um email de confirmação em breve com os detalhes do seu pedido'}</span>
                 </p>
                 <p className="flex items-start gap-2">
                   <span className="flex-shrink-0 w-6 h-6 bg-sage-100 rounded-full flex items-center justify-center text-sm font-medium">2</span>
-                  <span>{t('Our team will prepare your order with care')}</span>
+                  <span>{language === 'en' ? 'Our team will prepare your order with care' : 'Nossa equipe preparará seu pedido com cuidado'}</span>
                 </p>
                 <p className="flex items-start gap-2">
                   <span className="flex-shrink-0 w-6 h-6 bg-sage-100 rounded-full flex items-center justify-center text-sm font-medium">3</span>
-                  <span>{t('Your order will be shipped within 2-3 business days')}</span>
+                  <span>{language === 'en' ? 'Your order will be shipped within 2-3 business days' : 'Seu pedido será enviado em 2-3 dias úteis'}</span>
                 </p>
                 <p className="flex items-start gap-2">
                   <span className="flex-shrink-0 w-6 h-6 bg-sage-100 rounded-full flex items-center justify-center text-sm font-medium">4</span>
-                  <span>{t('You will receive tracking information once shipped')}</span>
+                  <span>{language === 'en' ? 'You will receive tracking information once shipped' : 'Você receberá informações de rastreamento assim que for enviado'}</span>
                 </p>
               </div>
             </div>
@@ -73,7 +115,7 @@ export default function PaymentSuccess() {
           {/* Contact Info */}
           <div className="border-t border-sage-200 pt-6">
             <p className="text-sm text-sage-600">
-              {t('Questions about your order? Contact us at')}{' '}
+              {language === 'en' ? 'Questions about your order? Contact us at' : 'Dúvidas sobre seu pedido? Entre em contato conosco em'}{' '}
               <a href="mailto:info@ileala.ae" className="text-sage-900 font-medium hover:underline">
                 info@ileala.ae
               </a>
@@ -83,15 +125,15 @@ export default function PaymentSuccess() {
 
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Link href="/products">
+          <Link href="/shop">
             <Button size="lg" variant="outline" className="w-full sm:w-auto">
-              {t('Continue Shopping')}
+              {language === 'en' ? 'Continue Shopping' : 'Continuar Comprando'}
               <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
           </Link>
           <Link href="/">
             <Button size="lg" className="w-full sm:w-auto bg-sage-600 hover:bg-sage-700">
-              {t('Back to Home')}
+              {language === 'en' ? 'Back to Home' : 'Voltar ao Início'}
             </Button>
           </Link>
         </div>
