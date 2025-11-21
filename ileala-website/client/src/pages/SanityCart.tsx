@@ -103,7 +103,7 @@ export default function SanityCart() {
   };
 
   const validateCouponMutation = trpc.coupons.validate.useQuery(
-    { code: couponCode, orderTotal: totalPrice },
+    { code: couponCode, orderTotal: totalPrice * 100 }, // Convert AED to fils (cents)
     { enabled: false }
   );
 
@@ -285,7 +285,7 @@ export default function SanityCart() {
                         </p>
                         <p className="text-xs text-green-600">{appliedCoupon.code}</p>
                         <p className="text-sm font-semibold text-green-700 mt-1">
-                          -{formatPrice(appliedCoupon.discount)}
+                          -{formatPrice(appliedCoupon.discount / 100)}
                         </p>
                       </div>
                       <Button
@@ -314,7 +314,7 @@ export default function SanityCart() {
                     <span className="text-muted-foreground">
                       {language === 'en' ? 'Discount' : 'Desconto'}
                     </span>
-                    <span className="font-semibold">-{formatPrice(appliedCoupon.discount)}</span>
+                    <span className="font-semibold">-{formatPrice(appliedCoupon.discount / 100)}</span>
                   </div>
                 )}
                 <div className="flex justify-between">
