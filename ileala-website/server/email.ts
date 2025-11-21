@@ -1,16 +1,35 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
 
 const FROM_EMAIL = 'ILE ALA <noreply@ileala.ae>';
 const SITE_URL = process.env.SITE_URL || 'https://ileala.ae';
+
+// Modo desenvolvimento: permite cadastro sem email se RESEND_API_KEY não estiver configurado
+const ALLOW_REGISTRATION_WITHOUT_EMAIL = process.env.NODE_ENV !== 'production' || process.env.ALLOW_REGISTRATION_WITHOUT_EMAIL === 'true';
 
 export async function sendVerificationEmail(email: string, token: string, name: string) {
   const verificationUrl = `${SITE_URL}/verify-email?token=${token}`;
   
   console.log(`[Email] Attempting to send verification email to ${email}`);
   console.log(`[Email] FROM: ${FROM_EMAIL}`);
-  console.log(`[Email] Resend API Key configured: ${!!process.env.RESEND_API_KEY}`);
+  console.log(`[Email] Resend API Key configured: ${!!RESEND_API_KEY}`);
+  console.log(`[Email] Allow registration without email: ${ALLOW_REGISTRATION_WITHOUT_EMAIL}`);
+  
+  // Se não há API key e não permite registro sem email, lança erro
+  if (!resend && !ALLOW_REGISTRATION_WITHOUT_EMAIL) {
+    const error = new Error('RESEND_API_KEY is not configured. Cannot send verification email.');
+    console.error('[Email] ERROR:', error.message);
+    throw error;
+  }
+  
+  // Se não há API key mas permite registro sem email, apenas loga e retorna true
+  if (!resend && ALLOW_REGISTRATION_WITHOUT_EMAIL) {
+    console.warn('[Email] WARNING: RESEND_API_KEY not configured. Skipping email send (development mode).');
+    console.warn(`[Email] Verification URL would be: ${verificationUrl}`);
+    return true;
+  }
   
   try {
     const result = await resend.emails.send({
@@ -73,7 +92,15 @@ export async function sendVerificationEmail(email: string, token: string, name: 
       console.error('[Email] Error message:', error.message);
       console.error('[Email] Error stack:', error.stack);
     }
-    return false;
+    
+    // Se permite registro sem email, apenas loga o erro mas não falha
+    if (ALLOW_REGISTRATION_WITHOUT_EMAIL) {
+      console.warn('[Email] Email send failed, but continuing (development mode)');
+      return true;
+    }
+    
+    // Em produção, lança erro para que o cadastro falhe
+    throw error;
   }
 }
 
