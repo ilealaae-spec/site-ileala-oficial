@@ -1,21 +1,17 @@
-import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
-import type { Express, Request, Response } from "express";
-import axios from "axios";
-import * as db from "../db";
-import { getSessionCookieOptions } from "./cookies";
-import { SignJWT } from "jose";
-
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || `${process.env.SITE_URL || 'https://www.ileala.ae'}/api/oauth/google/callback`;
+import { Express, Request, Response } from 'express';
+import axios from 'axios';
+import * as db from '../db';
+import { getSessionCookieOptions } from './cookies';
+import { COOKIE_NAME, ONE_YEAR_MS } from '@shared/const';
+import { ENV } from './env';
+import bcrypt from 'bcryptjs';
 
 interface GoogleTokenResponse {
   access_token: string;
   expires_in: number;
-  refresh_token?: string;
   scope: string;
   token_type: string;
-  id_token?: string;
+  id_token: string;
 }
 
 interface GoogleUserInfo {
@@ -30,50 +26,27 @@ interface GoogleUserInfo {
 }
 
 /**
- * Generate Google OAuth authorization URL
- */
-export function getGoogleAuthUrl(state?: string): string {
-  if (!GOOGLE_CLIENT_ID) {
-    throw new Error('GOOGLE_CLIENT_ID is not configured');
-  }
-
-  const params = new URLSearchParams({
-    client_id: GOOGLE_CLIENT_ID,
-    redirect_uri: GOOGLE_REDIRECT_URI,
-    response_type: 'code',
-    scope: 'openid email profile',
-    access_type: 'offline',
-    prompt: 'consent',
-    ...(state && { state }),
-  });
-
-  return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
-}
-
-/**
  * Exchange authorization code for access token
  */
 async function exchangeCodeForToken(code: string): Promise<GoogleTokenResponse> {
-  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
-    throw new Error('Google OAuth credentials are not configured');
-  }
+  const redirectUri = `${ENV.siteUrl}/api/oauth/google/callback`;
+  const params = new URLSearchParams({
+    code,
+    client_id: ENV.googleClientId,
+    client_secret: ENV.googleClientSecret,
+    redirect_uri: redirectUri,
+    grant_type: 'authorization_code',
+  });
 
   const response = await axios.post<GoogleTokenResponse>(
     'https://oauth2.googleapis.com/token',
-    {
-      client_id: GOOGLE_CLIENT_ID,
-      client_secret: GOOGLE_CLIENT_SECRET,
-      code,
-      grant_type: 'authorization_code',
-      redirect_uri: GOOGLE_REDIRECT_URI,
-    },
+    params.toString(),
     {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
     }
   );
-
   return response.data;
 }
 
@@ -89,34 +62,7 @@ async function getUserInfo(accessToken: string): Promise<GoogleUserInfo> {
       },
     }
   );
-
   return response.data;
-}
-
-/**
- * Create session token for user
- */
-async function createSessionToken(userId: string, email: string, name: string): Promise<string> {
-  const secret = process.env.JWT_SECRET || process.env.SESSION_SECRET;
-  if (!secret) {
-    throw new Error('JWT_SECRET or SESSION_SECRET is not configured');
-  }
-
-  const secretKey = new TextEncoder().encode(secret);
-  const expirationSeconds = Math.floor((Date.now() + ONE_YEAR_MS) / 1000);
-
-  // Use email as openId for Google users (since we don't have a separate openId system)
-  const openId = `google:${userId}`;
-
-  return new SignJWT({
-    openId,
-    email,
-    name,
-    loginMethod: 'google',
-  })
-    .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
-    .setExpirationTime(expirationSeconds)
-    .sign(secretKey);
 }
 
 /**
@@ -139,9 +85,11 @@ export function registerGoogleOAuthRoutes(app: Express) {
     }
 
     try {
+      console.log('[Google OAuth] Exchanging code for token...');
       // Exchange code for token
       const tokenResponse = await exchangeCodeForToken(code);
       
+      console.log('[Google OAuth] Getting user info...');
       // Get user info
       const userInfo = await getUserInfo(tokenResponse.access_token);
 
@@ -149,23 +97,49 @@ export function registerGoogleOAuthRoutes(app: Express) {
         return res.status(400).json({ error: 'Email not verified by Google' });
       }
 
+      console.log('[Google OAuth] User info:', { email: userInfo.email, name: userInfo.name });
+
       // Create or update user in database
       const openId = `google:${userInfo.id}`;
-      await db.upsertUser({
-        openId,
-        email: userInfo.email,
-        name: userInfo.name || `${userInfo.given_name} ${userInfo.family_name}`.trim(),
-        loginMethod: 'google',
-        lastSignedIn: new Date(),
-      });
+      
+      // Check if user exists
+      const existingUser = await db.getUserByOpenId(openId);
+      
+      if (existingUser) {
+        // Update existing user
+        await db.upsertUser({
+          openId,
+          email: userInfo.email,
+          name: userInfo.name || `${userInfo.given_name} ${userInfo.family_name}`.trim(),
+          loginMethod: 'google',
+          lastSignedIn: new Date(),
+        });
+        console.log('[Google OAuth] User updated:', existingUser.id);
+      } else {
+        // Create new user
+        await db.upsertUser({
+          openId,
+          email: userInfo.email,
+          name: userInfo.name || `${userInfo.given_name} ${userInfo.family_name}`.trim(),
+          loginMethod: 'google',
+          lastSignedIn: new Date(),
+        });
+        console.log('[Google OAuth] New user created');
+      }
+
+      // Get user from database to create session
+      const user = await db.getUserByOpenId(openId);
+      if (!user) {
+        throw new Error('Failed to create or retrieve user');
+      }
 
       // Create session token using the same format as email/password login
       // Store user data in cookie as JSON (compatible with existing auth system)
       const sessionData = {
-        id: openId, // Use openId as ID
-        email: userInfo.email,
-        name: userInfo.name || `${userInfo.given_name} ${userInfo.family_name}`.trim(),
-        role: 'user',
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role || 'user',
         openId: openId,
         loginMethod: 'google',
       };
@@ -177,6 +151,8 @@ export function registerGoogleOAuthRoutes(app: Express) {
         maxAge: ONE_YEAR_MS,
       });
 
+      console.log('[Google OAuth] Session created, redirecting...');
+
       // Redirect to original destination or home
       const redirectTo = state ? decodeURIComponent(state) : '/';
       res.redirect(302, redirectTo);
@@ -187,12 +163,22 @@ export function registerGoogleOAuthRoutes(app: Express) {
     }
   });
 
-  // Google OAuth initiation
+  // Google OAuth initiation (optional - not needed if frontend handles it)
   app.get('/api/oauth/google', (req: Request, res: Response) => {
     try {
       const redirectTo = (req.query.redirect as string) || '/';
       const state = encodeURIComponent(redirectTo);
-      const authUrl = getGoogleAuthUrl(state);
+      const redirectUri = `${ENV.siteUrl}/api/oauth/google/callback`;
+      const params = new URLSearchParams({
+        client_id: ENV.googleClientId,
+        redirect_uri: redirectUri,
+        response_type: 'code',
+        scope: 'openid email profile',
+        access_type: 'offline',
+        prompt: 'consent',
+        state,
+      });
+      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
       res.redirect(302, authUrl);
     } catch (error) {
       console.error('[Google OAuth] Failed to generate auth URL:', error);
