@@ -162,12 +162,15 @@ export default function Login() {
           const redirectTo = params.get('redirect') || '/cart';
           const googleLoginUrl = getGoogleLoginUrl(redirectTo);
           
-          // Debug: Log if Google OAuth is not available
-          if (!googleLoginUrl && process.env.NODE_ENV === 'development') {
-            console.warn('[Login] Google OAuth button not shown - VITE_GOOGLE_CLIENT_ID not configured');
+          // Always log to help diagnose
+          if (!googleLoginUrl) {
+            console.warn('[Login] ⚠️ Google OAuth button will NOT be shown');
+            console.warn('[Login] Reason: VITE_GOOGLE_CLIENT_ID is not configured or invalid');
+            console.warn('[Login] Solution: Add VITE_GOOGLE_CLIENT_ID to Railway variables and redeploy');
+            return null; // Don't show Google button if not configured
           }
           
-          if (!googleLoginUrl) return null; // Don't show Google button if not configured
+          console.log('[Login] ✅ Google OAuth button will be shown');
           
           return (
             <div className="mt-6">
