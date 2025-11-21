@@ -314,13 +314,13 @@ export async function sendPasswordResetEmail(email: string, token: string, name:
               <p>We received a request to reset your password for your ILE ALA account. Click the button below to create a new password:</p>
               
               <div style="text-align: center; margin: 30px 0;">
-                <a href="${resetUrl}" style="background: #8B9D83; color: white; padding: 14px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold; cursor: pointer;">
+                <a href="${resetUrl}" style="background: #8B9D83; color: white; padding: 14px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold; cursor: pointer; -webkit-text-size-adjust: none; mso-hide: all;">
                   Reset Password
                 </a>
               </div>
               <!-- Fallback: Also include the URL as a clickable link in case the button doesn't work -->
               <div style="text-align: center; margin: 20px 0;">
-                <a href="${resetUrl}" style="color: #8B9D83; text-decoration: underline; font-size: 14px;">
+                <a href="${resetUrl}" style="color: #8B9D83; text-decoration: underline; font-size: 14px; word-break: break-all;">
                   ${resetUrl}
                 </a>
               </div>
