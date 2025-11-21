@@ -484,15 +484,13 @@ export const appRouter = router({
     }),
     
     // Image upload
-    uploadImage: protectedProcedure
+    uploadImage: adminProcedure
       .input(z.object({
         fileName: z.string(),
         fileData: z.string(), // base64 encoded
         contentType: z.string(),
       }))
-      .mutation(async ({ input, ctx }) => {
-        if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
-        
+      .mutation(async ({ input }) => {
         // Decode base64
         const buffer = Buffer.from(input.fileData, 'base64');
         
@@ -509,19 +507,17 @@ export const appRouter = router({
     
     // Customers management
     customers: router({
-      list: protectedProcedure.query(async ({ ctx }) => {
-        if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+      list: adminProcedure.query(async () => {
         return await getAllUsersRaw();
       }),
     }),
     
     // Coupons management
     coupons: router({
-      list: protectedProcedure.query(async ({ ctx }) => {
-        if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+      list: adminProcedure.query(async () => {
         return await db.getAllCoupons();
       }),
-      create: protectedProcedure
+      create: adminProcedure
         .input(z.object({
           code: z.string(),
           discountType: z.enum(['percentage', 'fixed']),
@@ -532,12 +528,11 @@ export const appRouter = router({
           validFrom: z.date().optional(),
           validUntil: z.date().optional(),
         }))
-        .mutation(async ({ input, ctx }) => {
-          if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+        .mutation(async ({ input }) => {
           const couponId = await db.createCoupon(input as any);
           return { id: couponId };
         }),
-      update: protectedProcedure
+      update: adminProcedure
         .input(z.object({
           id: z.number(),
           code: z.string().optional(),
@@ -548,16 +543,14 @@ export const appRouter = router({
           active: z.number().optional(),
           validUntil: z.date().optional(),
         }))
-        .mutation(async ({ input, ctx }) => {
-          if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+        .mutation(async ({ input }) => {
           const { id, ...updates } = input;
           await db.updateCoupon(id, updates as any);
           return { success: true };
         }),
-      delete: protectedProcedure
+      delete: adminProcedure
         .input(z.object({ id: z.number() }))
-        .mutation(async ({ input, ctx }) => {
-          if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+        .mutation(async ({ input }) => {
           await db.deleteCoupon(input.id);
           return { success: true };
         }),
