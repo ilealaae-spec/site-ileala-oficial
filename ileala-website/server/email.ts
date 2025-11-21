@@ -58,20 +58,27 @@ export async function sendVerificationEmail(email: string, token: string, name: 
               
               <p>Thank you for creating an account with ILE ALA. To complete your registration and start shopping, please verify your email address.</p>
               
-              <div style="text-align: center; margin: 30px 0;">
-                <a href="${verificationUrl}" style="background: #8B9D83; color: white; padding: 14px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold; cursor: pointer; -webkit-text-size-adjust: none; mso-hide: all;">
-                  Verify Email Address
-                </a>
-              </div>
-              <!-- Fallback link in case button doesn't work in email client -->
-              <div style="text-align: center; margin: 20px 0;">
-                <a href="${verificationUrl}" style="color: #8B9D83; text-decoration: underline; font-size: 14px; word-break: break-all;">
+              <!-- Button using table for better email client compatibility -->
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 30px auto;">
+                <tr>
+                  <td style="background: #8B9D83; border-radius: 5px; text-align: center;">
+                    <a href="${verificationUrl}" style="display: block; padding: 14px 30px; color: #ffffff; text-decoration: none; font-weight: bold; font-size: 16px; border-radius: 5px;">
+                      Verify Email Address
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              
+              <!-- Fallback: Plain text link that always works -->
+              <div style="text-align: center; margin: 20px 0; padding: 15px; background: #f5f5f5; border-radius: 5px;">
+                <p style="color: #666; font-size: 12px; margin: 0 0 10px 0;">If the button doesn't work, click this link:</p>
+                <a href="${verificationUrl}" style="color: #8B9D83; text-decoration: underline; font-size: 14px; word-break: break-all; display: block;">
                   ${verificationUrl}
                 </a>
               </div>
               
-              <p style="color: #666; font-size: 14px;">Or copy and paste this link into your browser:</p>
-              <p style="color: #8B9D83; font-size: 14px; word-break: break-all;">${verificationUrl}</p>
+              <p style="color: #666; font-size: 14px; margin-top: 20px;">Or copy and paste this link into your browser:</p>
+              <p style="color: #8B9D83; font-size: 12px; word-break: break-all; background: #f9f9f9; padding: 10px; border-radius: 3px; font-family: monospace;">${verificationUrl}</p>
               
               <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;">
               
@@ -313,20 +320,27 @@ export async function sendPasswordResetEmail(email: string, token: string, name:
               
               <p>We received a request to reset your password for your ILE ALA account. Click the button below to create a new password:</p>
               
-              <div style="text-align: center; margin: 30px 0;">
-                <a href="${resetUrl}" style="background: #8B9D83; color: white; padding: 14px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold; cursor: pointer; -webkit-text-size-adjust: none; mso-hide: all;">
-                  Reset Password
-                </a>
-              </div>
-              <!-- Fallback: Also include the URL as a clickable link in case the button doesn't work -->
-              <div style="text-align: center; margin: 20px 0;">
-                <a href="${resetUrl}" style="color: #8B9D83; text-decoration: underline; font-size: 14px; word-break: break-all;">
+              <!-- Button using table for better email client compatibility -->
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 30px auto;">
+                <tr>
+                  <td style="background: #8B9D83; border-radius: 5px; text-align: center;">
+                    <a href="${resetUrl}" style="display: block; padding: 14px 30px; color: #ffffff; text-decoration: none; font-weight: bold; font-size: 16px; border-radius: 5px;">
+                      Reset Password
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              
+              <!-- Fallback: Plain text link that always works -->
+              <div style="text-align: center; margin: 20px 0; padding: 15px; background: #f5f5f5; border-radius: 5px;">
+                <p style="color: #666; font-size: 12px; margin: 0 0 10px 0;">If the button doesn't work, click this link:</p>
+                <a href="${resetUrl}" style="color: #8B9D83; text-decoration: underline; font-size: 14px; word-break: break-all; display: block;">
                   ${resetUrl}
                 </a>
               </div>
               
-              <p style="color: #666; font-size: 14px;">Or copy and paste this link into your browser:</p>
-              <p style="color: #8B9D83; font-size: 14px; word-break: break-all;">${resetUrl}</p>
+              <p style="color: #666; font-size: 14px; margin-top: 20px;">Or copy and paste this link into your browser:</p>
+              <p style="color: #8B9D83; font-size: 12px; word-break: break-all; background: #f9f9f9; padding: 10px; border-radius: 3px; font-family: monospace;">${resetUrl}</p>
               
               <p style="color: #e74c3c; font-size: 14px; background: #fef5f5; padding: 15px; border-radius: 5px; border-left: 4px solid #e74c3c;">
                 <strong>⚠️ Security Notice:</strong> This link will expire in 1 hour for your security.
