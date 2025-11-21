@@ -23,7 +23,7 @@ export default function AdminEmergencyLogin() {
     try {
       // Emergency admin credentials
       const EMERGENCY_EMAIL = "ceo@ileala.ae";
-      const EMERGENCY_PASSWORD = "IleAla2025!Admin#Emergency";
+      const EMERGENCY_PASSWORD = "IleAla@2025";
 
       if (email === EMERGENCY_EMAIL && password === EMERGENCY_PASSWORD) {
         // Try to login with emergency credentials

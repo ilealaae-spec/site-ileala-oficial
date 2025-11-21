@@ -4,7 +4,6 @@ import { createServer } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
-import { registerGoogleOAuthRoutes } from "./googleOAuth";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
@@ -32,124 +31,19 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 }
 
 async function startServer() {
-  console.log("🚀 Starting server...");
-  
   const app = express();
   const server = createServer(app);
-  
-  // Trust proxy (Railway uses proxies, so we need to trust X-Forwarded-For headers)
-  app.set('trust proxy', true);
-  
-  // ============================================
-  // REDIRECTS: Force HTTPS and www (SEO)
-  // ============================================
-  // Preferred domain: https://www.ileala.ae
-  // This ensures Google only indexes one version of the site
-  app.use((req, res, next) => {
-    const host = req.get('host') || '';
-    const protocol = req.protocol;
-    const url = req.url;
-    
-    // Skip redirects for health check and static assets
-    if (url === '/health' || url.startsWith('/api/') || url.startsWith('/_') || url.match(/\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$/)) {
-      return next();
-    }
-    
-    // Force HTTPS
-    if (protocol === 'http') {
-      return res.redirect(301, `https://www.ileala.ae${url}`);
-    }
-    
-    // Force www (redirect non-www to www)
-    if (host === 'ileala.ae' || host.startsWith('ileala.ae:')) {
-      return res.redirect(301, `https://www.ileala.ae${url}`);
-    }
-    
-    // If already https://www.ileala.ae, continue
-    next();
-  });
-  
-  // Configure CORS to allow requests from the frontend domain
-  app.use((req, res, next) => {
-    const origin = req.headers.origin;
-    const allowedOrigins = [
-      'https://www.ileala.ae',
-      'https://ileala.ae',
-      'http://localhost:3000',
-      'http://localhost:5173',
-    ];
-    
-    if (origin && allowedOrigins.includes(origin)) {
-      res.setHeader('Access-Control-Allow-Origin', origin);
-    }
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    
-    if (req.method === 'OPTIONS') {
-      return res.sendStatus(200);
-    }
-    
-    next();
-  });
-  
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   
-  // Health check endpoint for Railway - MUST be first to respond quickly
-  app.get("/health", (_req, res) => {
-    res.status(200).json({ 
-      status: "ok", 
-      timestamp: new Date().toISOString(),
-      environment: process.env.NODE_ENV || "development"
-    });
-  });
-
-  // Start listening on port IMMEDIATELY - before any heavy initialization
-  const preferredPort = parseInt(process.env.PORT || "3000");
-  const port = process.env.NODE_ENV === "production" 
-    ? preferredPort 
-    : await findAvailablePort(preferredPort);
-
-  console.log(`📡 Starting server on port ${port}...`);
-  
-  // Start server FIRST, then configure routes
-  await new Promise<void>((resolve, reject) => {
-    server.listen(port, "0.0.0.0", () => {
-      console.log(`✅ Server listening on http://0.0.0.0:${port}/`);
-      console.log(`✅ Health check available at http://0.0.0.0:${port}/health`);
-      console.log(`📦 Environment: ${process.env.NODE_ENV || "development"}`);
-      if (process.env.DATABASE_URL) {
-        console.log(`✅ Database: DATABASE_URL configured`);
-      } else {
-        console.warn(`⚠️  Database: DATABASE_URL not configured`);
-      }
-      resolve();
-    });
-    
-    server.on("error", (error: any) => {
-      console.error("❌ Server error:", error);
-      if (error.code === "EADDRINUSE") {
-        console.error(`Port ${port} is already in use`);
-      }
-      reject(error);
-    });
-  });
-
-  // NOW configure routes and middleware (after server is listening)
-  console.log("🔧 Configuring routes and middleware...");
-  
-  // Apply general API rate limiting (tRPC rate limiting is handled in individual procedures)
+  // Apply general API rate limiting
   app.use("/api", apiLimiter);
   
-  // OAuth callback under /api/oauth/callback (Manus OAuth - if configured)
+  // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
   
-  // Google OAuth routes (direct Google OAuth)
-  registerGoogleOAuthRoutes(app);
-  
-  // Emergency admin creation route (for Railway migration)
+  // Emergency admin creation route
   app.post("/api/create-emergency-admin", async (req, res) => {
     try {
       const DATABASE_URL = process.env.DATABASE_URL;
@@ -164,7 +58,7 @@ async function startServer() {
       const sql = neon(DATABASE_URL);
 
       const EMERGENCY_EMAIL = 'ceo@ileala.ae';
-      const EMERGENCY_PASSWORD = 'IleAla2025!Admin#Emergency';
+      const EMERGENCY_PASSWORD = 'IleAla@2025';
       const EMERGENCY_NAME = 'Emergency Admin';
 
       const hashedPassword = await bcrypt.hash(EMERGENCY_PASSWORD, 10);
@@ -185,9 +79,9 @@ async function startServer() {
           message: 'Emergency admin user updated successfully!',
           email: EMERGENCY_EMAIL,
           instructions: [
-            'You can now login at: https://ileala.ae/admin-emergency-login',
+            'You can now login at: https://www.ileala.ae/admin-emergency-login',
             `Email: ${EMERGENCY_EMAIL}`,
-            'Password: IleAla2025!Admin#Emergency',
+            `Password: ${EMERGENCY_PASSWORD}`,
             'After login, you will be redirected to the admin panel.',
           ],
         });
@@ -209,15 +103,15 @@ async function startServer() {
         message: 'Emergency admin user created successfully!',
         email: EMERGENCY_EMAIL,
         instructions: [
-          'You can now login at: https://ileala.ae/admin-emergency-login',
+          'You can now login at: https://www.ileala.ae/admin-emergency-login',
           `Email: ${EMERGENCY_EMAIL}`,
-          'Password: IleAla2025!Admin#Emergency',
+          `Password: ${EMERGENCY_PASSWORD}`,
           'After login, you will be redirected to the admin panel.',
           'IMPORTANT: Consider deleting this API route after creating the user for security!',
         ],
       });
     } catch (error: any) {
-      console.error('Error creating emergency admin:', error);
+      console.error('[Emergency Admin] Error:', error);
       return res.status(500).json({
         success: false,
         error: 'Failed to create emergency admin user',
@@ -225,9 +119,7 @@ async function startServer() {
       });
     }
   });
-  
   // tRPC API
-  console.log("🔧 Setting up tRPC...");
   app.use(
     "/api/trpc",
     createExpressMiddleware({
@@ -235,29 +127,23 @@ async function startServer() {
       createContext,
     })
   );
-  
   // development mode uses Vite, production mode uses static files
-  console.log("🔧 Setting up static file serving...");
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);
   } else {
     serveStatic(app);
   }
-  
-  console.log("✅ Server fully configured and ready!");
 
-  // Handle uncaught errors
-  process.on("unhandledRejection", (reason, promise) => {
-    console.error("Unhandled Rejection at:", promise, "reason:", reason);
-  });
+  const preferredPort = parseInt(process.env.PORT || "3000");
+  const port = await findAvailablePort(preferredPort);
 
-  process.on("uncaughtException", (error) => {
-    console.error("Uncaught Exception:", error);
-    process.exit(1);
+  if (port !== preferredPort) {
+    console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
+  }
+
+  server.listen(port, () => {
+    console.log(`Server running on http://localhost:${port}/`);
   });
 }
 
-startServer().catch((error) => {
-  console.error("❌ Failed to start server:", error);
-  process.exit(1);
-});
+startServer().catch(console.error);
