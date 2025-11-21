@@ -11,12 +11,19 @@ const isPreview = typeof window !== 'undefined' && (
 );
 
 // Configuração do cliente Sanity
+// Token é opcional - apenas necessário para operações autenticadas (preview, escrita)
+// Para leitura pública de dados publicados, o token não é necessário
+const sanityToken = import.meta.env.VITE_SANITY_TOKEN;
+const hasToken = sanityToken && sanityToken.trim() !== '';
+
 export const sanityClient = createClient({
   projectId: import.meta.env.VITE_SANITY_PROJECT_ID || 'anyz9zel',
   dataset: import.meta.env.VITE_SANITY_DATASET || 'production',
   useCdn: !isPreview, // Desabilitar CDN em modo preview para ver rascunhos
   apiVersion: '2024-11-10',
-  token: import.meta.env.VITE_SANITY_TOKEN, // Token para operações autenticadas
+  // Apenas passar token se estiver configurado e não estiver vazio
+  // Para leitura pública, o token não é necessário
+  ...(hasToken ? { token: sanityToken } : {}),
   perspective: isPreview ? 'previewDrafts' : 'published', // Usar previewDrafts em modo preview
   stega: isPreview ? {
     enabled: true,
