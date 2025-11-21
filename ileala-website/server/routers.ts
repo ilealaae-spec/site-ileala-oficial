@@ -49,14 +49,15 @@ export const appRouter = router({
           const token = await generateEmailVerificationTokenRaw(user.id);
           const { sendVerificationEmail } = await import('./email');
           try {
-            await sendVerificationEmail(user.email, token, user.name || 'Customer');
+            const emailSent = await sendVerificationEmail(user.email, token, user.name || 'Customer');
+            if (!emailSent) {
+              console.warn('[Register] Email send returned false, but continuing registration');
+            }
           } catch (error) {
             console.error('[Register] Failed to send verification email:', error);
-            // Não falha o cadastro se o email falhar (em desenvolvimento)
-            // Em produção, você pode querer lançar o erro aqui
-            if (process.env.NODE_ENV === 'production' && process.env.ALLOW_REGISTRATION_WITHOUT_EMAIL !== 'true') {
-              throw new Error('Failed to send verification email. Please try again or contact support.');
-            }
+            // Log o erro mas não falha o cadastro - o usuário pode usar "resend verification" depois
+            // Isso permite que o cadastro complete mesmo se houver problema temporário com email
+            console.warn('[Register] Registration completed, but email verification may need to be resent');
           }
           const cookieOptions = getSessionCookieOptions(ctx.req);
           ctx.res.cookie(COOKIE_NAME, JSON.stringify({ id: user.id, email: user.email, name: user.name, role: user.role }), cookieOptions);

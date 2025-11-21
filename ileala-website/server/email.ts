@@ -82,8 +82,21 @@ export async function sendVerificationEmail(email: string, token: string, name: 
       `,
     });
     
-    console.log(`[Email] Resend API response:`, JSON.stringify(result));
+    console.log(`[Email] Resend API response:`, JSON.stringify(result, null, 2));
+    
+    // Verificar se o resultado indica sucesso
+    if (result.error) {
+      console.error('[Email] Resend API returned error:', result.error);
+      throw new Error(`Resend API error: ${JSON.stringify(result.error)}`);
+    }
+    
+    if (!result.data || !result.data.id) {
+      console.error('[Email] Resend API response missing data:', result);
+      throw new Error('Resend API response missing email ID');
+    }
+    
     console.log(`[Email] Verification email sent successfully to ${email}`);
+    console.log(`[Email] Email ID: ${result.data.id}`);
     return true;
   } catch (error) {
     console.error('[Email] ERROR sending verification email:', error);
@@ -99,8 +112,10 @@ export async function sendVerificationEmail(email: string, token: string, name: 
       return true;
     }
     
-    // Em produção, lança erro para que o cadastro falhe
-    throw error;
+    // Em produção, loga o erro mas não lança - permite cadastro completar
+    // O usuário pode usar "resend verification" depois
+    console.warn('[Email] Email send failed, but registration will continue. User can resend verification email.');
+    return false;
   }
 }
 
