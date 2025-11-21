@@ -55,6 +55,10 @@ export default function SanityCart() {
       quantity: item.quantity,
     }));
 
+    // Note: Coupon discount is calculated client-side and shown to user
+    // The actual discount will be applied when creating the order after payment
+    // For now, we pass the items without coupon to Stripe
+    // TODO: Implement coupon support in createSanityCartCheckout if needed
     createCartCheckoutMutation.mutate({ items: checkoutItems });
   };
 
