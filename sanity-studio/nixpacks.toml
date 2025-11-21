@@ -4,6 +4,7 @@ nixPkgs = ["nodejs_20", "npm"]
 [phases.install]
 cmds = [
   "rm -f package-lock.json || true",
+  "rm -f pnpm-lock.yaml || true",
   "rm -f ../package-lock.json || true",
   "rm -f ../../package-lock.json || true",
   "npm config set package-lock false",
@@ -15,7 +16,9 @@ cmds = [
 ]
 
 [phases.build]
-cmds = ["npm run build"]
+cmds = [
+  "npm run build"
+]
 
 [start]
 cmd = "npx serve -s dist -l $PORT"

@@ -2,7 +2,7 @@
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
     "builder": "NIXPACKS",
-    "buildCommand": "rm -f package-lock.json ../package-lock.json && npm config set package-lock false && npm config set prefer-offline false && npm config set ci false && npm install --no-package-lock --legacy-peer-deps --no-audit --no-fund && npm run build"
+    "buildCommand": "rm -f package-lock.json pnpm-lock.yaml && npm config set package-lock false && npm config set prefer-offline false && npm install --no-package-lock --legacy-peer-deps && npm run build"
   },
   "deploy": {
     "startCommand": "npx serve -s dist -l $PORT",
