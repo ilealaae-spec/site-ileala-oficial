@@ -1,7 +1,7 @@
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, router, protectedProcedure } from "./_core/trpc";
+import { publicProcedure, router, protectedProcedure, adminProcedure } from "./_core/trpc";
 import { z } from "zod";
 import * as db from "./db";
 import { getUserByEmailRaw, createUserRaw, generateEmailVerificationTokenRaw, verifyEmailTokenRaw, getAllUsersRaw, verifyUserCredentialsRaw, generatePasswordResetTokenRaw, resetPasswordWithTokenRaw } from "./db-raw";
@@ -412,7 +412,7 @@ export const appRouter = router({
   admin: router({
     // Products management
     products: router({
-      create: protectedProcedure
+      create: adminProcedure
         .input(z.object({
           nameEN: z.string(),
           namePT: z.string(),
@@ -425,9 +425,7 @@ export const appRouter = router({
           stock: z.number().default(0),
           featured: z.number().default(0),
         }))
-        .mutation(async ({ input, ctx }) => {
-          if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
-          
+        .mutation(async ({ input }) => {
           // Generate slug from nameEN
           const slug = input.nameEN.toLowerCase()
             .replace(/[^a-z0-9]+/g, '-')
@@ -441,7 +439,7 @@ export const appRouter = router({
           
           return { id: productId };
         }),
-      update: protectedProcedure
+      update: adminProcedure
         .input(z.object({
           id: z.number(),
           nameEN: z.string().optional(),
@@ -456,16 +454,14 @@ export const appRouter = router({
           featured: z.number().optional(),
           active: z.number().optional(),
         }))
-        .mutation(async ({ input, ctx }) => {
-          if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+        .mutation(async ({ input }) => {
           const { id, ...updates } = input;
           await db.updateProduct(id, updates);
           return { success: true };
         }),
-      delete: protectedProcedure
+      delete: adminProcedure
         .input(z.object({ id: z.number() }))
-        .mutation(async ({ input, ctx }) => {
-          if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+        .mutation(async ({ input }) => {
           await db.deleteProduct(input.id);
           return { success: true };
         }),
@@ -473,17 +469,15 @@ export const appRouter = router({
     
     // Orders management
     orders: router({
-      list: protectedProcedure.query(async ({ ctx }) => {
-        if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+      list: adminProcedure.query(async () => {
         return await db.getAllOrders();
       }),
-      updateStatus: protectedProcedure
+      updateStatus: adminProcedure
         .input(z.object({
           id: z.number(),
           status: z.enum(['pending', 'processing', 'shipped', 'delivered', 'cancelled']),
         }))
-        .mutation(async ({ input, ctx }) => {
-          if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+        .mutation(async ({ input }) => {
           await db.updateOrderStatus(input.id, input.status);
           return { success: true };
         }),
