@@ -14,7 +14,16 @@ export default function AdminEmergencyLogin() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const loginMutation = trpc.user.login.useMutation();
+  const loginMutation = trpc.auth.login.useMutation({
+    onSuccess: () => {
+      toast.success("Emergency admin access granted!");
+      setLocation("/admin");
+    },
+    onError: (error) => {
+      toast.error(error.message || "Emergency login failed. Please contact support.");
+      console.error("Emergency login error:", error);
+    },
+  });
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,27 +36,10 @@ export default function AdminEmergencyLogin() {
 
       if (email === EMERGENCY_EMAIL && password === EMERGENCY_PASSWORD) {
         // Try to login with emergency credentials
-        try {
-          const result = await loginMutation.mutateAsync({
-            email: EMERGENCY_EMAIL,
-            password: EMERGENCY_PASSWORD,
-          });
-
-          if (result.success) {
-            toast.success("Emergency admin access granted!");
-            setLocation("/admin");
-          } else {
-            toast.error("Emergency login failed. Please contact support.");
-          }
-        } catch (error: any) {
-          // If login fails, it means the emergency admin user doesn't exist yet
-          // Show message to create it first
-          toast.error(
-            "Emergency admin user not found. Please create it first using the registration system or contact support.",
-            { duration: 5000 }
-          );
-          console.error("Emergency login error:", error);
-        }
+        loginMutation.mutate({
+          email: EMERGENCY_EMAIL,
+          password: EMERGENCY_PASSWORD,
+        });
       } else {
         toast.error("Invalid emergency credentials");
       }
