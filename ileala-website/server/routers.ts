@@ -442,6 +442,21 @@ export const appRouter = router({
       update: adminProcedure
         .input(z.object({
           id: z.number(),
+          data: z.object({
+            name: z.string().optional(),
+            nameEN: z.string().optional(),
+            namePT: z.string().optional(),
+            descriptionEN: z.string().optional(),
+            descriptionPT: z.string().optional(),
+            price: z.number().optional(),
+            imageUrl: z.string().optional(),
+            collection: z.string().optional(),
+            category: z.string().optional(),
+            stock: z.number().optional(),
+            featured: z.number().optional(),
+            active: z.number().optional(),
+          }).optional(),
+          // Also support flat structure for backward compatibility
           nameEN: z.string().optional(),
           namePT: z.string().optional(),
           descriptionEN: z.string().optional(),
@@ -455,7 +470,8 @@ export const appRouter = router({
           active: z.number().optional(),
         }))
         .mutation(async ({ input }) => {
-          const { id, ...updates } = input;
+          const { id, data, ...flatUpdates } = input;
+          const updates = data || flatUpdates;
           await db.updateProduct(id, updates);
           return { success: true };
         }),
