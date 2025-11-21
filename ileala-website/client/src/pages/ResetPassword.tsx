@@ -17,11 +17,22 @@ export default function ResetPassword() {
   // Get token from URL query params
   // Use window.location.search instead of location from wouter to ensure we get the full query string
   const searchParams = new URLSearchParams(window.location.search);
-  const token = searchParams.get('token') || '';
+  let token = searchParams.get('token') || '';
+  
+  // Decode the token if it was encoded (URLSearchParams.get already decodes, but be safe)
+  if (token) {
+    try {
+      // URLSearchParams.get already decodes, but if there's double encoding, decode again
+      token = decodeURIComponent(token);
+    } catch (e) {
+      // If decoding fails, use as-is
+      console.warn('[ResetPassword] Failed to decode token, using as-is');
+    }
+  }
   
   console.log('[ResetPassword] window.location.search:', window.location.search);
   console.log('[ResetPassword] Token extracted:', token ? `${token.substring(0, 8)}...${token.substring(token.length - 8)}` : 'EMPTY');
-  console.log('[ResetPassword] Token length:', token.length);
+  console.log('[ResetPassword] Token length:', token ? token.length : 0);
 
   const resetPasswordMutation = trpc.auth.resetPassword.useMutation({
     onSuccess: () => {

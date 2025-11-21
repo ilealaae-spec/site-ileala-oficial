@@ -298,11 +298,24 @@ export async function resetPasswordWithTokenRaw(token: string, newPassword: stri
     }
     
     // Find user by token
+    // Decode token in case it was URL encoded
+    let decodedToken = token;
+    try {
+      decodedToken = decodeURIComponent(token);
+    } catch (e) {
+      // If decoding fails, use original token
+      console.warn('[resetPasswordWithTokenRaw] Failed to decode token, using as-is');
+    }
+    
     console.log('[resetPasswordWithTokenRaw] Searching for user with token...');
+    console.log('[resetPasswordWithTokenRaw] Original token preview:', token ? `${token.substring(0, 8)}...${token.substring(token.length - 8)}` : 'EMPTY');
+    console.log('[resetPasswordWithTokenRaw] Decoded token preview:', decodedToken ? `${decodedToken.substring(0, 8)}...${decodedToken.substring(decodedToken.length - 8)}` : 'EMPTY');
     console.log('[resetPasswordWithTokenRaw] Current server time:', new Date().toISOString());
+    
+    // Try both encoded and decoded token (in case of double encoding or no encoding)
     const users = await client`
       SELECT *, "passwordResetExpires", NOW() as current_time FROM users 
-      WHERE "passwordResetToken" = ${token}
+      WHERE "passwordResetToken" = ${decodedToken} OR "passwordResetToken" = ${token}
       LIMIT 1
     `;
     console.log('[resetPasswordWithTokenRaw] Query result count:', users.length);
@@ -312,10 +325,19 @@ export async function resetPasswordWithTokenRaw(token: string, newPassword: stri
       console.log('[resetPasswordWithTokenRaw] User found! ID:', user.id);
       console.log('[resetPasswordWithTokenRaw] Token expires at:', user.passwordResetExpires);
       console.log('[resetPasswordWithTokenRaw] Current DB time:', user.current_time);
-      console.log('[resetPasswordWithTokenRaw] Is expired?', new Date() > new Date(user.passwordResetExpires));
       
       // Check if token is expired
-      if (new Date() > new Date(user.passwordResetExpires)) {
+      if (!user.passwordResetExpires) {
+        console.log('[resetPasswordWithTokenRaw] Token has no expiration date!');
+        return false;
+      }
+      
+      const expirationDate = new Date(user.passwordResetExpires);
+      const isExpired = new Date() > expirationDate;
+      console.log('[resetPasswordWithTokenRaw] Is expired?', isExpired);
+      console.log('[resetPasswordWithTokenRaw] Time until expiration:', expirationDate.getTime() - Date.now(), 'ms');
+      
+      if (isExpired) {
         console.log('[resetPasswordWithTokenRaw] Token is expired!');
         return false;
       }
@@ -323,6 +345,7 @@ export async function resetPasswordWithTokenRaw(token: string, newPassword: stri
 
     if (users.length === 0) {
       console.log('[resetPasswordWithTokenRaw] No user found with token');
+      console.log('[resetPasswordWithTokenRaw] Tried both encoded and decoded versions');
       return false;
     }
 
