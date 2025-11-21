@@ -3,16 +3,7 @@ nixPkgs = ["nodejs_20", "npm"]
 
 [phases.install]
 cmds = [
-  "rm -f package-lock.json || true",
-  "rm -f pnpm-lock.yaml || true",
-  "rm -f ../package-lock.json || true",
-  "rm -f ../../package-lock.json || true",
-  "npm config set package-lock false",
-  "npm config set prefer-offline false",
-  "npm config set ci false",
-  "npm config set fund false",
-  "npm config set audit false",
-  "npm install --no-package-lock --legacy-peer-deps --no-audit --no-fund --prefer-offline=false"
+  "npm install --legacy-peer-deps"
 ]
 
 [phases.build]
@@ -22,4 +13,3 @@ cmds = [
 
 [start]
 cmd = "npx serve -s dist -l $PORT"
-
