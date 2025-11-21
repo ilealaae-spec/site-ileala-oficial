@@ -3,7 +3,6 @@ nixPkgs = ["nodejs_20", "npm"]
 
 [phases.install]
 cmds = [
-  "cd sanity-studio || true",
   "rm -f package-lock.json || true",
   "rm -f ../package-lock.json || true",
   "rm -f ../../package-lock.json || true",
@@ -16,11 +15,8 @@ cmds = [
 ]
 
 [phases.build]
-cmds = [
-  "cd sanity-studio || true",
-  "npm run build"
-]
+cmds = ["npm run build"]
 
 [start]
-cmd = "cd sanity-studio && npx serve -s dist -l $PORT"
+cmd = "npx serve -s dist -l $PORT"
 
