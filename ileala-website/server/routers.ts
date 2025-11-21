@@ -449,22 +449,29 @@ export const appRouter = router({
       }),
     myOrders: protectedProcedure.query(async ({ ctx }) => {
       if (!ctx.user) throw new Error('Not authenticated');
+      
+      console.log('[myOrders] Fetching orders for user:', ctx.user.id, ctx.user.email);
       const orders = await db.getUserOrders(ctx.user.id);
+      console.log('[myOrders] Found orders:', orders.length);
       
       // Incluir itens de cada pedido
       const ordersWithItems = await Promise.all(
         orders.map(async (order) => {
           const items = await db.getOrderItems(order.id);
+          console.log(`[myOrders] Order ${order.id} has ${items.length} items`);
           return { ...order, items };
         })
       );
       
       // Ordenar por data mais recente primeiro
-      return ordersWithItems.sort((a, b) => {
+      const sorted = ordersWithItems.sort((a, b) => {
         const dateA = new Date(a.createdAt).getTime();
         const dateB = new Date(b.createdAt).getTime();
         return dateB - dateA;
       });
+      
+      console.log('[myOrders] Returning', sorted.length, 'orders');
+      return sorted;
     }),
   }),
 
@@ -761,12 +768,22 @@ export const appRouter = router({
           }
           
           console.log('[verifyPayment] Order created successfully:', orderId);
+          console.log('[verifyPayment] Order details:', {
+            orderId,
+            userId: ctx.user.id,
+            userEmail: ctx.user.email,
+            totalAmount,
+            paymentStatus: session.payment_status,
+          });
           
           return {
             paymentStatus: session.payment_status,
             orderId: orderId.toString(),
           };
         }
+        
+        console.log('[verifyPayment] Payment status:', session.payment_status);
+        console.log('[verifyPayment] Session metadata:', session.metadata);
         
         return {
           paymentStatus: session.payment_status,
