@@ -32,13 +32,16 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 }
 
 async function startServer() {
+  console.log("🚀 Starting server...");
+  
   const app = express();
   const server = createServer(app);
+  
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   
-  // Health check endpoint for Railway
+  // Health check endpoint for Railway - MUST be first to respond quickly
   app.get("/health", (_req, res) => {
     res.status(200).json({ 
       status: "ok", 
@@ -47,6 +50,40 @@ async function startServer() {
     });
   });
 
+  // Start listening on port IMMEDIATELY - before any heavy initialization
+  const preferredPort = parseInt(process.env.PORT || "3000");
+  const port = process.env.NODE_ENV === "production" 
+    ? preferredPort 
+    : await findAvailablePort(preferredPort);
+
+  console.log(`📡 Starting server on port ${port}...`);
+  
+  // Start server FIRST, then configure routes
+  await new Promise<void>((resolve, reject) => {
+    server.listen(port, "0.0.0.0", () => {
+      console.log(`✅ Server listening on http://0.0.0.0:${port}/`);
+      console.log(`✅ Health check available at http://0.0.0.0:${port}/health`);
+      console.log(`📦 Environment: ${process.env.NODE_ENV || "development"}`);
+      if (process.env.DATABASE_URL) {
+        console.log(`✅ Database: DATABASE_URL configured`);
+      } else {
+        console.warn(`⚠️  Database: DATABASE_URL not configured`);
+      }
+      resolve();
+    });
+    
+    server.on("error", (error: any) => {
+      console.error("❌ Server error:", error);
+      if (error.code === "EADDRINUSE") {
+        console.error(`Port ${port} is already in use`);
+      }
+      reject(error);
+    });
+  });
+
+  // NOW configure routes and middleware (after server is listening)
+  console.log("🔧 Configuring routes and middleware...");
+  
   // Apply rate limiting to tRPC endpoints
   app.use("/api/trpc", trpcRateLimiterMiddleware);
   
@@ -131,6 +168,7 @@ async function startServer() {
   });
   
   // tRPC API
+  console.log("🔧 Setting up tRPC...");
   app.use(
     "/api/trpc",
     createExpressMiddleware({
@@ -138,45 +176,16 @@ async function startServer() {
       createContext,
     })
   );
+  
   // development mode uses Vite, production mode uses static files
+  console.log("🔧 Setting up static file serving...");
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);
   } else {
     serveStatic(app);
   }
-
-  // Railway uses PORT environment variable, fallback to 3000 for local dev
-  const preferredPort = parseInt(process.env.PORT || "3000");
   
-  // In production (Railway), use the PORT directly
-  // In development, find available port
-  const port = process.env.NODE_ENV === "production" 
-    ? preferredPort 
-    : await findAvailablePort(preferredPort);
-
-  if (port !== preferredPort && process.env.NODE_ENV !== "production") {
-    console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
-  }
-
-  server.listen(port, "0.0.0.0", () => {
-    console.log(`🚀 Server running on http://0.0.0.0:${port}/`);
-    console.log(`📦 Environment: ${process.env.NODE_ENV || "development"}`);
-    if (process.env.DATABASE_URL) {
-      console.log(`✅ Database: DATABASE_URL configured`);
-    } else {
-      console.warn(`⚠️  Database: DATABASE_URL not configured`);
-    }
-    console.log(`✅ Health check available at http://0.0.0.0:${port}/health`);
-  });
-
-  // Handle server errors
-  server.on("error", (error: any) => {
-    console.error("❌ Server error:", error);
-    if (error.code === "EADDRINUSE") {
-      console.error(`Port ${port} is already in use`);
-    }
-    process.exit(1);
-  });
+  console.log("✅ Server fully configured and ready!");
 
   // Handle uncaught errors
   process.on("unhandledRejection", (reason, promise) => {
