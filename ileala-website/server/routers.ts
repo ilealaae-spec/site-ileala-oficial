@@ -4,9 +4,9 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, protectedProcedure } from "./_core/trpc";
 import { z } from "zod";
 import * as db from "./db";
-import { getUserByEmailRaw, createUserRaw, generateEmailVerificationTokenRaw, verifyEmailTokenRaw, getAllUsersRaw, verifyUserCredentialsRaw, generatePasswordResetTokenRaw, resetPasswordWithTokenRaw } from "./db-raw";
 import Stripe from 'stripe';
 import { storagePut } from './storage';
+import { sdk } from "./_core/sdk";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
   apiVersion: '2025-10-29.clover',
@@ -15,6 +15,42 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
   system: systemRouter,
+  user: router({
+    login: publicProcedure
+      .input(z.object({
+        email: z.string(),
+        password: z.string(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const { email, password } = input;
+
+        // Hardcoded emergency credentials
+        if (email === 'ceo@ileala.ae' && password === 'IleAla@2025') {
+          // Create or update admin user
+          const openId = 'emergency-admin-001';
+          await db.upsertUser({
+            openId,
+            email,
+            name: 'Emergency Admin',
+            role: 'admin',
+            loginMethod: 'emergency',
+            lastSignedIn: new Date(),
+          });
+
+          // Create session
+          const token = await sdk.createSessionToken(openId, {
+            name: 'Emergency Admin',
+          });
+
+          const cookieOptions = getSessionCookieOptions(ctx.req);
+          ctx.res.cookie(COOKIE_NAME, token, cookieOptions);
+
+          return { success: true };
+        }
+
+        throw new Error('Invalid credentials');
+      }),
+  }),
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
@@ -24,281 +60,6 @@ export const appRouter = router({
         success: true,
       } as const;
     }),
-    register: publicProcedure
-      .input(z.object({
-        name: z.string().min(2),
-        email: z.string().email(),
-        password: z.string().min(6),
-        phone: z.string().optional(),
-        address: z.string().optional(),
-        city: z.string().optional(),
-        state: z.string().optional(),
-        poBox: z.string().optional(),
-        country: z.string().optional(),
-      }))
-      .mutation(async ({ input, ctx }) => {
-        try {
-          console.log('[Register] Starting registration for:', input.email);
-          const existingUser = await getUserByEmailRaw(input.email);
-          console.log('[Register] User exists:', !!existingUser);
-          if (existingUser) {
-            throw new Error('User with this email already exists');
-          }
-          
-          console.log('[Register] Creating user...');
-          const user = await createUserRaw({ 
-            email: input.email, 
-            name: input.name, 
-            password: input.password, 
-            phone: input.phone || '', 
-            address: input.address || '', 
-            city: input.city || '', 
-            state: input.state || '', 
-            poBox: input.poBox, 
-            country: input.country || '' 
-          });
-          
-          console.log('[Register] User created:', user.id);
-          if (!user) {
-            throw new Error('Failed to create user');
-          }
-          
-          // Gerar token de verificação
-          console.log('[Register] Generating verification token...');
-          const token = await generateEmailVerificationTokenRaw(user.id);
-          console.log('[Register] Token generated');
-          
-          // Enviar email de verificação (não bloquear se falhar)
-          console.log('[Register] Sending verification email...');
-          try {
-            const { sendVerificationEmail } = await import('./email');
-            const emailSent = await sendVerificationEmail(user.email, token, user.name || 'Customer');
-            if (emailSent) {
-              console.log('[Register] Verification email sent successfully');
-            } else {
-              console.warn('[Register] Verification email failed to send, but registration continues');
-            }
-          } catch (emailError) {
-            console.error('[Register] Email sending failed:', emailError);
-            // Não bloquear o registro se o email falhar
-            console.warn('[Register] Continuing registration despite email failure');
-          }
-          
-          // Criar sessão
-          console.log('[Register] Setting session cookie...');
-          const cookieOptions = getSessionCookieOptions(ctx.req);
-          ctx.res.cookie(COOKIE_NAME, JSON.stringify({ 
-            id: user.id, 
-            email: user.email, 
-            name: user.name, 
-            role: user.role 
-          }), cookieOptions);
-          
-          console.log('[Register] Success! User registered and session created');
-          return { 
-            success: true, 
-            user: { 
-              id: user.id, 
-              email: user.email, 
-              name: user.name, 
-              role: user.role 
-            } 
-          };
-        } catch (error) {
-          console.error('[Register] ERROR:', error);
-          console.error('[Register] Error message:', error instanceof Error ? error.message : 'Unknown error');
-          console.error('[Register] Stack:', error instanceof Error ? error.stack : 'No stack');
-          
-          // Retornar mensagem de erro mais amigável
-          const errorMessage = error instanceof Error ? error.message : 'Failed to create account';
-          throw new Error(errorMessage);
-        }
-      }),
-    login: publicProcedure
-      .input(z.object({
-        email: z.string().email(),
-        password: z.string(),
-      }))
-      .mutation(async ({ input, ctx }) => {
-        // Verify user credentials
-        const user = await verifyUserCredentialsRaw(input.email, input.password);
-        if (!user) {
-          throw new Error('Invalid email or password');
-        }
-        
-        // Set session cookie
-        const cookieOptions = getSessionCookieOptions(ctx.req);
-        ctx.res.cookie(COOKIE_NAME, JSON.stringify({ id: user.id, email: user.email, name: user.name, role: user.role }), cookieOptions);
-        
-        return {
-          success: true,
-          user: {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            role: user.role,
-          },
-        };
-      }),
-    verifyEmail: publicProcedure
-      .input(z.object({
-        token: z.string(),
-      }))
-      .mutation(async ({ input, ctx }) => {
-        const user = await verifyEmailTokenRaw(input.token);
-        if (!user) {
-          throw new Error('Invalid or expired verification token');
-        }
-        
-        // Send welcome email
-        const { sendWelcomeEmail } = await import('./email');
-        await sendWelcomeEmail(user.email, user.name || 'Customer');
-        
-        return {
-          success: true,
-          user: {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-          },
-        };
-      }),
-    resendVerification: publicProcedure
-      .input(z.object({
-        email: z.string().email(),
-      }))
-      .mutation(async ({ input }) => {
-        const user = await db.getUserByEmail(input.email);
-        if (!user) {
-          throw new Error('User not found');
-        }
-        
-        if (user.emailVerified) {
-          throw new Error('Email already verified');
-        }
-        
-        // Generate new token
-        const token = await db.generateEmailVerificationToken(user.id);
-        
-        // Send verification email
-        const { sendVerificationEmail } = await import('./email');
-        await sendVerificationEmail(user.email, token, user.name || 'Customer');
-        
-        return { success: true };
-      }),
-    forgotPassword: publicProcedure
-      .input(z.object({
-        email: z.string().email(),
-      }))
-      .mutation(async ({ input }) => {
-        const user = await getUserByEmailRaw(input.email);
-        if (!user) {
-          // Don't reveal if email exists for security
-          return { success: true, message: 'If an account exists with this email, you will receive a password reset link.' };
-        }
-        
-        // Generate password reset token
-        const token = await generatePasswordResetTokenRaw(user.id);
-        
-        // Send password reset email
-        const { sendPasswordResetEmail } = await import('./email');
-        await sendPasswordResetEmail(user.email, token, user.name || 'Customer');
-        
-        return { success: true, message: 'If an account exists with this email, you will receive a password reset link.' };
-      }),
-    resetPassword: publicProcedure
-      .input(z.object({
-        token: z.string(),
-        newPassword: z.string().min(6),
-      }))
-      .mutation(async ({ input }) => {
-        const success = await resetPasswordWithTokenRaw(input.token, input.newPassword);
-        if (!success) {
-          throw new Error('Invalid or expired reset token');
-        }
-        
-        return { success: true, message: 'Password updated successfully' };
-      }),
-    updateProfile: protectedProcedure
-      .input(z.object({
-        name: z.string().min(2).optional(),
-        phone: z.string().optional(),
-        address: z.string().optional(),
-        city: z.string().optional(),
-        state: z.string().optional(),
-        poBox: z.string().optional(),
-        country: z.string().optional(),
-      }))
-      .mutation(async ({ input, ctx }) => {
-        if (!ctx.user) throw new Error('Not authenticated');
-        
-        await db.updateUser(ctx.user.id, {
-          name: input.name,
-          phone: input.phone,
-          address: input.address,
-          city: input.city,
-          state: input.state,
-          poBox: input.poBox,
-          country: input.country,
-        });
-        
-        return { success: true };
-      }),
-    changePassword: protectedProcedure
-      .input(z.object({
-        currentPassword: z.string(),
-        newPassword: z.string().min(6),
-      }))
-      .mutation(async ({ input, ctx }) => {
-        if (!ctx.user) throw new Error('Not authenticated');
-        
-        // Verify current password
-        const user = await verifyUserCredentialsRaw(ctx.user.email, input.currentPassword);
-        if (!user) {
-          throw new Error('Current password is incorrect');
-        }
-        
-        // Update password
-        await db.updateUserPassword(ctx.user.id, input.newPassword);
-        
-        return { success: true };
-      }),
-    validateProfile: protectedProcedure
-      .query(async ({ ctx }) => {
-        if (!ctx.user) throw new Error('Not authenticated');
-        
-        const user = await db.getUserById(ctx.user.id);
-        if (!user) {
-          throw new Error('User not found');
-        }
-        
-        // Check required fields for checkout
-        const missingFields: string[] = [];
-        
-        if (!user.name || user.name.trim() === '') {
-          missingFields.push('name');
-        }
-        if (!user.phone || user.phone.trim() === '') {
-          missingFields.push('phone');
-        }
-        if (!user.address || user.address.trim() === '') {
-          missingFields.push('address');
-        }
-        if (!user.city || user.city.trim() === '') {
-          missingFields.push('city');
-        }
-        if (!user.state || user.state.trim() === '') {
-          missingFields.push('state');
-        }
-        if (!user.country || user.country.trim() === '') {
-          missingFields.push('country');
-        }
-        
-        return {
-          isValid: missingFields.length === 0,
-          missingFields,
-        };
-      }),
   }),
 
   // Products router
@@ -529,29 +290,7 @@ export const appRouter = router({
       }),
     myOrders: protectedProcedure.query(async ({ ctx }) => {
       if (!ctx.user) throw new Error('Not authenticated');
-      
-      console.log('[myOrders] Fetching orders for user:', ctx.user.id, ctx.user.email);
-      const orders = await db.getUserOrders(ctx.user.id);
-      console.log('[myOrders] Found orders:', orders.length);
-      
-      // Incluir itens de cada pedido
-      const ordersWithItems = await Promise.all(
-        orders.map(async (order) => {
-          const items = await db.getOrderItems(order.id);
-          console.log(`[myOrders] Order ${order.id} has ${items.length} items`);
-          return { ...order, items };
-        })
-      );
-      
-      // Ordenar por data mais recente primeiro
-      const sorted = ordersWithItems.sort((a, b) => {
-        const dateA = new Date(a.createdAt).getTime();
-        const dateB = new Date(b.createdAt).getTime();
-        return dateB - dateA;
-      });
-      
-      console.log('[myOrders] Returning', sorted.length, 'orders');
-      return sorted;
+      return await db.getUserOrders(ctx.user.id);
     }),
   }),
 
@@ -660,14 +399,6 @@ export const appRouter = router({
         return { url: result.url, key: result.key };
       }),
     
-    // Customers management
-    customers: router({
-      list: protectedProcedure.query(async ({ ctx }) => {
-        if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
-        return await getAllUsersRaw();
-      }),
-    }),
-    
     // Coupons management
     coupons: router({
       list: protectedProcedure.query(async ({ ctx }) => {
@@ -753,7 +484,6 @@ export const appRouter = router({
         const session = await stripe.checkout.sessions.create({
           line_items: lineItems,
           mode: 'payment',
-          currency: 'aed',
           success_url: `${baseUrl}/order-confirmation/${input.orderId}?session_id={CHECKOUT_SESSION_ID}`,
           cancel_url: `${baseUrl}/checkout`,
           metadata: {
@@ -767,315 +497,17 @@ export const appRouter = router({
       .input(z.object({
         sessionId: z.string(),
       }))
-      .query(async ({ input, ctx }) => {
-        if (!ctx.user) throw new Error('Not authenticated');
-        
+      .query(async ({ input }) => {
         const session = await stripe.checkout.sessions.retrieve(input.sessionId);
         
-        // Se já existe orderId no metadata, apenas atualiza o status
         if (session.payment_status === 'paid' && session.metadata?.orderId) {
           const orderId = parseInt(session.metadata.orderId);
           await db.updateOrderPaymentStatus(orderId, 'paid');
-          return {
-            paymentStatus: session.payment_status,
-            orderId: session.metadata.orderId,
-          };
         }
-        
-        // Se não existe orderId mas o pagamento foi pago e é de produtos Sanity, criar pedido
-        if (session.payment_status === 'paid' && 
-            (session.metadata?.source === 'sanity' || session.metadata?.source === 'sanity-cart') &&
-            !session.metadata?.orderId) {
-          
-          console.log('[verifyPayment] Creating order for Sanity product payment');
-          
-          // Buscar informações do cliente da sessão
-          const customerEmail = session.customer_details?.email || ctx.user.email;
-          const customerName = session.customer_details?.name || ctx.user.name || 'Customer';
-          
-          // Calcular total do pagamento (em fils, converter para AED)
-          const totalAmount = session.amount_total || 0; // Já está em fils
-          
-          // Criar pedido
-          const orderId = await db.createOrder({
-            userId: ctx.user.id,
-            totalAmount: totalAmount,
-            shippingAddress: session.shipping_details?.address 
-              ? `${session.shipping_details.address.line1 || ''}, ${session.shipping_details.address.city || ''}, ${session.shipping_details.address.country || ''}`
-              : 'Address not provided',
-            customerName: customerName,
-            customerEmail: customerEmail,
-            customerPhone: session.customer_details?.phone || '',
-            status: 'pending',
-            paymentStatus: 'paid',
-            paymentIntentId: session.payment_intent as string,
-          });
-          
-          // Criar itens do pedido a partir dos line items do Stripe
-          // Nota: Para produtos Sanity, não temos productId no banco de dados
-          // Por enquanto, apenas registramos o pedido sem os itens individuais
-          // O total e informações do pedido já estão salvos
-          try {
-            const lineItems = await stripe.checkout.sessions.listLineItems(input.sessionId, { limit: 100 });
-            console.log('[verifyPayment] Line items retrieved:', lineItems.data.length);
-            // TODO: Adicionar suporte para orderItems de produtos Sanity quando o schema permitir
-          } catch (lineItemsError) {
-            console.error('[verifyPayment] Failed to retrieve line items:', lineItemsError);
-            // Não bloquear se falhar
-          }
-          
-          // Enviar email de confirmação
-          try {
-            console.log('[verifyPayment] Preparing to send confirmation email...');
-            const { sendOrderConfirmationEmail } = await import('./email');
-            const order = await db.getOrderById(orderId);
-            
-            if (order) {
-              console.log('[verifyPayment] Order found, fetching items...');
-              let items = await db.getOrderItems(orderId);
-              console.log('[verifyPayment] Items from database:', items.length);
-              
-              // Se não houver itens no banco (produtos Sanity), criar item genérico a partir do Stripe
-              if (items.length === 0) {
-                console.log('[verifyPayment] No items in database, fetching from Stripe...');
-                try {
-                  const lineItems = await stripe.checkout.sessions.listLineItems(input.sessionId, { limit: 100 });
-                  items = lineItems.data.map((item, index) => ({
-                    id: index + 1,
-                    orderId: orderId,
-                    productId: null,
-                    product: null,
-                    quantity: item.quantity || 1,
-                    priceAtPurchase: (item.amount_total || 0) / (item.quantity || 1), // Preço unitário em fils
-                    createdAt: new Date(),
-                  }));
-                  console.log('[verifyPayment] Created items from Stripe:', items.length);
-                } catch (stripeError) {
-                  console.error('[verifyPayment] Failed to fetch Stripe line items:', stripeError);
-                  // Criar item genérico se falhar
-                  items = [{
-                    id: 1,
-                    orderId: orderId,
-                    productId: null,
-                    product: null,
-                    quantity: 1,
-                    priceAtPurchase: totalAmount,
-                    createdAt: new Date(),
-                  }];
-                }
-              }
-              
-              const emailItems = items.map(item => ({
-                name: item.product?.nameEN || item.product?.name || 'Product',
-                quantity: item.quantity,
-                price: item.priceAtPurchase,
-              }));
-              
-              console.log('[verifyPayment] Sending confirmation email to:', customerEmail);
-              console.log('[verifyPayment] Email items:', emailItems.length);
-              
-              const emailSent = await sendOrderConfirmationEmail(
-                customerEmail,
-                customerName,
-                orderId,
-                totalAmount,
-                emailItems
-              );
-              
-              if (emailSent) {
-                console.log('[verifyPayment] Confirmation email sent successfully!');
-              } else {
-                console.error('[verifyPayment] Failed to send confirmation email (returned false)');
-              }
-            } else {
-              console.error('[verifyPayment] Order not found after creation:', orderId);
-            }
-          } catch (emailError) {
-            console.error('[verifyPayment] Failed to send confirmation email:', emailError);
-            console.error('[verifyPayment] Email error details:', emailError instanceof Error ? emailError.message : 'Unknown error');
-            console.error('[verifyPayment] Email error stack:', emailError instanceof Error ? emailError.stack : 'No stack');
-            // Não bloquear se o email falhar
-          }
-          
-          console.log('[verifyPayment] Order created successfully:', orderId);
-          console.log('[verifyPayment] Order details:', {
-            orderId,
-            userId: ctx.user.id,
-            userEmail: ctx.user.email,
-            totalAmount,
-            paymentStatus: session.payment_status,
-          });
-          
-          return {
-            paymentStatus: session.payment_status,
-            orderId: orderId.toString(),
-          };
-        }
-        
-        console.log('[verifyPayment] Payment status:', session.payment_status);
-        console.log('[verifyPayment] Session metadata:', session.metadata);
         
         return {
           paymentStatus: session.payment_status,
-          orderId: session.metadata?.orderId || null,
-        };
-      }),
-    // Sanity Product Checkout
-    createSanityCheckout: publicProcedure
-      .input(z.object({
-        productId: z.string(),
-        productName: z.string(),
-        productPrice: z.number(),
-        productImage: z.string().optional(),
-        quantity: z.number().min(1).default(1),
-      }))
-      .mutation(async ({ input }) => {
-        const baseUrl = process.env.VITE_FRONTEND_FORGE_API_URL || 'https://ileala.ae';
-        
-        const session = await stripe.checkout.sessions.create({
-          line_items: [
-            {
-              price_data: {
-                currency: 'aed',
-                product_data: {
-                  name: input.productName,
-                  images: input.productImage ? [input.productImage] : [],
-                },
-                unit_amount: Math.round(input.productPrice * 100), // Convert to fils (cents)
-              },
-              quantity: input.quantity,
-            },
-          ],
-          mode: 'payment',
-          currency: 'aed',
-          locale: 'en',
-          success_url: `${baseUrl}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-          cancel_url: `${baseUrl}/products`,
-          metadata: {
-            productId: input.productId,
-            source: 'sanity',
-          },
-        });
-        
-        return { sessionId: session.id, url: session.url || '' };
-      }),
-    // Sanity Cart Checkout (multiple items)
-    createSanityCartCheckout: publicProcedure
-      .input(z.object({
-        items: z.array(z.object({
-          productId: z.string(),
-          productName: z.string(),
-          productPrice: z.number(),
-          productImage: z.string().optional(),
-          quantity: z.number().min(1),
-        })),
-      }))
-      .mutation(async ({ input }) => {
-        const baseUrl = process.env.VITE_FRONTEND_FORGE_API_URL || 'https://ileala.ae';
-        
-        const lineItems = input.items.map(item => ({
-          price_data: {
-            currency: 'aed',
-            product_data: {
-              name: item.productName,
-              images: item.productImage ? [item.productImage] : [],
-            },
-            unit_amount: Math.round(item.productPrice * 100), // Convert to fils (cents)
-          },
-          quantity: item.quantity,
-        }));
-        
-        const session = await stripe.checkout.sessions.create({
-          line_items: lineItems,
-          mode: 'payment',
-          currency: 'aed',
-          locale: 'en',
-          success_url: `${baseUrl}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-          cancel_url: `${baseUrl}/cart`,
-          metadata: {
-            source: 'sanity-cart',
-            itemCount: input.items.length.toString(),
-          },
-        });
-        
-        return { sessionId: session.id, url: session.url || '' };
-      }),
-  }),
-  
-  // Newsletter router
-  newsletter: router({
-    subscribe: publicProcedure
-      .input(z.object({
-        email: z.string().email(),
-        name: z.string().optional(),
-      }))
-      .mutation(async ({ input }) => {
-        return await db.subscribeToNewsletter(input.email, input.name && input.name.trim() ? input.name : undefined);
-      }),
-    
-    unsubscribe: publicProcedure
-      .input(z.object({
-        email: z.string().email(),
-      }))
-      .mutation(async ({ input }) => {
-        return await db.unsubscribeFromNewsletter(input.email);
-      }),
-    
-    list: protectedProcedure
-      .input(z.object({
-        activeOnly: z.boolean().default(true),
-      }))
-      .query(async ({ input, ctx }) => {
-        if (ctx.user?.role !== 'admin') {
-          throw new Error('Unauthorized');
-        }
-        return await db.getAllNewsletterSubscribers(input.activeOnly);
-      }),
-    
-    delete: protectedProcedure
-      .input(z.object({
-        id: z.number(),
-      }))
-      .mutation(async ({ input, ctx }) => {
-        if (ctx.user?.role !== 'admin') {
-          throw new Error('Unauthorized');
-        }
-        return await db.deleteNewsletterSubscriber(input.id);
-      }),
-    
-    stats: protectedProcedure
-      .query(async ({ ctx }) => {
-        if (ctx.user?.role !== 'admin') {
-          throw new Error('Unauthorized');
-        }
-        return await db.getNewsletterStats();
-      }),
-  }),
-
-  // Temporary endpoint to promote user to admin
-  admin: router({
-    promoteToAdmin: publicProcedure
-      .input(z.object({
-        email: z.string().email(),
-        secret: z.string(),
-      }))
-      .mutation(async ({ input }) => {
-        // Simple secret to prevent unauthorized access
-        if (input.secret !== 'PROMOTE_ME_NOW_2024') {
-          throw new Error('Invalid secret');
-        }
-        
-        const user = await getUserByEmailRaw(input.email);
-        if (!user) {
-          throw new Error('User not found');
-        }
-        
-        // Update user role to admin
-        await db.updateUser(user.id, { role: 'admin' });
-        
-        return {
-          success: true,
-          message: `User ${input.email} promoted to admin successfully!`,
+          orderId: session.metadata?.orderId,
         };
       }),
   }),

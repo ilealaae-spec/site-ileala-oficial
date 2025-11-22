@@ -6,7 +6,6 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { LanguageProvider } from "./contexts/LanguageContext";
-import { CartProvider } from "./contexts/CartContext";
 import Home from "./pages/Home";
 import Shop from "./pages/Shop";
 import ProductDetail from "./pages/ProductDetail";
@@ -14,9 +13,6 @@ import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
 import OrderConfirmation from "./pages/OrderConfirmation";
 import Admin from "./pages/Admin";
-import AdminEmergency from "./pages/AdminEmergency";
-import AdminEmergencyLogin from "./pages/AdminEmergencyLogin";
-import PromoteAdmin from "./pages/PromoteAdmin";
 import About from "./pages/About";
 import Collections from "./pages/Collections";
 import CollectionPage from "./pages/CollectionPage";
@@ -32,21 +28,10 @@ import Shipping from "./pages/Shipping";
 import Returns from "./pages/Returns";
 import ProductCare from "./pages/ProductCare";
 import FindRetailer from "./pages/FindRetailer";
-import SanityProducts from "./pages/SanityProducts";
-import SanityProductDetail from "./pages/SanityProductDetail";
-import SanityCart from "./pages/SanityCart";
-import PaymentSuccess from "./pages/PaymentSuccess";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import Profile from "./pages/Profile";
-import Orders from "./pages/Orders";
-import VerifyEmail from "./pages/VerifyEmail";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
 import AdminProducts from "./pages/admin/Products";
 import AdminOrders from "./pages/admin/Orders";
 import AdminCoupons from "./pages/admin/Coupons";
-import AdminCustomers from "./pages/admin/Customers";
+import AdminEmergencyLogin from "./pages/AdminEmergencyLogin";
 import AdminLayout from "./components/AdminLayout";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
@@ -62,25 +47,12 @@ function Router() {
           <Route path={"/"} component={Home} />
           <Route path="/shop" component={Shop} />
           <Route path="/shop/:slug" component={ProductDetail} />
-          <Route path="/products" component={SanityProducts} />
-          <Route path="/products/:slug" component={SanityProductDetail} />
-          <Route path="/sanity-products/:slug" component={SanityProductDetail} />
-          <Route path="/payment-success" component={PaymentSuccess} />
           <Route path="/product/:id" component={ProductDetail} />
-          <Route path="/cart" component={SanityCart} />
+          <Route path="/cart" component={Cart} />
           <Route path="/checkout" component={Checkout} />
-          <Route path="/login" component={Login} />
-          <Route path="/register" component={Register} />
-          <Route path="/profile" component={Profile} />
-          <Route path="/orders" component={Orders} />
-          <Route path="/verify-email" component={VerifyEmail} />
-          <Route path="/forgot-password" component={ForgotPassword} />
-          <Route path="/reset-password" component={ResetPassword} />
           <Route path="/order-confirmation/:id" component={OrderConfirmation} />
-          <Route path="/promote-admin" component={PromoteAdmin} />
-          <Route path="/admin" component={Admin} />
-                    <Route path="/admin-emergency" component={AdminEmergency} />
           <Route path="/admin-emergency-login" component={AdminEmergencyLogin} />
+          <Route path="/admin" component={Admin} />
           <Route path="/admin/products">
             <AdminLayout>
               <AdminProducts />
@@ -94,11 +66,6 @@ function Router() {
           <Route path="/admin/coupons">
             <AdminLayout>
               <AdminCoupons />
-            </AdminLayout>
-          </Route>
-          <Route path="/admin/customers">
-            <AdminLayout>
-              <AdminCustomers />
             </AdminLayout>
           </Route>
           <Route path="/about" component={About} />
@@ -136,16 +103,14 @@ function App() {
     <ErrorBoundary>
       <ThemeProvider
         defaultTheme="light"
-        // switchable
+      // switchable
       >
         <SchemaOrg />
         <LanguageProvider>
-          <CartProvider>
-            <TooltipProvider>
-              <Toaster />
-              <Router />
-            </TooltipProvider>
-          </CartProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Router />
+          </TooltipProvider>
         </LanguageProvider>
       </ThemeProvider>
     </ErrorBoundary>
