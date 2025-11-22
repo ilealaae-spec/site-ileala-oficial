@@ -6,6 +6,7 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { LanguageProvider } from "./contexts/LanguageContext";
+import { CartProvider } from "./contexts/CartContext";
 import Home from "./pages/Home";
 import Shop from "./pages/Shop";
 import ProductDetail from "./pages/ProductDetail";
@@ -13,6 +14,8 @@ import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
 import OrderConfirmation from "./pages/OrderConfirmation";
 import Admin from "./pages/Admin";
+import AdminEmergency from "./pages/AdminEmergency";
+import PromoteAdmin from "./pages/PromoteAdmin";
 import About from "./pages/About";
 import Collections from "./pages/Collections";
 import CollectionPage from "./pages/CollectionPage";
@@ -51,7 +54,9 @@ function Router() {
           <Route path="/cart" component={Cart} />
           <Route path="/checkout" component={Checkout} />
           <Route path="/order-confirmation/:id" component={OrderConfirmation} />
+          <Route path="/promote-admin" component={PromoteAdmin} />
           <Route path="/admin-emergency-login" component={AdminEmergencyLogin} />
+          <Route path="/admin-emergency" component={AdminEmergency} />
           <Route path="/admin" component={Admin} />
           <Route path="/admin/products">
             <AdminLayout>
@@ -107,10 +112,12 @@ function App() {
       >
         <SchemaOrg />
         <LanguageProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Router />
-          </TooltipProvider>
+          <CartProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Router />
+            </TooltipProvider>
+          </CartProvider>
         </LanguageProvider>
       </ThemeProvider>
     </ErrorBoundary>
