@@ -103,12 +103,8 @@ export default function ProductDetail() {
 
     return () => {
       const existingScript = document.getElementById('product-schema');
-      if (existingScript && existingScript.parentNode === document.head) {
-        try {
-          document.head.removeChild(existingScript);
-        } catch (error) {
-          console.warn('[ProductDetail] Could not remove schema script:', error);
-        }
+      if (existingScript) {
+        document.head.removeChild(existingScript);
       }
     };
   }, [product, language]);

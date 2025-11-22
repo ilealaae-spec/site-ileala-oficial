@@ -10,7 +10,7 @@ export default function UsersTab() {
   const { language } = useLanguage();
   const [searchTerm, setSearchTerm] = useState('');
 
-  const { data: users, isLoading } = trpc.admin.customers.list.useQuery();
+  const { data: users, isLoading } = trpc.users.list.useQuery();
 
   const filteredUsers = users?.filter(user =>
     user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||

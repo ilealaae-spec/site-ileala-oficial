@@ -1,13 +1,11 @@
-# robots.txt for ILE ALA
-# Preferred domain: https://www.ileala.ae
-
+# Allow all crawlers
 User-agent: *
 Allow: /
 
-# Sitemap location
-Sitemap: https://www.ileala.ae/sitemap.xml
+# Disallow admin and cart pages
+Disallow: /admin
+Disallow: /cart
+Disallow: /checkout
 
-# Disallow admin and API endpoints
-Disallow: /admin/
-Disallow: /api/
-Disallow: /studio/
+# Sitemap location
+Sitemap: https://ileala.ae/sitemap.xml

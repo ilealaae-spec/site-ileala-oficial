@@ -298,42 +298,11 @@ export async function resetPasswordWithTokenRaw(token: string, newPassword: stri
     }
     
     // Find user by token
-    // Decode token in case it was URL encoded (email clients may encode URLs)
-    let decodedToken = token;
-    try {
-      // Try decoding - URLSearchParams.get already decodes once, but email clients may encode
-      decodedToken = decodeURIComponent(token);
-      // If it was double-encoded, decode again
-      if (decodedToken !== token) {
-        try {
-          decodedToken = decodeURIComponent(decodedToken);
-        } catch (e2) {
-          // Already decoded, use as-is
-        }
-      }
-    } catch (e) {
-      // If decoding fails, use original token
-      console.warn('[resetPasswordWithTokenRaw] Failed to decode token, using as-is');
-      decodedToken = token;
-    }
-    
-    // Clean token (remove any whitespace)
-    const cleanToken = token.trim();
-    const cleanDecodedToken = decodedToken.trim();
-    
     console.log('[resetPasswordWithTokenRaw] Searching for user with token...');
-    console.log('[resetPasswordWithTokenRaw] Original token length:', token ? token.length : 0);
-    console.log('[resetPasswordWithTokenRaw] Decoded token length:', decodedToken ? decodedToken.length : 0);
     console.log('[resetPasswordWithTokenRaw] Current server time:', new Date().toISOString());
-    
-    // Try both encoded and decoded token (in case of double encoding or no encoding)
-    // Also try trimmed versions
     const users = await client`
       SELECT *, "passwordResetExpires", NOW() as current_time FROM users 
-      WHERE "passwordResetToken" = ${cleanDecodedToken} 
-         OR "passwordResetToken" = ${cleanToken}
-         OR "passwordResetToken" = ${decodedToken}
-         OR "passwordResetToken" = ${token}
+      WHERE "passwordResetToken" = ${token}
       LIMIT 1
     `;
     console.log('[resetPasswordWithTokenRaw] Query result count:', users.length);
@@ -343,19 +312,10 @@ export async function resetPasswordWithTokenRaw(token: string, newPassword: stri
       console.log('[resetPasswordWithTokenRaw] User found! ID:', user.id);
       console.log('[resetPasswordWithTokenRaw] Token expires at:', user.passwordResetExpires);
       console.log('[resetPasswordWithTokenRaw] Current DB time:', user.current_time);
+      console.log('[resetPasswordWithTokenRaw] Is expired?', new Date() > new Date(user.passwordResetExpires));
       
       // Check if token is expired
-      if (!user.passwordResetExpires) {
-        console.log('[resetPasswordWithTokenRaw] Token has no expiration date!');
-        return false;
-      }
-      
-      const expirationDate = new Date(user.passwordResetExpires);
-      const isExpired = new Date() > expirationDate;
-      console.log('[resetPasswordWithTokenRaw] Is expired?', isExpired);
-      console.log('[resetPasswordWithTokenRaw] Time until expiration:', expirationDate.getTime() - Date.now(), 'ms');
-      
-      if (isExpired) {
+      if (new Date() > new Date(user.passwordResetExpires)) {
         console.log('[resetPasswordWithTokenRaw] Token is expired!');
         return false;
       }
@@ -363,7 +323,6 @@ export async function resetPasswordWithTokenRaw(token: string, newPassword: stri
 
     if (users.length === 0) {
       console.log('[resetPasswordWithTokenRaw] No user found with token');
-      console.log('[resetPasswordWithTokenRaw] Tried both encoded and decoded versions');
       return false;
     }
 
