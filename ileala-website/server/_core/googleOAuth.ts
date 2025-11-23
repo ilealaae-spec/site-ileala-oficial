@@ -5,6 +5,7 @@ import { getSessionCookieOptions } from './cookies';
 import { COOKIE_NAME, ONE_YEAR_MS } from '@shared/const';
 import { ENV } from './env';
 import bcrypt from 'bcryptjs';
+import { logger } from './logger';
 
 interface GoogleTokenResponse {
   access_token: string;
@@ -77,7 +78,7 @@ export function registerGoogleOAuthRoutes(app: Express) {
     const error = req.query.error as string | undefined;
 
     if (error) {
-      console.error('[Google OAuth] Error:', error);
+      logger.error('[Google OAuth] Error:', error);
       return res.redirect(`/login?error=${encodeURIComponent(error)}`);
     }
 
@@ -86,11 +87,11 @@ export function registerGoogleOAuthRoutes(app: Express) {
     }
 
     try {
-      console.log('[Google OAuth] Exchanging code for token...');
+      logger.debug('[Google OAuth] Exchanging code for token...');
       // Exchange code for token
       const tokenResponse = await exchangeCodeForToken(code);
       
-      console.log('[Google OAuth] Getting user info...');
+      logger.debug('[Google OAuth] Getting user info...');
       // Get user info
       const userInfo = await getUserInfo(tokenResponse.access_token);
 
@@ -98,7 +99,7 @@ export function registerGoogleOAuthRoutes(app: Express) {
         return res.status(400).json({ error: 'Email not verified by Google' });
       }
 
-      console.log('[Google OAuth] User info:', { email: userInfo.email, name: userInfo.name });
+      logger.debug('[Google OAuth] User info:', { email: userInfo.email, name: userInfo.name ? 'provided' : 'not provided' });
 
       // Create or update user in database
       const openId = `google:${userInfo.id}`;
@@ -115,7 +116,7 @@ export function registerGoogleOAuthRoutes(app: Express) {
           loginMethod: 'google',
           lastSignedIn: new Date(),
         });
-        console.log('[Google OAuth] User updated:', existingUser.id);
+        logger.info('[Google OAuth] User updated:', existingUser.id);
       } else {
         // Create new user
         await db.upsertUser({
@@ -125,7 +126,7 @@ export function registerGoogleOAuthRoutes(app: Express) {
           loginMethod: 'google',
           lastSignedIn: new Date(),
         });
-        console.log('[Google OAuth] New user created');
+        logger.info('[Google OAuth] New user created');
       }
 
       // Get user from database to create session
@@ -154,11 +155,9 @@ export function registerGoogleOAuthRoutes(app: Express) {
         maxAge: ONE_YEAR_MS,
       });
 
-      console.log('[Google OAuth] Session created, cookie set:', {
-        hasCookie: !!cookieValue,
+      logger.info('[Google OAuth] Session created', {
         userId: sessionData.id,
         email: sessionData.email,
-        cookieOptions: cookieOptions,
       });
 
       // Redirect to original destination or home
@@ -169,7 +168,7 @@ export function registerGoogleOAuthRoutes(app: Express) {
       // Use 303 See Other to ensure cookie is sent with redirect
       res.redirect(303, `${redirectTo}${separator}oauth_success=1`);
     } catch (error) {
-      console.error('[Google OAuth] Callback failed:', error);
+      logger.error('[Google OAuth] Callback failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'OAuth callback failed';
       return res.redirect(`/login?error=${encodeURIComponent(errorMessage)}`);
     }
@@ -193,7 +192,7 @@ export function registerGoogleOAuthRoutes(app: Express) {
       const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
       res.redirect(302, authUrl);
     } catch (error) {
-      console.error('[Google OAuth] Failed to generate auth URL:', error);
+      logger.error('[Google OAuth] Failed to generate auth URL:', error);
       res.status(500).json({ error: 'Failed to initiate OAuth' });
     }
   });
