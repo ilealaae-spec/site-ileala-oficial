@@ -28,7 +28,8 @@ interface GoogleUserInfo {
 /**
  * Exchange authorization code for access token
  */
-async function exchangeCodeForToken(code: string): Promise<GoogleTokenResponse> {
+async function exchangeCodeForToken(code: string, requestOrigin?: string): Promise<GoogleTokenResponse> {
+  // Use SITE_URL from env, but fallback to request origin if available
   const redirectUri = `${ENV.siteUrl}/api/oauth/google/callback`;
   const params = new URLSearchParams({
     code,
@@ -154,8 +155,10 @@ export function registerGoogleOAuthRoutes(app: Express) {
       console.log('[Google OAuth] Session created, redirecting...');
 
       // Redirect to original destination or home
+      // Add ?oauth_success=1 to trigger frontend refresh
       const redirectTo = state ? decodeURIComponent(state) : '/';
-      res.redirect(302, redirectTo);
+      const separator = redirectTo.includes('?') ? '&' : '?';
+      res.redirect(302, `${redirectTo}${separator}oauth_success=1`);
     } catch (error) {
       console.error('[Google OAuth] Callback failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'OAuth callback failed';

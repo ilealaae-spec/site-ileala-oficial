@@ -132,15 +132,19 @@ function App() {
 
   // Invalidate auth.me query after Google OAuth redirect
   useEffect(() => {
-    // Check if we're coming from Google OAuth callback
     const urlParams = new URLSearchParams(window.location.search);
-    const isOAuthCallback = window.location.pathname === '/' && 
-      (urlParams.has('code') || urlParams.has('state') || urlParams.has('error'));
     
-    // Also check if we just logged in (cookie might have been set)
-    if (isOAuthCallback || document.cookie.includes('__session')) {
+    // Check if we're coming from Google OAuth success redirect
+    if (urlParams.has('oauth_success')) {
+      // Remove the parameter from URL
+      urlParams.delete('oauth_success');
+      const newUrl = window.location.pathname + (urlParams.toString() ? `?${urlParams.toString()}` : '');
+      window.history.replaceState({}, '', newUrl);
+      
       // Invalidate auth query to refresh user data
-      utils.auth.me.invalidate();
+      setTimeout(() => {
+        utils.auth.me.invalidate();
+      }, 100);
     }
   }, [utils]);
 
