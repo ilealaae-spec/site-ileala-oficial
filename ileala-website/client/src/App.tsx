@@ -13,6 +13,8 @@ import Footer from "./components/Footer";
 import SchemaOrg from "./components/SchemaOrg";
 import { Loader2 } from "lucide-react";
 import { useServiceWorker } from "./hooks/useServiceWorker";
+import { errorTracker } from "./lib/errorTracking";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 // Lazy load pages for code splitting
 const Home = lazy(() => import("./pages/Home"));
@@ -55,6 +57,7 @@ const Returns = lazy(() => import("./pages/Returns"));
 const ProductCare = lazy(() => import("./pages/ProductCare"));
 const FindRetailer = lazy(() => import("./pages/FindRetailer"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const Offline = lazy(() => import("./pages/Offline"));
 
 // Loading component
 function PageLoader() {
@@ -135,6 +138,7 @@ function Router() {
             <Route path={"/product-care"} component={ProductCare} />
             <Route path={"/find-retailer"} component={FindRetailer} />
             <Route path={"/404"} component={NotFound} />
+            <Route path={"/offline"} component={Offline} />
             {/* Final fallback route */}
             <Route component={NotFound} />
           </Switch>
@@ -152,9 +156,19 @@ function Router() {
 
 function App() {
   const utils = trpc.useUtils();
+  const { user } = useAuth();
   
   // Register Service Worker for PWA
   useServiceWorker();
+
+  // Set user context for error tracking
+  useEffect(() => {
+    if (user) {
+      errorTracker.setUser(user.id, user.email);
+    } else {
+      errorTracker.clearUser();
+    }
+  }, [user]);
 
   // Invalidate auth.me query after Google OAuth redirect
   useEffect(() => {

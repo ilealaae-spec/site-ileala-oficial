@@ -3,6 +3,7 @@ import { AlertTriangle, RotateCcw, Home } from "lucide-react";
 import { Component, ReactNode } from "react";
 import React from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { errorTracker } from "@/lib/errorTracking";
 
 interface Props {
   children: ReactNode;
@@ -26,27 +27,12 @@ class ErrorBoundaryClass extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    // Log error to console in development
-    if (process.env.NODE_ENV === 'development') {
-      console.error('ErrorBoundary caught an error:', error, errorInfo);
-    }
-    
-    // In production, you could send this to an error tracking service
-    // Example: Sentry.captureException(error, { contexts: { react: errorInfo } });
-    
-    // Log error details for debugging
-    const errorDetails = {
-      message: error.message,
-      stack: error.stack,
+    // Track error with error tracking service
+    errorTracker.captureException(error, {
       componentStack: errorInfo.componentStack,
-      timestamp: new Date().toISOString(),
-    };
-    
-    // In production, send to error tracking service
-    if (process.env.NODE_ENV === 'production') {
-      // You can send to error tracking service here
-      // Example: fetch('/api/errors', { method: 'POST', body: JSON.stringify(errorDetails) });
-    }
+      type: 'react-error-boundary',
+      path: typeof window !== 'undefined' ? window.location.pathname : undefined,
+    });
     
     this.setState({ errorInfo });
   }
