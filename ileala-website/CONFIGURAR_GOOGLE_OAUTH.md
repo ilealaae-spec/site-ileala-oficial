@@ -5,12 +5,13 @@
 Para o Google OAuth funcionar, você precisa configurar as seguintes variáveis de ambiente no Railway:
 
 ### Frontend (VITE_*)
-- **`VITE_GOOGLE_CLIENT_ID`**: O Client ID do Google OAuth (mesmo valor do backend)
+- **`VITE_GOOGLE_CLIENT_ID`**: O Client ID do Google OAuth (mesmo valor de `GOOGLE_CLIENT_ID`)
+  - ⚠️ **IMPORTANTE**: Esta variável está faltando! Adicione ela agora.
 
-### Backend
-- **`GOOGLE_CLIENT_ID`**: O Client ID do Google OAuth
-- **`GOOGLE_CLIENT_SECRET`**: O Client Secret do Google OAuth
-- **`SITE_URL`**: `https://www.ileala.ae` (já deve estar configurado)
+### Backend (já configuradas ✅)
+- **`GOOGLE_CLIENT_ID`**: O Client ID do Google OAuth ✅ (já configurado)
+- **`GOOGLE_CLIENT_SECRET`**: O Client Secret do Google OAuth ✅ (já configurado)
+- **`SITE_URL`**: `https://www.ileala.ae` (verificar se está configurado)
 
 ## Como Obter as Credenciais do Google
 
@@ -32,12 +33,16 @@ Para o Google OAuth funcionar, você precisa configurar as seguintes variáveis 
 ## Configurar no Railway
 
 1. Acesse o serviço `ileala-website` no Railway
-2. Vá em **Settings** → **Variables**
-3. Adicione as variáveis:
-   - `VITE_GOOGLE_CLIENT_ID` = (seu Client ID)
-   - `GOOGLE_CLIENT_ID` = (seu Client ID - mesmo valor)
-   - `GOOGLE_CLIENT_SECRET` = (seu Client Secret)
-4. Faça um redeploy
+2. Vá em **Settings** → **Variables** (ou **Architecture** → **Variables**)
+3. **Adicione a variável faltante:**
+   - Clique em **"+ New Variable"** ou **"+ Add Variable"**
+   - Nome: `VITE_GOOGLE_CLIENT_ID`
+   - Valor: Copie o mesmo valor de `GOOGLE_CLIENT_ID` (que já está configurado)
+     - Exemplo: `255111586030-mhha1srv0bpcj01njcmt6ioukiqql6m0.apps.googleusercontent.com`
+   - Clique em **"Add"** ou **"Save"**
+4. **Verifique se `SITE_URL` está configurado:**
+   - Deve ser: `https://www.ileala.ae`
+5. Faça um redeploy (ou aguarde o deploy atual terminar)
 
 ## Verificação
 
