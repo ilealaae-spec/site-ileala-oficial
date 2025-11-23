@@ -182,6 +182,16 @@ export const appRouter = router({
       }))
       .mutation(async ({ input }) => {
         await db.subscribeToNewsletter(input.email, input.name);
+        
+        // Send confirmation email
+        try {
+          const { sendNewsletterConfirmationEmail } = await import('./email');
+          await sendNewsletterConfirmationEmail(input.email, input.name);
+        } catch (error) {
+          console.error('[Newsletter] Failed to send confirmation email:', error);
+          // Don't fail the subscription if email fails
+        }
+        
         return { success: true };
       }),
     list: protectedProcedure

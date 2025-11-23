@@ -288,6 +288,91 @@ export async function sendOrderConfirmationEmail(
 }
 
 
+export async function sendNewsletterConfirmationEmail(email: string, name?: string) {
+  const siteUrl = getSiteUrl();
+  const displayName = name || 'there';
+  
+  console.log(`[Email] Attempting to send newsletter confirmation email to ${email}`);
+  console.log(`[Email] FROM: ${FROM_EMAIL}`);
+  console.log(`[Email] Resend API Key configured: ${!!process.env.RESEND_API_KEY}`);
+  
+  try {
+    const result = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: email,
+      subject: 'Welcome to ILE ALA Newsletter!',
+      html: `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Newsletter Subscription Confirmed</title>
+          </head>
+          <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="background: linear-gradient(135deg, #8B9D83 0%, #6B7D63 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+              <h1 style="color: white; margin: 0; font-size: 28px;">ILE ALA</h1>
+            </div>
+            
+            <div style="background: #ffffff; padding: 40px; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 10px 10px;">
+              <h2 style="color: #8B9D83; margin-top: 0;">Thank you for subscribing, ${displayName}!</h2>
+              
+              <p>We're thrilled to have you join our community. You're now part of an exclusive circle that receives:</p>
+              
+              <ul style="color: #666; font-size: 14px; line-height: 2;">
+                <li>✨ Early access to new collections</li>
+                <li>🎁 Exclusive offers and promotions</li>
+                <li>📰 The latest news from the world of luxury table setting</li>
+                <li>💡 Design inspiration and styling tips</li>
+              </ul>
+              
+              <div style="text-align: center; margin: 30px 0;">
+                <!-- Button usando tabela para melhor compatibilidade com clientes de email -->
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">
+                  <tr>
+                    <td style="background: #8B9D83; border-radius: 5px; text-align: center;">
+                      <a href="${siteUrl}/shop" style="display: block; padding: 14px 30px; color: #ffffff; text-decoration: none; font-weight: bold; font-size: 16px; border-radius: 5px; cursor: pointer;">
+                        Explore Our Collection
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+              </div>
+              
+              <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;">
+              
+              <p style="color: #666; font-size: 14px; margin-bottom: 0;">
+                If you didn't subscribe to our newsletter, you can safely ignore this email or 
+                <a href="${siteUrl}/contact" style="color: #8B9D83; text-decoration: underline;">contact us</a> to unsubscribe.
+              </p>
+            </div>
+            
+            <div style="text-align: center; padding: 20px; color: #999; font-size: 12px;">
+              <p>© ${new Date().getFullYear()} ILE ALA. All rights reserved.</p>
+              <p>
+                <a href="${siteUrl}" style="color: #8B9D83; text-decoration: none;">Visit our website</a> | 
+                <a href="${siteUrl}/contact" style="color: #8B9D83; text-decoration: none;">Contact us</a>
+              </p>
+            </div>
+          </body>
+        </html>
+      `,
+    });
+    
+    console.log(`[Email] Newsletter confirmation email sent successfully to ${email}`);
+    console.log(`[Email] Resend API response:`, JSON.stringify(result));
+    return true;
+  } catch (error) {
+    console.error('[Email] ERROR sending newsletter confirmation email:', error);
+    console.error('[Email] Error details:', JSON.stringify(error, null, 2));
+    if (error instanceof Error) {
+      console.error('[Email] Error message:', error.message);
+      console.error('[Email] Error stack:', error.stack);
+    }
+    return false;
+  }
+}
+
 export async function sendPasswordResetEmail(email: string, token: string, name: string) {
   console.log('[sendPasswordResetEmail] Called with token:', token);
   console.log('[sendPasswordResetEmail] Token length:', token.length);
