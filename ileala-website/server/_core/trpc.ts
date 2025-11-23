@@ -2,9 +2,32 @@ import { NOT_ADMIN_ERR_MSG, UNAUTHED_ERR_MSG } from '@shared/const';
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import type { TrpcContext } from "./context";
+import { logger } from "./logger";
 
 const t = initTRPC.context<TrpcContext>().create({
   transformer: superjson,
+  errorFormatter: ({ shape, error, ctx }) => {
+    // Log errors in production
+    if (process.env.NODE_ENV === 'production') {
+      logger.error('[tRPC] Error:', {
+        code: error.code,
+        message: error.message,
+        path: error.path,
+        userId: ctx?.user?.id,
+      });
+    }
+    
+    return {
+      ...shape,
+      data: {
+        ...shape.data,
+        // Don't expose internal errors in production
+        ...(process.env.NODE_ENV === 'production' && error.code === 'INTERNAL_SERVER_ERROR'
+          ? { message: 'An internal error occurred' }
+          : {}),
+      },
+    };
+  },
 });
 
 export const router = t.router;
