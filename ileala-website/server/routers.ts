@@ -190,13 +190,14 @@ export const appRouter = router({
         code: z.string(),
         orderTotal: z.number(),
       }))
-      .query(async ({ input }) => {
+      .mutation(async ({ input }) => {
         const validation = await db.validateCoupon(input.code, input.orderTotal);
         
         if (!validation.valid) {
           return {
             valid: false,
             message: validation.message,
+            discount: 0,
           };
         }
         

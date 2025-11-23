@@ -102,10 +102,22 @@ export default function SanityCart() {
     return subtotal + vat - discount;
   };
 
-  const validateCouponMutation = trpc.coupons.validate.useQuery(
-    { code: couponCode, orderTotal: totalPrice * 100 }, // Convert AED to fils (cents)
-    { enabled: false }
-  );
+  const validateCouponMutation = trpc.coupons.validate.useMutation({
+    onSuccess: (data) => {
+      if (data.valid) {
+        setAppliedCoupon({ code: couponCode, discount: data.discount || 0 });
+        setCouponError('');
+        toast.success(language === 'en' ? 'Coupon applied!' : 'Cupom aplicado!');
+      } else {
+        setCouponError(data.message || (language === 'en' ? 'Invalid coupon' : 'Cupom inválido'));
+        setAppliedCoupon(null);
+      }
+    },
+    onError: (error) => {
+      setCouponError(error.message || (language === 'en' ? 'Failed to validate coupon' : 'Falha ao validar cupom'));
+      setAppliedCoupon(null);
+    },
+  });
 
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) {
@@ -113,20 +125,10 @@ export default function SanityCart() {
       return;
     }
 
-    try {
-      const result = await validateCouponMutation.refetch();
-      if (result.data?.valid) {
-        setAppliedCoupon({ code: couponCode, discount: result.data.discount || 0 });
-        setCouponError('');
-        toast.success(language === 'en' ? 'Coupon applied!' : 'Cupom aplicado!');
-      } else {
-        setCouponError(result.data?.message || (language === 'en' ? 'Invalid coupon' : 'Cupom inválido'));
-        setAppliedCoupon(null);
-      }
-    } catch (error) {
-      setCouponError(language === 'en' ? 'Failed to validate coupon' : 'Falha ao validar cupom');
-      setAppliedCoupon(null);
-    }
+    validateCouponMutation.mutate({
+      code: couponCode,
+      orderTotal: totalPrice * 100, // Convert AED to fils (cents)
+    });
   };
 
   const handleRemoveCoupon = () => {
@@ -266,7 +268,7 @@ export default function SanityCart() {
                         type="button"
                         variant="outline"
                         onClick={handleApplyCoupon}
-                        disabled={!couponCode.trim() || validateCouponMutation.isFetching}
+                        disabled={!couponCode.trim() || validateCouponMutation.isPending}
                       >
                         <Tag className="w-4 h-4 mr-2" />
                         {language === 'en' ? 'Apply' : 'Aplicar'}
