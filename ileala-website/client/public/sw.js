@@ -8,6 +8,8 @@ const RUNTIME_CACHE = 'ileala-runtime-v1';
 const PRECACHE_ASSETS = [
   '/',
   '/offline',
+  '/icon-192x192.png',
+  '/icon-512x512.png',
 ];
 
 // Install event - cache assets
