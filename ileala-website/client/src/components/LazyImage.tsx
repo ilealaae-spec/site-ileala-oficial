@@ -76,30 +76,9 @@ export default function LazyImage({
   };
 
   const handleError = () => {
-    // Try fallback if WebP fails
-    if (webpSrc && webpSupported && !fallbackSrc) {
-      setHasError(true);
-      setIsLoaded(false);
-    } else if (fallbackSrc && !hasError) {
-      // Switch to fallback
-      setHasError(false);
-      setIsLoaded(false);
-    } else {
-      setHasError(true);
-      setIsLoaded(false);
-    }
+    setHasError(true);
+    setIsLoaded(false);
   };
-
-  // Determine which image source to use
-  const imageSrc = (() => {
-    if (hasError && fallbackSrc) {
-      return fallbackSrc;
-    }
-    if (webpSrc && webpSupported === true) {
-      return webpSrc;
-    }
-    return src;
-  })();
 
   return (
     <div className={cn('relative overflow-hidden', className)}>
@@ -117,13 +96,13 @@ export default function LazyImage({
       {isInView && (
         <picture>
           {/* WebP source if supported and provided */}
-          {webpSrc && webpSupported === true && !hasError && (
+          {webpSrc && webpSupported === true && (
             <source srcSet={webpSrc} type="image/webp" />
           )}
           {/* Fallback image */}
           <img
             ref={imgRef}
-            src={imageSrc}
+            src={fallbackSrc || src}
             alt={alt}
             className={cn(
               'w-full h-full object-cover transition-opacity duration-300',
