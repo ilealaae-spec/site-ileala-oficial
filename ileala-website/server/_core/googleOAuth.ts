@@ -147,18 +147,27 @@ export function registerGoogleOAuthRoutes(app: Express) {
 
       // Set cookie with JSON data (same format as email/password login)
       const cookieOptions = getSessionCookieOptions(req);
-      res.cookie(COOKIE_NAME, JSON.stringify(sessionData), {
+      const cookieValue = JSON.stringify(sessionData);
+      
+      res.cookie(COOKIE_NAME, cookieValue, {
         ...cookieOptions,
         maxAge: ONE_YEAR_MS,
       });
 
-      console.log('[Google OAuth] Session created, redirecting...');
+      console.log('[Google OAuth] Session created, cookie set:', {
+        hasCookie: !!cookieValue,
+        userId: sessionData.id,
+        email: sessionData.email,
+        cookieOptions: cookieOptions,
+      });
 
       // Redirect to original destination or home
       // Add ?oauth_success=1 to trigger frontend refresh
       const redirectTo = state ? decodeURIComponent(state) : '/';
       const separator = redirectTo.includes('?') ? '&' : '?';
-      res.redirect(302, `${redirectTo}${separator}oauth_success=1`);
+      
+      // Use 303 See Other to ensure cookie is sent with redirect
+      res.redirect(303, `${redirectTo}${separator}oauth_success=1`);
     } catch (error) {
       console.error('[Google OAuth] Callback failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'OAuth callback failed';
