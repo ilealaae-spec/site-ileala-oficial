@@ -21,6 +21,7 @@ import {
   quantitySchema,
   orderTotalSchema,
 } from "./_core/validation";
+import { getCached, setCached, invalidateCache, CacheKeys } from "./_core/cache";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
   apiVersion: '2025-10-29.clover',
@@ -232,25 +233,59 @@ export const appRouter = router({
   // Products router
   products: router({
     list: publicProcedure.query(async () => {
-      return await db.getAllProducts();
+      const cacheKey = CacheKeys.products();
+      const cached = getCached(cacheKey);
+      if (cached) return cached;
+      
+      const products = await db.getAllProducts();
+      setCached(cacheKey, products, 5 * 60 * 1000); // 5 minutes
+      return products;
     }),
     featured: publicProcedure.query(async () => {
-      return await db.getFeaturedProducts();
+      const cacheKey = CacheKeys.featuredProducts();
+      const cached = getCached(cacheKey);
+      if (cached) return cached;
+      
+      const products = await db.getFeaturedProducts();
+      setCached(cacheKey, products, 10 * 60 * 1000); // 10 minutes
+      return products;
     }),
     byId: publicProcedure
       .input(z.object({ id: z.number() }))
       .query(async ({ input }) => {
-        return await db.getProductById(input.id);
+        const cacheKey = CacheKeys.product(input.id);
+        const cached = getCached(cacheKey);
+        if (cached) return cached;
+        
+        const product = await db.getProductById(input.id);
+        if (product) {
+          setCached(cacheKey, product, 10 * 60 * 1000); // 10 minutes
+        }
+        return product;
       }),
     bySlug: publicProcedure
       .input(z.object({ slug: z.string() }))
       .query(async ({ input }) => {
-        return await db.getProductBySlug(input.slug);
+        const cacheKey = CacheKeys.productBySlug(input.slug);
+        const cached = getCached(cacheKey);
+        if (cached) return cached;
+        
+        const product = await db.getProductBySlug(input.slug);
+        if (product) {
+          setCached(cacheKey, product, 10 * 60 * 1000); // 10 minutes
+        }
+        return product;
       }),
     byCollection: publicProcedure
       .input(z.object({ collection: z.string() }))
       .query(async ({ input }) => {
-        return await db.getProductsByCollection(input.collection);
+        const cacheKey = CacheKeys.products(`collection:${input.collection}`);
+        const cached = getCached(cacheKey);
+        if (cached) return cached;
+        
+        const products = await db.getProductsByCollection(input.collection);
+        setCached(cacheKey, products, 5 * 60 * 1000); // 5 minutes
+        return products;
       }),
     create: protectedProcedure
       .input(z.object({
@@ -272,7 +307,14 @@ export const appRouter = router({
         if (ctx.user?.role !== 'admin') {
           throw new Error('Unauthorized');
         }
-        return await db.createProduct(input);
+        const product = await db.createProduct(input);
+        // Invalidate product caches
+        invalidateCache(CacheKeys.products());
+        invalidateCache(CacheKeys.featuredProducts());
+        if (input.collection) {
+          invalidateCache(CacheKeys.products(`collection:${input.collection}`));
+        }
+        return product;
       }),
     update: protectedProcedure
       .input(z.object({
@@ -296,6 +338,10 @@ export const appRouter = router({
           throw new Error('Unauthorized');
         }
         await db.updateProduct(input.id, input.data);
+        // Invalidate product caches
+        invalidateCache(CacheKeys.product(input.id));
+        invalidateCache(CacheKeys.products());
+        invalidateCache(CacheKeys.featuredProducts());
         return { success: true };
       }),
     delete: protectedProcedure
@@ -305,6 +351,10 @@ export const appRouter = router({
           throw new Error('Unauthorized');
         }
         await db.deleteProduct(input.id);
+        // Invalidate product caches
+        invalidateCache(CacheKeys.product(input.id));
+        invalidateCache(CacheKeys.products());
+        invalidateCache(CacheKeys.featuredProducts());
         return { success: true };
       }),
   }),
