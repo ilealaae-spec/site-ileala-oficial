@@ -7,11 +7,14 @@ interface LazyImageProps extends ImgHTMLAttributes<HTMLImageElement> {
   className?: string;
   placeholder?: string;
   threshold?: number;
+  webpSrc?: string; // Optional WebP version for better compression
+  fallbackSrc?: string; // Fallback if WebP is not supported
 }
 
 /**
- * Lazy loading image component
+ * Lazy loading image component with WebP support
  * Only loads images when they're about to enter the viewport
+ * Automatically uses WebP if supported, falls back to original format
  */
 export default function LazyImage({
   src,
@@ -19,12 +22,27 @@ export default function LazyImage({
   className,
   placeholder = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2YzZjRmNiIvPjwvc3ZnPg==',
   threshold = 0.1,
+  webpSrc,
+  fallbackSrc,
   ...props
 }: LazyImageProps) {
+  const [webpSupported, setWebpSupported] = useState<boolean | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [isInView, setIsInView] = useState(false);
   const [hasError, setHasError] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
+
+  // Check WebP support
+  useEffect(() => {
+    const checkWebPSupport = () => {
+      const webp = new Image();
+      webp.onload = webp.onerror = () => {
+        setWebpSupported(webp.height === 2);
+      };
+      webp.src = 'data:image/webp;base64,UklGRjoAAABXRUJQVlA4IC4AAACyAgCdASoCAAIALmk0mk0iIiIiIgBoSygABc6WWgAA/veff/0PP8bA//LwYAAA';
+    };
+    checkWebPSupport();
+  }, []);
 
   useEffect(() => {
     const img = imgRef.current;
@@ -58,9 +76,30 @@ export default function LazyImage({
   };
 
   const handleError = () => {
-    setHasError(true);
-    setIsLoaded(false);
+    // Try fallback if WebP fails
+    if (webpSrc && webpSupported && !fallbackSrc) {
+      setHasError(true);
+      setIsLoaded(false);
+    } else if (fallbackSrc && !hasError) {
+      // Switch to fallback
+      setHasError(false);
+      setIsLoaded(false);
+    } else {
+      setHasError(true);
+      setIsLoaded(false);
+    }
   };
+
+  // Determine which image source to use
+  const imageSrc = (() => {
+    if (hasError && fallbackSrc) {
+      return fallbackSrc;
+    }
+    if (webpSrc && webpSupported === true) {
+      return webpSrc;
+    }
+    return src;
+  })();
 
   return (
     <div className={cn('relative overflow-hidden', className)}>
@@ -76,20 +115,27 @@ export default function LazyImage({
 
       {/* Actual image */}
       {isInView && (
-        <img
-          ref={imgRef}
-          src={src}
-          alt={alt}
-          className={cn(
-            'w-full h-full object-cover transition-opacity duration-300',
-            isLoaded ? 'opacity-100' : 'opacity-0',
-            className
+        <picture>
+          {/* WebP source if supported and provided */}
+          {webpSrc && webpSupported === true && !hasError && (
+            <source srcSet={webpSrc} type="image/webp" />
           )}
-          loading="lazy"
-          onLoad={handleLoad}
-          onError={handleError}
-          {...props}
-        />
+          {/* Fallback image */}
+          <img
+            ref={imgRef}
+            src={imageSrc}
+            alt={alt}
+            className={cn(
+              'w-full h-full object-cover transition-opacity duration-300',
+              isLoaded ? 'opacity-100' : 'opacity-0',
+              className
+            )}
+            loading="lazy"
+            onLoad={handleLoad}
+            onError={handleError}
+            {...props}
+          />
+        </picture>
       )}
 
       {/* Error state */}

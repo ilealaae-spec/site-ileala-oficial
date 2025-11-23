@@ -1,57 +1,72 @@
 // Build: 2025-11-02T03:27:00Z - Fixed React Hooks error
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { LanguageProvider } from "./contexts/LanguageContext";
 import { CartProvider } from "./contexts/CartContext";
 import { trpc } from "@/lib/trpc";
-import { useEffect } from "react";
-import Home from "./pages/Home";
-import Shop from "./pages/Shop";
-import ProductDetail from "./pages/ProductDetail";
-import Cart from "./pages/Cart";
-import Checkout from "./pages/Checkout";
-import OrderConfirmation from "./pages/OrderConfirmation";
-import Admin from "./pages/Admin";
-import AdminEmergency from "./pages/AdminEmergency";
-import PromoteAdmin from "./pages/PromoteAdmin";
-import About from "./pages/About";
-import Collections from "./pages/Collections";
-import CollectionPage from "./pages/CollectionPage";
-import Contact from "./pages/Contact";
-import AIPolicy from "./pages/AIPolicy";
-import Terms from "./pages/Terms";
-import Privacy from "./pages/Privacy";
-import Accessibility from "./pages/Accessibility";
-import DoNotSell from "./pages/DoNotSell";
-import Help from "./pages/Help";
-import FAQ from "./pages/FAQ";
-import Shipping from "./pages/Shipping";
-import Returns from "./pages/Returns";
-import ProductCare from "./pages/ProductCare";
-import FindRetailer from "./pages/FindRetailer";
-import AdminProducts from "./pages/admin/Products";
-import AdminOrders from "./pages/admin/Orders";
-import AdminCoupons from "./pages/admin/Coupons";
-import AdminEmergencyLogin from "./pages/AdminEmergencyLogin";
-import SanityProducts from "./pages/SanityProducts";
-import SanityProductDetail from "./pages/SanityProductDetail";
-import SanityCart from "./pages/SanityCart";
-import PaymentSuccess from "./pages/PaymentSuccess";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import Profile from "./pages/Profile";
-import Orders from "./pages/Orders";
-import VerifyEmail from "./pages/VerifyEmail";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
-import AdminLayout from "./components/AdminLayout";
+import { useEffect, lazy, Suspense } from "react";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import SchemaOrg from "./components/SchemaOrg";
+import { Loader2 } from "lucide-react";
+import { useServiceWorker } from "./hooks/useServiceWorker";
+
+// Lazy load pages for code splitting
+const Home = lazy(() => import("./pages/Home"));
+const Shop = lazy(() => import("./pages/Shop"));
+const ProductDetail = lazy(() => import("./pages/ProductDetail"));
+const SanityProducts = lazy(() => import("./pages/SanityProducts"));
+const SanityProductDetail = lazy(() => import("./pages/SanityProductDetail"));
+const SanityCart = lazy(() => import("./pages/SanityCart"));
+const PaymentSuccess = lazy(() => import("./pages/PaymentSuccess"));
+const Checkout = lazy(() => import("./pages/Checkout"));
+const Login = lazy(() => import("./pages/Login"));
+const Register = lazy(() => import("./pages/Register"));
+const Profile = lazy(() => import("./pages/Profile"));
+const Orders = lazy(() => import("./pages/Orders"));
+const VerifyEmail = lazy(() => import("./pages/VerifyEmail"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const OrderConfirmation = lazy(() => import("./pages/OrderConfirmation"));
+const Admin = lazy(() => import("./pages/Admin"));
+const AdminEmergency = lazy(() => import("./pages/AdminEmergency"));
+const PromoteAdmin = lazy(() => import("./pages/PromoteAdmin"));
+const AdminEmergencyLogin = lazy(() => import("./pages/AdminEmergencyLogin"));
+const AdminProducts = lazy(() => import("./pages/admin/Products"));
+const AdminOrders = lazy(() => import("./pages/admin/Orders"));
+const AdminCoupons = lazy(() => import("./pages/admin/Coupons"));
+const AdminLayout = lazy(() => import("./components/AdminLayout"));
+const About = lazy(() => import("./pages/About"));
+const Collections = lazy(() => import("./pages/Collections"));
+const CollectionPage = lazy(() => import("./pages/CollectionPage"));
+const Contact = lazy(() => import("./pages/Contact"));
+const AIPolicy = lazy(() => import("./pages/AIPolicy"));
+const Terms = lazy(() => import("./pages/Terms"));
+const Privacy = lazy(() => import("./pages/Privacy"));
+const Accessibility = lazy(() => import("./pages/Accessibility"));
+const DoNotSell = lazy(() => import("./pages/DoNotSell"));
+const Help = lazy(() => import("./pages/Help"));
+const FAQ = lazy(() => import("./pages/FAQ"));
+const Shipping = lazy(() => import("./pages/Shipping"));
+const Returns = lazy(() => import("./pages/Returns"));
+const ProductCare = lazy(() => import("./pages/ProductCare"));
+const FindRetailer = lazy(() => import("./pages/FindRetailer"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+
+// Loading component
+function PageLoader() {
+  return (
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="flex flex-col items-center gap-4">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">Loading...</p>
+      </div>
+    </div>
+  );
+}
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -59,63 +74,71 @@ function Router() {
     <div className="flex flex-col min-h-screen">
       <Header />
       <main className="flex-1">
-        <Switch>
-          <Route path={"/"} component={Home} />
-          <Route path="/shop" component={Shop} />
-          <Route path="/shop/:slug" component={ProductDetail} />
-          <Route path="/products" component={SanityProducts} />
-          <Route path="/products/:slug" component={SanityProductDetail} />
-          <Route path="/sanity-products/:slug" component={SanityProductDetail} />
-          <Route path="/payment-success" component={PaymentSuccess} />
-          <Route path="/product/:id" component={ProductDetail} />
-          <Route path="/cart" component={SanityCart} />
-          <Route path="/checkout" component={Checkout} />
-          <Route path="/login" component={Login} />
-          <Route path="/register" component={Register} />
-          <Route path="/profile" component={Profile} />
-          <Route path="/orders" component={Orders} />
-          <Route path="/verify-email" component={VerifyEmail} />
-          <Route path="/forgot-password" component={ForgotPassword} />
-          <Route path="/reset-password" component={ResetPassword} />
-          <Route path="/order-confirmation/:id" component={OrderConfirmation} />
-          <Route path="/promote-admin" component={PromoteAdmin} />
-          <Route path="/admin-emergency-login" component={AdminEmergencyLogin} />
-          <Route path="/admin-emergency" component={AdminEmergency} />
-          <Route path="/admin" component={Admin} />
-          <Route path="/admin/products">
-            <AdminLayout>
-              <AdminProducts />
-            </AdminLayout>
-          </Route>
-          <Route path="/admin/orders">
-            <AdminLayout>
-              <AdminOrders />
-            </AdminLayout>
-          </Route>
-          <Route path="/admin/coupons">
-            <AdminLayout>
-              <AdminCoupons />
-            </AdminLayout>
-          </Route>
-          <Route path="/about" component={About} />
-          <Route path={"/collections"} component={Collections} />
-          <Route path="/collections/:slug" component={CollectionPage} />
-          <Route path={"/contact"} component={Contact} />
-          <Route path={"/ai-policy"} component={AIPolicy} />
-          <Route path={"/terms"} component={Terms} />
-          <Route path={"/privacy"} component={Privacy} />
-          <Route path={"/accessibility"} component={Accessibility} />
-          <Route path={"/do-not-sell"} component={DoNotSell} />
-          <Route path={"/help"} component={Help} />
-          <Route path={"/faq"} component={FAQ} />
-          <Route path={"/shipping"} component={Shipping} />
-          <Route path={"/returns"} component={Returns} />
-          <Route path={"/product-care"} component={ProductCare} />
-          <Route path={"/find-retailer"} component={FindRetailer} />
-          <Route path={"/404"} component={NotFound} />
-          {/* Final fallback route */}
-          <Route component={NotFound} />
-        </Switch>
+        <Suspense fallback={<PageLoader />}>
+          <Switch>
+            <Route path={"/"} component={Home} />
+            <Route path="/shop" component={Shop} />
+            <Route path="/shop/:slug" component={ProductDetail} />
+            <Route path="/products" component={SanityProducts} />
+            <Route path="/products/:slug" component={SanityProductDetail} />
+            <Route path="/sanity-products/:slug" component={SanityProductDetail} />
+            <Route path="/payment-success" component={PaymentSuccess} />
+            <Route path="/product/:id" component={ProductDetail} />
+            <Route path="/cart" component={SanityCart} />
+            <Route path="/checkout" component={Checkout} />
+            <Route path="/login" component={Login} />
+            <Route path="/register" component={Register} />
+            <Route path="/profile" component={Profile} />
+            <Route path="/orders" component={Orders} />
+            <Route path="/verify-email" component={VerifyEmail} />
+            <Route path="/forgot-password" component={ForgotPassword} />
+            <Route path="/reset-password" component={ResetPassword} />
+            <Route path="/order-confirmation/:id" component={OrderConfirmation} />
+            <Route path="/promote-admin" component={PromoteAdmin} />
+            <Route path="/admin-emergency-login" component={AdminEmergencyLogin} />
+            <Route path="/admin-emergency" component={AdminEmergency} />
+            <Route path="/admin" component={Admin} />
+            <Route path="/admin/products">
+              <Suspense fallback={<PageLoader />}>
+                <AdminLayout>
+                  <AdminProducts />
+                </AdminLayout>
+              </Suspense>
+            </Route>
+            <Route path="/admin/orders">
+              <Suspense fallback={<PageLoader />}>
+                <AdminLayout>
+                  <AdminOrders />
+                </AdminLayout>
+              </Suspense>
+            </Route>
+            <Route path="/admin/coupons">
+              <Suspense fallback={<PageLoader />}>
+                <AdminLayout>
+                  <AdminCoupons />
+                </AdminLayout>
+              </Suspense>
+            </Route>
+            <Route path="/about" component={About} />
+            <Route path={"/collections"} component={Collections} />
+            <Route path="/collections/:slug" component={CollectionPage} />
+            <Route path={"/contact"} component={Contact} />
+            <Route path={"/ai-policy"} component={AIPolicy} />
+            <Route path={"/terms"} component={Terms} />
+            <Route path={"/privacy"} component={Privacy} />
+            <Route path={"/accessibility"} component={Accessibility} />
+            <Route path={"/do-not-sell"} component={DoNotSell} />
+            <Route path={"/help"} component={Help} />
+            <Route path={"/faq"} component={FAQ} />
+            <Route path={"/shipping"} component={Shipping} />
+            <Route path={"/returns"} component={Returns} />
+            <Route path={"/product-care"} component={ProductCare} />
+            <Route path={"/find-retailer"} component={FindRetailer} />
+            <Route path={"/404"} component={NotFound} />
+            {/* Final fallback route */}
+            <Route component={NotFound} />
+          </Switch>
+        </Suspense>
       </main>
       <Footer />
     </div>
@@ -129,6 +152,9 @@ function Router() {
 
 function App() {
   const utils = trpc.useUtils();
+  
+  // Register Service Worker for PWA
+  useServiceWorker();
 
   // Invalidate auth.me query after Google OAuth redirect
   useEffect(() => {
