@@ -151,6 +151,19 @@ export const appRouter = router({
           user: sessionData,
         };
       }),
+    verifyEmail: publicProcedure
+      .input(z.object({
+        token: z.string(),
+      }))
+      .mutation(async ({ input }) => {
+        const user = await db.verifyEmailToken(input.token);
+        
+        if (!user) {
+          throw new Error('Invalid or expired verification token');
+        }
+        
+        return { success: true, user: { id: user.id, email: user.email } };
+      }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });

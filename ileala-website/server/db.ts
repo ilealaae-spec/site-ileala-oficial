@@ -662,24 +662,35 @@ export async function subscribeToNewsletter(email: string, name?: string, source
   
   try {
     console.log('[Newsletter] Attempting to subscribe:', { email, name, source });
-    // Use raw SQL to avoid Drizzle including all schema fields
-    const now = new Date();
-    const active = 1;
-    if (name && name.trim()) {
-      // If name is provided, include it in the query
-      console.log('[Newsletter] Inserting with name');
-      await db.execute(sql`
-        INSERT INTO newsletter (email, name, source, active, subscribed_at)
-        VALUES (${email}, ${name.trim()}, ${source}, ${active}, ${now})
-      `);
-    } else {
-      // If name is not provided, don't include it in the query
-      console.log('[Newsletter] Inserting without name');
-      await db.execute(sql`
-        INSERT INTO newsletter (email, source, active, subscribed_at)
-        VALUES (${email}, ${source}, ${active}, ${now})
-      `);
+    
+    // Check if already subscribed
+    const existing = await getNewsletterSubscriberByEmail(email);
+    if (existing && existing.active === 1) {
+      throw new Error('Email already subscribed');
     }
+    
+    // If exists but inactive, reactivate
+    if (existing && existing.active === 0) {
+      await db.update(newsletter)
+        .set({ 
+          active: 1, 
+          source,
+          ...(name && name.trim() ? { name: name.trim() } : {}),
+        })
+        .where(eq(newsletter.email, email));
+      console.log('[Newsletter] Reactivated existing subscription');
+      return { success: true };
+    }
+    
+    // Insert new subscription using Drizzle
+    await db.insert(newsletter).values({
+      email,
+      name: name && name.trim() ? name.trim() : null,
+      source,
+      active: 1,
+      subscribedAt: new Date(),
+    });
+    
     console.log('[Newsletter] Successfully inserted');
     return { success: true };
   } catch (error: any) {
@@ -688,7 +699,7 @@ export async function subscribeToNewsletter(email: string, name?: string, source
     console.error('[Newsletter] Error message:', error.message);
     console.error('[Newsletter] Error detail:', error.detail);
     // Check if it's a duplicate email error
-    if (error.code === '23505') {
+    if (error.code === '23505' || error.message?.includes('unique') || error.message?.includes('duplicate')) {
       throw new Error('Email already subscribed');
     }
     throw error;

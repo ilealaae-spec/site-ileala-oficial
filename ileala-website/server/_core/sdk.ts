@@ -271,18 +271,24 @@ class SDKServer {
     const cookies = this.parseCookies(cookieHeader);
     const sessionCookie = cookies.get(COOKIE_NAME);
     
-    // Try to parse as traditional login JSON first (for email/password login)
+    // Try to parse as traditional login JSON first (for email/password login and Google OAuth)
     try {
       const sessionData = JSON.parse(sessionCookie || '{}');
       if (sessionData.id && sessionData.email) {
-        // Traditional login session - return user data from cookie directly
-        // This avoids database query issues and improves performance
+        // Traditional login session or Google OAuth session - fetch full user data from DB
+        const user = await db.getUserById(sessionData.id);
+        
+        if (user) {
+          return user;
+        }
+        
+        // Fallback: return session data if user not found in DB (shouldn't happen)
         return {
           id: sessionData.id,
           email: sessionData.email,
           name: sessionData.name || null,
           role: sessionData.role || 'user',
-          openId: null,
+          openId: sessionData.openId || null,
           password: null,
           phone: null,
           address: null,
@@ -295,7 +301,7 @@ class SDKServer {
           emailVerificationExpires: null,
           passwordResetToken: null,
           passwordResetExpires: null,
-          loginMethod: 'email',
+          loginMethod: sessionData.loginMethod || 'email',
           createdAt: new Date(),
           updatedAt: new Date(),
           lastSignedIn: new Date(),
