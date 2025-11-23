@@ -47,6 +47,56 @@ async function startServer() {
   // Google OAuth routes (direct Google OAuth)
   registerGoogleOAuthRoutes(app);
   
+  // Health check endpoint
+  app.get("/health", async (req, res) => {
+    try {
+      // Check database connection
+      const db = await import("../db");
+      const dbInstance = await db.getDb();
+      
+      if (!dbInstance) {
+        return res.status(503).json({
+          status: "unhealthy",
+          timestamp: new Date().toISOString(),
+          checks: {
+            database: "disconnected",
+          },
+        });
+      }
+      
+      // Try a simple query to verify database is responsive
+      try {
+        await dbInstance.execute(`SELECT 1 as health_check`);
+      } catch (error) {
+        return res.status(503).json({
+          status: "unhealthy",
+          timestamp: new Date().toISOString(),
+          checks: {
+            database: "error",
+            error: error instanceof Error ? error.message : "Unknown error",
+          },
+        });
+      }
+      
+      res.status(200).json({
+        status: "healthy",
+        timestamp: new Date().toISOString(),
+        checks: {
+          database: "connected",
+        },
+      });
+    } catch (error) {
+      res.status(503).json({
+        status: "unhealthy",
+        timestamp: new Date().toISOString(),
+        checks: {
+          database: "error",
+          error: error instanceof Error ? error.message : "Unknown error",
+        },
+      });
+    }
+  });
+
   // Emergency admin creation route
   app.post("/api/create-emergency-admin", async (req, res) => {
     try {
