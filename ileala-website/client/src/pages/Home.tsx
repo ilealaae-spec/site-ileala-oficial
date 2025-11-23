@@ -161,69 +161,81 @@ export default function Home() {
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* Video 1 - Handcrafting Process */}
-            <div className="relative aspect-video rounded-lg overflow-hidden bg-black">
-              <iframe
-                className="absolute inset-0 w-full h-full"
-                src="https://www.youtube.com/embed/Soie2j66UUM?loop=1&playlist=Soie2j66UUM&rel=0&modestbranding=1"
-                title="Handcrafting Process"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
+            {/* Video 1 */}
+            <div className="relative aspect-video rounded-lg overflow-hidden bg-black shadow-lg">
+              <video
+                className="w-full h-full object-cover"
+                src="/videos/video1.mp4"
+                controls
+                loop
+                muted
+                playsInline
+                preload="metadata"
               />
             </div>
 
-            {/* Video 2 - Textile Techniques */}
-            <div className="relative aspect-video rounded-lg overflow-hidden bg-black">
-              <iframe
-                className="absolute inset-0 w-full h-full"
-                src="https://www.youtube.com/embed/fdXanjwyVmU?loop=1&playlist=fdXanjwyVmU&rel=0&modestbranding=1"
-                title="Textile Techniques"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
+            {/* Video 2 */}
+            <div className="relative aspect-video rounded-lg overflow-hidden bg-black shadow-lg">
+              <video
+                className="w-full h-full object-cover"
+                src="/videos/video2.mp4"
+                controls
+                loop
+                muted
+                playsInline
+                preload="metadata"
               />
             </div>
 
-            {/* Video 3 - Product Details */}
-            <div className="relative aspect-video rounded-lg overflow-hidden bg-black">
-              <iframe
-                className="absolute inset-0 w-full h-full"
-                src="https://www.youtube.com/embed/661MX8EUMIM?loop=1&playlist=661MX8EUMIM&rel=0&modestbranding=1"
-                title="Product Details"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
+            {/* Video 3 */}
+            <div className="relative aspect-video rounded-lg overflow-hidden bg-black shadow-lg">
+              <video
+                className="w-full h-full object-cover"
+                src="/videos/video3.mp4"
+                controls
+                loop
+                muted
+                playsInline
+                preload="metadata"
               />
             </div>
 
-            {/* Video 4 - Table Setting Inspiration */}
-            <div className="relative aspect-video rounded-lg overflow-hidden bg-black">
-              <iframe
-                className="absolute inset-0 w-full h-full"
-                src="https://www.youtube.com/embed/oCGUnH1rq0Y?loop=1&playlist=oCGUnH1rq0Y&rel=0&modestbranding=1"
-                title="Table Setting Inspiration"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
+            {/* Video 4 */}
+            <div className="relative aspect-video rounded-lg overflow-hidden bg-black shadow-lg">
+              <video
+                className="w-full h-full object-cover"
+                src="/videos/video4.mp4"
+                controls
+                loop
+                muted
+                playsInline
+                preload="metadata"
               />
             </div>
 
-            {/* Video 5 - Artisan Stories */}
-            <div className="relative aspect-video rounded-lg overflow-hidden bg-black">
-              <iframe
-                className="absolute inset-0 w-full h-full"
-                src="https://www.youtube.com/embed/wQai0sF69bw?loop=1&playlist=wQai0sF69bw&rel=0&modestbranding=1"
-                title="Artisan Stories"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
+            {/* Video 5 */}
+            <div className="relative aspect-video rounded-lg overflow-hidden bg-black shadow-lg">
+              <video
+                className="w-full h-full object-cover"
+                src="/videos/video5.mp4"
+                controls
+                loop
+                muted
+                playsInline
+                preload="metadata"
               />
             </div>
 
-            {/* Video 6 - Collection Showcase */}
-            <div className="relative aspect-video rounded-lg overflow-hidden bg-black">
-              <iframe
-                className="absolute inset-0 w-full h-full"
-                src="https://www.youtube.com/embed/kT777vLqJn4?loop=1&playlist=kT777vLqJn4&rel=0&modestbranding=1"
-                title="Collection Showcase"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
+            {/* Video 6 */}
+            <div className="relative aspect-video rounded-lg overflow-hidden bg-black shadow-lg">
+              <video
+                className="w-full h-full object-cover"
+                src="/videos/video6.mp4"
+                controls
+                loop
+                muted
+                playsInline
+                preload="metadata"
               />
             </div>
           </div>
