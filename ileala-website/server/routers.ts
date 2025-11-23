@@ -53,6 +53,38 @@ export const appRouter = router({
   }),
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
+    login: publicProcedure
+      .input(z.object({
+        email: z.string().email(),
+        password: z.string(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const { email, password } = input;
+
+        // Verify credentials
+        const user = await db.verifyUserCredentials(email, password);
+        
+        if (!user) {
+          throw new Error('Invalid email or password');
+        }
+
+        // Create session data
+        const sessionData = {
+          id: user.id,
+          email: user.email,
+          name: user.name || null,
+          role: user.role || 'user',
+        };
+
+        // Set cookie with session data
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(COOKIE_NAME, JSON.stringify(sessionData), {
+          ...cookieOptions,
+          maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year
+        });
+
+        return { success: true, user: sessionData };
+      }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });

@@ -49,7 +49,9 @@ export const getGoogleLoginUrl = (redirectTo: string = '/') => {
   }
   
   const state = encodeURIComponent(redirectTo);
-  const redirectUri = `${window.location.origin}/api/oauth/google/callback`;
+  // Always use www.ileala.ae for redirect URI to match Google Console configuration
+  // This ensures consistency regardless of whether user visits ileala.ae or www.ileala.ae
+  const redirectUri = `https://www.ileala.ae/api/oauth/google/callback`;
   const params = new URLSearchParams({
     client_id: googleClientId,
     redirect_uri: redirectUri,
