@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -8,6 +8,7 @@ import { trpc } from '@/lib/trpc';
 import { toast } from 'sonner';
 import { Loader2, Mail, Lock, LogIn, Eye, EyeOff } from 'lucide-react';
 import { getGoogleLoginUrl, isGoogleOAuthAvailable } from '@/const';
+import { useAuth } from '@/_core/hooks/useAuth';
 
 export default function Login() {
   const { language } = useLanguage();
@@ -15,8 +16,46 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const { user, isAuthenticated, refresh } = useAuth();
 
   const utils = trpc.useUtils();
+
+  // Handle OAuth success and errors from URL
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const error = urlParams.get('error');
+    const oauthSuccess = urlParams.has('oauth_success');
+    
+    // If OAuth success, invalidate and refresh
+    if (oauthSuccess) {
+      urlParams.delete('oauth_success');
+      const newUrl = window.location.pathname + (urlParams.toString() ? `?${urlParams.toString()}` : '');
+      window.history.replaceState({}, '', newUrl);
+      
+      // Force refresh auth data
+      setTimeout(() => {
+        utils.auth.me.invalidate();
+        refresh();
+        
+        // If user is now authenticated, redirect
+        setTimeout(() => {
+          if (isAuthenticated && user) {
+            const redirect = urlParams.get('redirect') || '/';
+            setLocation(redirect);
+          }
+        }, 500);
+      }, 200);
+    }
+    
+    // Show error if present
+    if (error) {
+      toast.error(decodeURIComponent(error));
+      // Clean URL
+      urlParams.delete('error');
+      const newUrl = window.location.pathname + (urlParams.toString() ? `?${urlParams.toString()}` : '');
+      window.history.replaceState({}, '', newUrl);
+    }
+  }, [utils, refresh, isAuthenticated, user, setLocation]);
   
   const loginMutation = trpc.auth.login.useMutation({
     onSuccess: () => {

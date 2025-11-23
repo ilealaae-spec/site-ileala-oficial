@@ -70,11 +70,14 @@ export function getSessionCookieOptions(
   //       ? hostname
   //       : undefined;
 
+  const isSecure = isSecureRequest(req);
+  
   return {
     httpOnly: true,
     path: "/",
-    sameSite: "none",
-    secure: isSecureRequest(req),
+    // Use 'lax' for same-site requests, 'none' only if secure and cross-site
+    sameSite: isSecure ? "lax" : "lax", // Changed from "none" to "lax" for better compatibility
+    secure: isSecure,
     // domain removido do tipo de retorno pois não está sendo usado
   };
 }

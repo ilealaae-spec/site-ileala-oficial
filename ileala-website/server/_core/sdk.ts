@@ -271,9 +271,13 @@ class SDKServer {
     const cookies = this.parseCookies(cookieHeader);
     const sessionCookie = cookies.get(COOKIE_NAME);
     
+    if (!sessionCookie) {
+      throw ForbiddenError("No session cookie found");
+    }
+    
     // Try to parse as traditional login JSON first (for email/password login and Google OAuth)
     try {
-      const sessionData = JSON.parse(sessionCookie || '{}');
+      const sessionData = JSON.parse(sessionCookie);
       if (sessionData.id && sessionData.email) {
         // Traditional login session or Google OAuth session - fetch full user data from DB
         const user = await db.getUserById(sessionData.id);
