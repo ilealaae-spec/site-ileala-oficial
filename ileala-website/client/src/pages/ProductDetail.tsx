@@ -6,6 +6,7 @@ import { ShoppingCart, Loader2, ArrowLeft, Plus, Minus } from 'lucide-react';
 import { toast } from 'sonner';
 import { useState, useEffect } from 'react';
 import SEO from '@/components/SEO';
+import LazyImage from '@/components/LazyImage';
 
 export default function ProductDetail() {
   const { language } = useLanguage();
@@ -156,7 +157,7 @@ export default function ProductDetail() {
           {/* Product Image */}
           <div className="aspect-square overflow-hidden rounded-lg bg-muted">
             {product.imageUrl ? (
-              <img
+              <LazyImage
                 src={product.imageUrl}
                 alt={language === 'en' ? product.nameEN : product.namePT}
                 className="w-full h-full object-cover"

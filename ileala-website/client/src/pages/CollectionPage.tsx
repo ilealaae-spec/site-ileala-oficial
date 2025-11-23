@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage } from "@/contexts/LanguageContext";
+import LazyImage from "@/components/LazyImage";
 
 export default function CollectionPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -115,7 +116,7 @@ export default function CollectionPage() {
                 onClick={() => setLocation(`/shop/${product.slug}`)}
               >
                 {product.imageUrl ? (
-                  <img
+                  <LazyImage
                     src={product.imageUrl}
                     alt={product.name}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"

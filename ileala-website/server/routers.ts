@@ -188,7 +188,7 @@ export const appRouter = router({
           const { sendNewsletterConfirmationEmail } = await import('./email');
           await sendNewsletterConfirmationEmail(input.email, input.name);
         } catch (error) {
-          console.error('[Newsletter] Failed to send confirmation email:', error);
+          // Error already logged by email service
           // Don't fail the subscription if email fails
         }
         

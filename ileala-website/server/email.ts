@@ -1,4 +1,5 @@
 import { Resend } from 'resend';
+import { logger } from './_core/logger';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -17,10 +18,10 @@ export async function sendVerificationEmail(email: string, token: string, name: 
   const encodedToken = encodeURIComponent(token);
   const verificationUrl = `${siteUrl}/verify-email?token=${encodedToken}`;
   
-  console.log(`[Email] Attempting to send verification email to ${email}`);
-  console.log(`[Email] FROM: ${FROM_EMAIL}`);
-  console.log(`[Email] Resend API Key configured: ${!!process.env.RESEND_API_KEY}`);
-  console.log(`[Email] Verification URL: ${verificationUrl}`);
+  logger.info(`[Email] Attempting to send verification email to ${email}`);
+  logger.debug(`[Email] FROM: ${FROM_EMAIL}`);
+  logger.debug(`[Email] Resend API Key configured: ${!!process.env.RESEND_API_KEY}`);
+  logger.debug(`[Email] Verification URL: ${verificationUrl}`);
   
   try {
     const result = await resend.emails.send({
@@ -88,15 +89,13 @@ export async function sendVerificationEmail(email: string, token: string, name: 
       `,
     });
     
-    console.log(`[Email] Resend API response:`, JSON.stringify(result));
-    console.log(`[Email] Verification email sent successfully to ${email}`);
+    logger.debug(`[Email] Resend API response:`, JSON.stringify(result));
+    logger.info(`[Email] Verification email sent successfully to ${email}`);
     return true;
   } catch (error) {
-    console.error('[Email] ERROR sending verification email:', error);
-    console.error('[Email] Error details:', JSON.stringify(error, null, 2));
+    logger.error('[Email] ERROR sending verification email:', error);
     if (error instanceof Error) {
-      console.error('[Email] Error message:', error.message);
-      console.error('[Email] Error stack:', error.stack);
+      logger.error('[Email] Error details:', { message: error.message, stack: error.stack });
     }
     return false;
   }
@@ -155,10 +154,10 @@ export async function sendWelcomeEmail(email: string, name: string) {
       `,
     });
     
-    console.log(`[Email] Welcome email sent to ${email}`);
+    logger.info(`[Email] Welcome email sent to ${email}`);
     return true;
   } catch (error) {
-    console.error('[Email] Failed to send welcome email:', error);
+    logger.error('[Email] Failed to send welcome email:', error);
     return false;
   }
 }
@@ -170,11 +169,11 @@ export async function sendOrderConfirmationEmail(
   totalAmount: number,
   items: Array<{ name: string; quantity: number; price: number }>
 ) {
-  console.log(`[Email] Attempting to send order confirmation email to ${email}`);
-  console.log(`[Email] Order ID: ${orderId}`);
-  console.log(`[Email] Total amount: ${totalAmount} fils`);
-  console.log(`[Email] Items count: ${items.length}`);
-  console.log(`[Email] Resend API Key configured: ${!!process.env.RESEND_API_KEY}`);
+  logger.info(`[Email] Attempting to send order confirmation email to ${email}`);
+  logger.debug(`[Email] Order ID: ${orderId}`);
+  logger.debug(`[Email] Total amount: ${totalAmount} fils`);
+  logger.debug(`[Email] Items count: ${items.length}`);
+  logger.debug(`[Email] Resend API Key configured: ${!!process.env.RESEND_API_KEY}`);
   
   const formatPrice = (priceInFils: number) => {
     const aed = priceInFils / 100;
@@ -273,15 +272,13 @@ export async function sendOrderConfirmationEmail(
       `,
     });
     
-    console.log(`[Email] Order confirmation email sent successfully to ${email}`);
-    console.log(`[Email] Resend API response:`, JSON.stringify(result));
+    logger.info(`[Email] Order confirmation email sent successfully to ${email}`);
+    logger.debug(`[Email] Resend API response:`, JSON.stringify(result));
     return true;
   } catch (error) {
-    console.error('[Email] ERROR sending order confirmation email:', error);
-    console.error('[Email] Error details:', JSON.stringify(error, null, 2));
+    logger.error('[Email] ERROR sending order confirmation email:', error);
     if (error instanceof Error) {
-      console.error('[Email] Error message:', error.message);
-      console.error('[Email] Error stack:', error.stack);
+      logger.error('[Email] Error details:', { message: error.message, stack: error.stack });
     }
     return false;
   }
@@ -292,9 +289,9 @@ export async function sendNewsletterConfirmationEmail(email: string, name?: stri
   const siteUrl = getSiteUrl();
   const displayName = name || 'there';
   
-  console.log(`[Email] Attempting to send newsletter confirmation email to ${email}`);
-  console.log(`[Email] FROM: ${FROM_EMAIL}`);
-  console.log(`[Email] Resend API Key configured: ${!!process.env.RESEND_API_KEY}`);
+  logger.info(`[Email] Attempting to send newsletter confirmation email to ${email}`);
+  logger.debug(`[Email] FROM: ${FROM_EMAIL}`);
+  logger.debug(`[Email] Resend API Key configured: ${!!process.env.RESEND_API_KEY}`);
   
   try {
     const result = await resend.emails.send({
@@ -359,29 +356,27 @@ export async function sendNewsletterConfirmationEmail(email: string, name?: stri
       `,
     });
     
-    console.log(`[Email] Newsletter confirmation email sent successfully to ${email}`);
-    console.log(`[Email] Resend API response:`, JSON.stringify(result));
+    logger.info(`[Email] Newsletter confirmation email sent successfully to ${email}`);
+    logger.debug(`[Email] Resend API response:`, JSON.stringify(result));
     return true;
   } catch (error) {
-    console.error('[Email] ERROR sending newsletter confirmation email:', error);
-    console.error('[Email] Error details:', JSON.stringify(error, null, 2));
+    logger.error('[Email] ERROR sending newsletter confirmation email:', error);
     if (error instanceof Error) {
-      console.error('[Email] Error message:', error.message);
-      console.error('[Email] Error stack:', error.stack);
+      logger.error('[Email] Error details:', { message: error.message, stack: error.stack });
     }
     return false;
   }
 }
 
 export async function sendPasswordResetEmail(email: string, token: string, name: string) {
-  console.log('[sendPasswordResetEmail] Called with token:', token);
-  console.log('[sendPasswordResetEmail] Token length:', token.length);
+  logger.debug('[sendPasswordResetEmail] Called with token:', token.substring(0, 8) + '...');
+  logger.debug('[sendPasswordResetEmail] Token length:', token.length);
   const siteUrl = getSiteUrl();
   // Use encodeURIComponent to protect token from being corrupted by email clients
   const encodedToken = encodeURIComponent(token);
   const resetUrl = `${siteUrl}/reset-password?token=${encodedToken}`;
-  console.log('[sendPasswordResetEmail] Encoded token:', encodedToken);
-  console.log('[sendPasswordResetEmail] Reset URL:', resetUrl);
+  logger.debug('[sendPasswordResetEmail] Encoded token:', encodedToken.substring(0, 8) + '...');
+  logger.debug('[sendPasswordResetEmail] Reset URL:', resetUrl);
   
   try {
     await resend.emails.send({
@@ -452,9 +447,9 @@ export async function sendPasswordResetEmail(email: string, token: string, name:
       `,
     });
     
-    console.log(`Password reset email sent to ${email}`);
+    logger.info(`Password reset email sent to ${email}`);
   } catch (error) {
-    console.error('Failed to send password reset email:', error);
+    logger.error('Failed to send password reset email:', error);
     throw error;
   }
 }

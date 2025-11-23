@@ -4,6 +4,7 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import { InsertUser, users, products, Product, InsertProduct, orders, Order, InsertOrder, orderItems, OrderItem, InsertOrderItem, cartItems, CartItem, InsertCartItem, coupons, Coupon, InsertCoupon, newsletter, Newsletter, InsertNewsletter } from "../drizzle/schema";
 import { ENV } from './_core/env';
+import { logger } from './_core/logger';
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -16,7 +17,7 @@ export async function getDb() {
       });
       _db = drizzle(client);
     } catch (error) {
-      console.warn("[Database] Failed to connect:", error);
+      logger.warn("[Database] Failed to connect:", error);
       _db = null;
     }
   }
@@ -30,7 +31,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
 
   const db = await getDb();
   if (!db) {
-    console.warn("[Database] Cannot upsert user: database not available");
+    logger.warn("[Database] Cannot upsert user: database not available");
     return;
   }
 
@@ -78,7 +79,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       set: updateSet,
     });
   } catch (error) {
-    console.error("[Database] Failed to upsert user:", error);
+    logger.error("[Database] Failed to upsert user:", error);
     throw error;
   }
 }
@@ -377,7 +378,7 @@ export async function deleteCoupon(id: number) {
 // ===== LOCAL AUTHENTICATION =====
 
 export async function getUserByEmail(email: string) {
-  console.log('[getUserByEmail] Called with email:', email);
+    logger.debug('[getUserByEmail] Called with email:', email);
   const db = await getDb();
   if (!db) {
     console.warn("[Database] Cannot get user: database not available");
@@ -385,19 +386,19 @@ export async function getUserByEmail(email: string) {
   }
 
   try {
-    console.log('[getUserByEmail] Executing query...');
-    console.log('[getUserByEmail] Database object type:', typeof db);
-    console.log('[getUserByEmail] Database object keys:', Object.keys(db).slice(0, 5));
-    console.log('[getUserByEmail] Users table:', typeof users);
-    console.log('[getUserByEmail] Email to search:', email);
+    logger.debug('[getUserByEmail] Executing query...');
+    logger.debug('[getUserByEmail] Database object type:', typeof db);
+    logger.debug('[getUserByEmail] Database object keys:', Object.keys(db).slice(0, 5));
+    logger.debug('[getUserByEmail] Users table:', typeof users);
+    logger.debug('[getUserByEmail] Email to search:', email);
     const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
-    console.log('[getUserByEmail] Query successful, result count:', result.length);
+    logger.debug('[getUserByEmail] Query successful, result count:', result.length);
     return result.length > 0 ? result[0] : undefined;
   } catch (error) {
-    console.error('[getUserByEmail] Query failed!');
-    console.error('[getUserByEmail] Error:', error);
-    console.error('[getUserByEmail] Error message:', error instanceof Error ? error.message : 'Unknown');
-    console.error('[getUserByEmail] Error stack:', error instanceof Error ? error.stack : 'No stack');
+    logger.error('[getUserByEmail] Query failed!', error);
+    if (error instanceof Error) {
+      logger.error('[getUserByEmail] Error details:', { message: error.message, stack: error.stack });
+    }
     throw error;
   }
 }
@@ -452,7 +453,7 @@ export async function createUser(data: {
 export async function verifyUserCredentials(email: string, password: string) {
   const db = await getDb();
   if (!db) {
-    console.warn("[Database] Cannot verify credentials: database not available");
+    logger.warn("[Database] Cannot verify credentials: database not available");
     return null;
   }
 
@@ -661,7 +662,7 @@ export async function subscribeToNewsletter(email: string, name?: string, source
   if (!db) throw new Error("Database not available");
   
   try {
-    console.log('[Newsletter] Attempting to subscribe:', { email, name, source });
+    logger.info('[Newsletter] Attempting to subscribe:', { email, name: name ? 'provided' : 'not provided', source });
     
     // Check if already subscribed
     const existing = await getNewsletterSubscriberByEmail(email);
@@ -678,7 +679,7 @@ export async function subscribeToNewsletter(email: string, name?: string, source
           ...(name && name.trim() ? { name: name.trim() } : {}),
         })
         .where(eq(newsletter.email, email));
-      console.log('[Newsletter] Reactivated existing subscription');
+      logger.info('[Newsletter] Reactivated existing subscription');
       return { success: true };
     }
     
@@ -691,13 +692,13 @@ export async function subscribeToNewsletter(email: string, name?: string, source
       subscribedAt: new Date(),
     });
     
-    console.log('[Newsletter] Successfully inserted');
+    logger.info('[Newsletter] Successfully inserted');
     return { success: true };
   } catch (error: any) {
-    console.error('[Newsletter] Error inserting:', error);
-    console.error('[Newsletter] Error code:', error.code);
-    console.error('[Newsletter] Error message:', error.message);
-    console.error('[Newsletter] Error detail:', error.detail);
+    logger.error('[Newsletter] Error inserting:', error);
+    if (error && typeof error === 'object' && 'code' in error) {
+      logger.error('[Newsletter] Error details:', { code: error.code, message: error.message, detail: error.detail });
+    }
     // Check if it's a duplicate email error
     if (error.code === '23505' || error.message?.includes('unique') || error.message?.includes('duplicate')) {
       throw new Error('Email already subscribed');

@@ -9,6 +9,7 @@ import { Link, useLocation } from 'wouter';
 import { ShoppingCart, Loader2, Search, CreditCard } from 'lucide-react';
 import { toast } from 'sonner';
 import { trpc } from '@/lib/trpc';
+import LazyImage from '@/components/LazyImage';
 
 interface SanityProduct {
   _id: string;
@@ -276,7 +277,7 @@ export default function Shop() {
                     <Link href={`/sanity-products/${product.slug.current}`}>
                       <div className="aspect-square overflow-hidden bg-muted cursor-pointer relative">
                         {imageUrl ? (
-                          <img
+                          <LazyImage
                             src={imageUrl}
                             alt={product.mainImage?.alt || product.name}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
