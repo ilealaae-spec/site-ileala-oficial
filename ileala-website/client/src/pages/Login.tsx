@@ -34,36 +34,16 @@ export default function Login() {
       const newUrl = window.location.pathname + (urlParams.toString() ? `?${urlParams.toString()}` : '');
       window.history.replaceState({}, '', newUrl);
       
-      // Force refresh auth data with multiple attempts
-      const refreshAuth = async () => {
-        // First attempt - immediate
+      // Force refresh auth data - reload page to ensure cookie is read
+      setTimeout(() => {
         utils.auth.me.invalidate();
-        await refresh();
+        refresh();
         
-        // Wait a bit and try again (cookie might need time to be available)
-        setTimeout(async () => {
-          utils.auth.me.invalidate();
-          await refresh();
-          
-          // Check if authenticated after refresh
-          setTimeout(() => {
-            if (isAuthenticated && user) {
-              setLocation(redirect);
-            } else {
-              // If still not authenticated, try one more time
-              setTimeout(async () => {
-                utils.auth.me.invalidate();
-                await refresh();
-                if (isAuthenticated && user) {
-                  setLocation(redirect);
-                }
-              }, 500);
-            }
-          }, 300);
-        }, 500);
-      };
-      
-      refreshAuth();
+        // Reload page after a short delay to ensure cookie is available
+        setTimeout(() => {
+          window.location.href = redirect;
+        }, 1000);
+      }, 300);
     }
     
     // Show error if present
