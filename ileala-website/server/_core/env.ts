@@ -9,22 +9,74 @@ const RECOMMENDED_ENV_VARS = [
   'RESEND_API_KEY',
   'STRIPE_SECRET_KEY',
   'STRIPE_WEBHOOK_SECRET',
+  'SITE_URL',
+] as const;
+
+// Frontend variables (used during build)
+const FRONTEND_ENV_VARS = [
+  'VITE_APP_TITLE',
+  'VITE_APP_ID',
+  'VITE_APP_URL',
+  'VITE_SANITY_PROJECT_ID',
+  'VITE_SANITY_DATASET',
 ] as const;
 
 /**
- * Validates that all required environment variables are set.
- * Throws an error if any are missing.
+ * Validates environment variables and provides detailed feedback
  */
 function validateEnvVars() {
   const missing: string[] = [];
+  const invalid: Array<{ name: string; reason: string }> = [];
   
+  // Check required variables
   for (const varName of REQUIRED_ENV_VARS) {
     const value = process.env[varName];
     if (!value || value.trim() === '') {
       missing.push(varName);
+    } else {
+      // Additional validation
+      if (varName === 'DATABASE_URL' && !value.startsWith('postgresql://')) {
+        invalid.push({ name: varName, reason: 'Must start with postgresql://' });
+      }
+      if (varName === 'JWT_SECRET' && value.length < 32) {
+        invalid.push({ name: varName, reason: 'Must be at least 32 characters long' });
+      }
     }
   }
   
+  // Check recommended variables
+  const missingRecommended: string[] = [];
+  for (const varName of RECOMMENDED_ENV_VARS) {
+    const value = process.env[varName];
+    if (!value || value.trim() === '') {
+      missingRecommended.push(varName);
+    } else {
+      // Additional validation
+      if (varName === 'STRIPE_SECRET_KEY' && !value.startsWith('sk_')) {
+        invalid.push({ name: varName, reason: 'Must start with sk_live_ or sk_test_' });
+      }
+      if (varName === 'STRIPE_WEBHOOK_SECRET' && !value.startsWith('whsec_')) {
+        invalid.push({ name: varName, reason: 'Must start with whsec_' });
+      }
+      if (varName === 'RESEND_API_KEY' && !value.startsWith('re_')) {
+        invalid.push({ name: varName, reason: 'Must start with re_' });
+      }
+      if (varName === 'SITE_URL' && !value.startsWith('https://')) {
+        invalid.push({ name: varName, reason: 'Must start with https://' });
+      }
+    }
+  }
+  
+  // Check frontend variables (warn only)
+  const missingFrontend: string[] = [];
+  for (const varName of FRONTEND_ENV_VARS) {
+    const value = process.env[varName];
+    if (!value || value.trim() === '') {
+      missingFrontend.push(varName);
+    }
+  }
+  
+  // Report errors
   if (missing.length > 0) {
     throw new Error(
       `❌ Missing required environment variables: ${missing.join(', ')}\n` +
@@ -32,20 +84,32 @@ function validateEnvVars() {
     );
   }
   
-  // Warn about missing recommended variables
-  const missingRecommended: string[] = [];
-  for (const varName of RECOMMENDED_ENV_VARS) {
-    const value = process.env[varName];
-    if (!value || value.trim() === '') {
-      missingRecommended.push(varName);
-    }
+  if (invalid.length > 0) {
+    const invalidMessages = invalid.map(i => `  - ${i.name}: ${i.reason}`).join('\n');
+    throw new Error(
+      `❌ Invalid environment variables:\n${invalidMessages}\n` +
+      `Please correct these variables before starting the server.`
+    );
   }
   
+  // Report warnings
   if (missingRecommended.length > 0 && process.env.NODE_ENV === 'production') {
     console.warn(
       `⚠️  Warning: Missing recommended environment variables: ${missingRecommended.join(', ')}\n` +
       `Some features may not work correctly.`
     );
+  }
+  
+  if (missingFrontend.length > 0 && process.env.NODE_ENV === 'production') {
+    console.warn(
+      `⚠️  Warning: Missing frontend environment variables: ${missingFrontend.join(', ')}\n` +
+      `These are used during build time. The build may fail or have issues.`
+    );
+  }
+  
+  // Success message in development
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('✅ Environment variables validation passed');
   }
 }
 
