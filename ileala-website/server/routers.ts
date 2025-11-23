@@ -383,15 +383,15 @@ export const appRouter = router({
     create: protectedProcedure
       .input(z.object({
         items: z.array(z.object({
-          productId: z.number(),
-          quantity: z.number(),
-          price: z.number(),
-        })),
-        shippingAddress: z.string(),
-        customerName: z.string(),
-        customerEmail: z.string(),
-        customerPhone: z.string().optional(),
-        couponCode: z.string().optional(),
+          productId: z.number().int().positive('Product ID must be a positive number'),
+          quantity: quantitySchema,
+          price: z.number().min(0, 'Price cannot be negative').max(1000000, 'Price cannot exceed 1,000,000 AED'),
+        })).min(1, 'Order must have at least one item').max(100, 'Order cannot have more than 100 items'),
+        shippingAddress: addressSchema.refine((val) => val && val.length >= 5, 'Shipping address must be at least 5 characters'),
+        customerName: nameSchema,
+        customerEmail: emailSchema,
+        customerPhone: phoneSchema,
+        couponCode: couponCodeSchema.optional(),
       }))
       .mutation(async ({ input, ctx }) => {
         if (!ctx.user) throw new Error('Not authenticated');
