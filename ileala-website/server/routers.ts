@@ -7,6 +7,20 @@ import * as db from "./db";
 import Stripe from 'stripe';
 import { storagePut } from './storage';
 import { sdk } from "./_core/sdk";
+import {
+  emailSchema,
+  passwordSchema,
+  nameSchema,
+  phoneSchema,
+  addressSchema,
+  citySchema,
+  stateSchema,
+  countrySchema,
+  poBoxSchema,
+  couponCodeSchema,
+  quantitySchema,
+  orderTotalSchema,
+} from "./_core/validation";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
   apiVersion: '2025-10-29.clover',
@@ -55,8 +69,8 @@ export const appRouter = router({
     me: publicProcedure.query(opts => opts.ctx.user),
     login: publicProcedure
       .input(z.object({
-        email: z.string().email(),
-        password: z.string(),
+        email: emailSchema,
+        password: z.string().min(1, 'Password is required'),
       }))
       .mutation(async ({ input, ctx }) => {
         const { email, password } = input;
@@ -87,15 +101,15 @@ export const appRouter = router({
       }),
     register: publicProcedure
       .input(z.object({
-        name: z.string().min(2),
-        email: z.string().email(),
-        password: z.string().min(6),
-        phone: z.string().optional(),
-        address: z.string().optional(),
-        city: z.string().optional(),
-        state: z.string().optional(),
-        poBox: z.string().optional(),
-        country: z.string().optional(),
+        name: nameSchema,
+        email: emailSchema,
+        password: passwordSchema,
+        phone: phoneSchema,
+        address: addressSchema,
+        city: citySchema,
+        state: stateSchema,
+        poBox: poBoxSchema,
+        country: countrySchema,
       }))
       .mutation(async ({ input, ctx }) => {
         // Check if user already exists
@@ -177,8 +191,8 @@ export const appRouter = router({
   newsletter: router({
     subscribe: publicProcedure
       .input(z.object({
-        email: z.string().email(),
-        name: z.string().optional(),
+        email: emailSchema,
+        name: nameSchema.optional(),
       }))
       .mutation(async ({ input }) => {
         await db.subscribeToNewsletter(input.email, input.name);
@@ -303,8 +317,8 @@ export const appRouter = router({
     }),
     add: protectedProcedure
       .input(z.object({
-        productId: z.number(),
-        quantity: z.number().min(1),
+        productId: z.number().int().positive('Product ID must be a positive number'),
+        quantity: quantitySchema,
       }))
       .mutation(async ({ input, ctx }) => {
         if (!ctx.user) throw new Error('Not authenticated');
@@ -312,8 +326,8 @@ export const appRouter = router({
       }),
     update: protectedProcedure
       .input(z.object({
-        id: z.number(),
-        quantity: z.number().min(0),
+        id: z.number().int().positive('Cart item ID must be a positive number'),
+        quantity: z.number().int().min(0, 'Quantity cannot be negative').max(1000, 'Quantity cannot exceed 1000'),
       }))
       .mutation(async ({ input }) => {
         if (input.quantity === 0) {
@@ -340,8 +354,8 @@ export const appRouter = router({
   coupons: router({
     validate: publicProcedure
       .input(z.object({
-        code: z.string(),
-        orderTotal: z.number(),
+        code: couponCodeSchema,
+        orderTotal: orderTotalSchema,
       }))
       .mutation(async ({ input }) => {
         const validation = await db.validateCoupon(input.code, input.orderTotal);
