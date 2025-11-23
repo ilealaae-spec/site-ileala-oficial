@@ -7,6 +7,8 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { LanguageProvider } from "./contexts/LanguageContext";
 import { CartProvider } from "./contexts/CartContext";
+import { trpc } from "@/lib/trpc";
+import { useEffect } from "react";
 import Home from "./pages/Home";
 import Shop from "./pages/Shop";
 import ProductDetail from "./pages/ProductDetail";
@@ -126,6 +128,22 @@ function Router() {
 // - If you want to make theme switchable, pass `switchable` ThemeProvider and use `useTheme` hook
 
 function App() {
+  const utils = trpc.useUtils();
+
+  // Invalidate auth.me query after Google OAuth redirect
+  useEffect(() => {
+    // Check if we're coming from Google OAuth callback
+    const urlParams = new URLSearchParams(window.location.search);
+    const isOAuthCallback = window.location.pathname === '/' && 
+      (urlParams.has('code') || urlParams.has('state') || urlParams.has('error'));
+    
+    // Also check if we just logged in (cookie might have been set)
+    if (isOAuthCallback || document.cookie.includes('__session')) {
+      // Invalidate auth query to refresh user data
+      utils.auth.me.invalidate();
+    }
+  }, [utils]);
+
   return (
     <ErrorBoundary>
       <ThemeProvider
