@@ -12,6 +12,7 @@ import { apiLimiter } from "../middleware/rateLimiter";
 import { neon } from "@neondatabase/serverless";
 import bcrypt from "bcryptjs";
 import { logger } from "./logger";
+import { setupSecurityHeaders, setupCORS, setupRequestId } from "./security";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -35,6 +36,16 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 async function startServer() {
   const app = express();
   const server = createServer(app);
+  
+  // Security headers (must be first)
+  setupSecurityHeaders(app);
+  
+  // CORS configuration
+  setupCORS(app);
+  
+  // Request ID for tracing
+  setupRequestId(app);
+  
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));

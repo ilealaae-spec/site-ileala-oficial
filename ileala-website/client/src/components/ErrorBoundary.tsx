@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 import { AlertTriangle, RotateCcw, Home } from "lucide-react";
 import { Component, ReactNode } from "react";
+import React from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 interface Props {
@@ -33,7 +34,28 @@ class ErrorBoundaryClass extends Component<Props, State> {
     // In production, you could send this to an error tracking service
     // Example: Sentry.captureException(error, { contexts: { react: errorInfo } });
     
+    // Log error details for debugging
+    const errorDetails = {
+      message: error.message,
+      stack: error.stack,
+      componentStack: errorInfo.componentStack,
+      timestamp: new Date().toISOString(),
+    };
+    
+    // In production, send to error tracking service
+    if (process.env.NODE_ENV === 'production') {
+      // You can send to error tracking service here
+      // Example: fetch('/api/errors', { method: 'POST', body: JSON.stringify(errorDetails) });
+    }
+    
     this.setState({ errorInfo });
+  }
+
+  // Reset error boundary when navigating
+  componentDidUpdate(prevProps: Props) {
+    if (prevProps.children !== this.props.children && this.state.hasError) {
+      this.setState({ hasError: false, error: null, errorInfo: null });
+    }
   }
 
   render() {
@@ -130,6 +152,19 @@ function ErrorFallback({ error, errorInfo }: { error: Error | null; errorInfo: R
 // Wrapper component to provide ErrorBoundary with hooks support
 function ErrorBoundary({ children, fallback }: Props) {
   return <ErrorBoundaryClass fallback={fallback}>{children}</ErrorBoundaryClass>;
+}
+
+// Hook to reset error boundary programmatically
+export function useErrorBoundary() {
+  const [error, setError] = React.useState<Error | null>(null);
+  
+  React.useEffect(() => {
+    if (error) {
+      throw error;
+    }
+  }, [error]);
+  
+  return { setError, resetError: () => setError(null) };
 }
 
 export default ErrorBoundary;
