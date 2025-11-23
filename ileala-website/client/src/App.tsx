@@ -35,6 +35,17 @@ import AdminProducts from "./pages/admin/Products";
 import AdminOrders from "./pages/admin/Orders";
 import AdminCoupons from "./pages/admin/Coupons";
 import AdminEmergencyLogin from "./pages/AdminEmergencyLogin";
+import SanityProducts from "./pages/SanityProducts";
+import SanityProductDetail from "./pages/SanityProductDetail";
+import SanityCart from "./pages/SanityCart";
+import PaymentSuccess from "./pages/PaymentSuccess";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import Profile from "./pages/Profile";
+import Orders from "./pages/Orders";
+import VerifyEmail from "./pages/VerifyEmail";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import AdminLayout from "./components/AdminLayout";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
@@ -50,9 +61,20 @@ function Router() {
           <Route path={"/"} component={Home} />
           <Route path="/shop" component={Shop} />
           <Route path="/shop/:slug" component={ProductDetail} />
+          <Route path="/products" component={SanityProducts} />
+          <Route path="/products/:slug" component={SanityProductDetail} />
+          <Route path="/sanity-products/:slug" component={SanityProductDetail} />
+          <Route path="/payment-success" component={PaymentSuccess} />
           <Route path="/product/:id" component={ProductDetail} />
-          <Route path="/cart" component={Cart} />
+          <Route path="/cart" component={SanityCart} />
           <Route path="/checkout" component={Checkout} />
+          <Route path="/login" component={Login} />
+          <Route path="/register" component={Register} />
+          <Route path="/profile" component={Profile} />
+          <Route path="/orders" component={Orders} />
+          <Route path="/verify-email" component={VerifyEmail} />
+          <Route path="/forgot-password" component={ForgotPassword} />
+          <Route path="/reset-password" component={ResetPassword} />
           <Route path="/order-confirmation/:id" component={OrderConfirmation} />
           <Route path="/promote-admin" component={PromoteAdmin} />
           <Route path="/admin-emergency-login" component={AdminEmergencyLogin} />
