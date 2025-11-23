@@ -85,6 +85,72 @@ export const appRouter = router({
 
         return { success: true, user: sessionData };
       }),
+    register: publicProcedure
+      .input(z.object({
+        name: z.string().min(2),
+        email: z.string().email(),
+        password: z.string().min(6),
+        phone: z.string().optional(),
+        address: z.string().optional(),
+        city: z.string().optional(),
+        state: z.string().optional(),
+        poBox: z.string().optional(),
+        country: z.string().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        // Check if user already exists
+        const existingUser = await db.getUserByEmail(input.email);
+        
+        if (existingUser) {
+          throw new Error('User with this email already exists');
+        }
+        
+        // Create user
+        const userId = await db.createUser({
+          email: input.email,
+          name: input.name,
+          password: input.password,
+          phone: input.phone,
+          address: input.address,
+          city: input.city,
+          state: input.state,
+          poBox: input.poBox,
+          country: input.country,
+        });
+        
+        // Get created user
+        const user = await db.getUserById(userId);
+        
+        if (!user) {
+          throw new Error('Failed to create user');
+        }
+        
+        // Generate email verification token
+        const token = await db.generateEmailVerificationToken(user.id);
+        
+        // Send verification email
+        const { sendVerificationEmail } = await import('./email');
+        await sendVerificationEmail(user.email, token, user.name || 'Customer');
+        
+        // Set session cookie
+        const sessionData = {
+          id: user.id,
+          email: user.email,
+          name: user.name || null,
+          role: user.role || 'user',
+        };
+        
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(COOKIE_NAME, JSON.stringify(sessionData), {
+          ...cookieOptions,
+          maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year
+        });
+        
+        return {
+          success: true,
+          user: sessionData,
+        };
+      }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
@@ -92,6 +158,38 @@ export const appRouter = router({
         success: true,
       } as const;
     }),
+  }),
+
+  // Newsletter router
+  newsletter: router({
+    subscribe: publicProcedure
+      .input(z.object({
+        email: z.string().email(),
+        name: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        await db.subscribeToNewsletter(input.email, input.name);
+        return { success: true };
+      }),
+    list: protectedProcedure
+      .input(z.object({
+        activeOnly: z.boolean().default(true),
+      }).optional())
+      .query(async ({ input, ctx }) => {
+        if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+        return await db.getAllNewsletterSubscribers(input?.activeOnly ?? true);
+      }),
+    stats: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+      return await db.getNewsletterStats();
+    }),
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+        await db.deleteNewsletterSubscriber(input.id);
+        return { success: true };
+      }),
   }),
 
   // Products router

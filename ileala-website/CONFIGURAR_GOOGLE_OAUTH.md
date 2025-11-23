@@ -13,22 +13,29 @@ Para o Google OAuth funcionar, você precisa configurar as seguintes variáveis 
 - **`GOOGLE_CLIENT_SECRET`**: O Client Secret do Google OAuth ✅ (já configurado)
 - **`SITE_URL`**: `https://www.ileala.ae` (verificar se está configurado)
 
-## Como Obter as Credenciais do Google
+## Como Obter e Configurar as Credenciais do Google
 
 1. Acesse o [Google Cloud Console](https://console.cloud.google.com/)
-2. Crie um novo projeto ou selecione um existente
-3. Vá em **APIs & Services** → **Credentials**
-4. Clique em **Create Credentials** → **OAuth client ID**
-5. Configure:
-   - **Application type**: Web application
-   - **Name**: Ile Ala Website
-   - **Authorized JavaScript origins**: 
-     - `https://www.ileala.ae`
-     - `https://ileala.ae`
-   - **Authorized redirect URIs**:
+2. Selecione o projeto **"ile-ala-website"** (ou crie um novo se necessário)
+3. **⚠️ IMPORTANTE: Vá em "APIs & Services" → "Credentials"** (não é no Centro de Verificação!)
+4. Se você já tem um OAuth Client ID criado:
+   - Clique no nome do OAuth Client ID (ex: "Ile Ala Website")
+   - Role até a seção **"Authorized redirect URIs"**
+   - **Verifique se esta URL está adicionada:**
      - `https://www.ileala.ae/api/oauth/google/callback` ⚠️ **OBRIGATÓRIO**
-     - (O código sempre usa www.ileala.ae, então esta é a única URL necessária)
-6. Copie o **Client ID** e **Client Secret**
+   - Se não estiver, clique em **"+ ADD URI"** e adicione
+   - Clique em **"SAVE"** no final da página
+5. Se você ainda não tem um OAuth Client ID:
+   - Clique em **"+ CREATE CREDENTIALS"** → **"OAuth client ID"**
+   - Configure:
+     - **Application type**: Web application
+     - **Name**: Ile Ala Website
+     - **Authorized JavaScript origins**: 
+       - `https://www.ileala.ae`
+     - **Authorized redirect URIs**:
+       - `https://www.ileala.ae/api/oauth/google/callback` ⚠️ **OBRIGATÓRIO**
+   - Clique em **"CREATE"**
+6. Copie o **Client ID** e **Client Secret** (você verá uma tela com esses valores)
 
 ## Configurar no Railway
 
