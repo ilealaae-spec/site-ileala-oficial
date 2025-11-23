@@ -26,8 +26,8 @@ Para o Google OAuth funcionar, você precisa configurar as seguintes variáveis 
      - `https://www.ileala.ae`
      - `https://ileala.ae`
    - **Authorized redirect URIs**:
-     - `https://www.ileala.ae/api/oauth/google/callback`
-     - `https://ileala.ae/api/oauth/google/callback`
+     - `https://www.ileala.ae/api/oauth/google/callback` ⚠️ **OBRIGATÓRIO**
+     - (O código sempre usa www.ileala.ae, então esta é a única URL necessária)
 6. Copie o **Client ID** e **Client Secret**
 
 ## Configurar no Railway
