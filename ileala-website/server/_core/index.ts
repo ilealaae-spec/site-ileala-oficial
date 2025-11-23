@@ -11,6 +11,7 @@ import { serveStatic, setupVite } from "./vite";
 import { apiLimiter } from "../middleware/rateLimiter";
 import { neon } from "@neondatabase/serverless";
 import bcrypt from "bcryptjs";
+import { logger } from "./logger";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -165,7 +166,7 @@ async function startServer() {
         ],
       });
     } catch (error: any) {
-      console.error('[Emergency Admin] Error:', error);
+      logger.error('[Emergency Admin] Error:', error);
       return res.status(500).json({
         success: false,
         error: 'Failed to create emergency admin user',
@@ -192,12 +193,16 @@ async function startServer() {
   const port = await findAvailablePort(preferredPort);
 
   if (port !== preferredPort) {
-    console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
+    logger.warn(`Port ${preferredPort} is busy, using port ${port} instead`);
   }
 
   server.listen(port, () => {
-    console.log(`Server running on http://localhost:${port}/`);
+    logger.info(`Server running on http://localhost:${port}/`);
+    logger.info(`Health check available at http://localhost:${port}/health`);
   });
 }
 
-startServer().catch(console.error);
+startServer().catch((error) => {
+  logger.error('Failed to start server:', error);
+  process.exit(1);
+});

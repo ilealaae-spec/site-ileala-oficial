@@ -122,7 +122,7 @@ export default function SanityProducts() {
                 {/* Product Image */}
                 <div className="aspect-square bg-gray-100 relative">
                   {product.mainImage?.asset?.url ? (
-                    <img
+                    <LazyImage
                       src={product.mainImage.asset.url}
                       alt={product.name}
                       className="w-full h-full object-cover"
