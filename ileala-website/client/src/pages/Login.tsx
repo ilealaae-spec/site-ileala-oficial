@@ -29,27 +29,48 @@ export default function Login() {
     // If OAuth success, invalidate and refresh
     if (oauthSuccess) {
       urlParams.delete('oauth_success');
+      const redirect = urlParams.get('redirect') || '/';
+      urlParams.delete('redirect');
       const newUrl = window.location.pathname + (urlParams.toString() ? `?${urlParams.toString()}` : '');
       window.history.replaceState({}, '', newUrl);
       
-      // Force refresh auth data
-      setTimeout(() => {
+      // Force refresh auth data with multiple attempts
+      const refreshAuth = async () => {
+        // First attempt - immediate
         utils.auth.me.invalidate();
-        refresh();
+        await refresh();
         
-        // If user is now authenticated, redirect
-        setTimeout(() => {
-          if (isAuthenticated && user) {
-            const redirect = urlParams.get('redirect') || '/';
-            setLocation(redirect);
-          }
+        // Wait a bit and try again (cookie might need time to be available)
+        setTimeout(async () => {
+          utils.auth.me.invalidate();
+          await refresh();
+          
+          // Check if authenticated after refresh
+          setTimeout(() => {
+            if (isAuthenticated && user) {
+              setLocation(redirect);
+            } else {
+              // If still not authenticated, try one more time
+              setTimeout(async () => {
+                utils.auth.me.invalidate();
+                await refresh();
+                if (isAuthenticated && user) {
+                  setLocation(redirect);
+                }
+              }, 500);
+            }
+          }, 300);
         }, 500);
-      }, 200);
+      };
+      
+      refreshAuth();
     }
     
     // Show error if present
     if (error) {
-      toast.error(decodeURIComponent(error));
+      const errorMsg = decodeURIComponent(error);
+      toast.error(errorMsg);
+      console.error('[Login] OAuth error:', errorMsg);
       // Clean URL
       urlParams.delete('error');
       const newUrl = window.location.pathname + (urlParams.toString() ? `?${urlParams.toString()}` : '');
