@@ -30,7 +30,7 @@ export default function LazyImage({
   const [isLoaded, setIsLoaded] = useState(false);
   const [isInView, setIsInView] = useState(false);
   const [hasError, setHasError] = useState(false);
-  const imgRef = useRef<HTMLImageElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Check WebP support
   useEffect(() => {
@@ -45,8 +45,8 @@ export default function LazyImage({
   }, []);
 
   useEffect(() => {
-    const img = imgRef.current;
-    if (!img) return;
+    const container = containerRef.current;
+    if (!container) return;
 
     // Use Intersection Observer for lazy loading
     const observer = new IntersectionObserver(
@@ -64,7 +64,7 @@ export default function LazyImage({
       }
     );
 
-    observer.observe(img);
+    observer.observe(container);
 
     return () => {
       observer.disconnect();
@@ -81,7 +81,7 @@ export default function LazyImage({
   };
 
   return (
-    <div className={cn('relative overflow-hidden', className)}>
+    <div ref={containerRef} className={cn('relative overflow-hidden', className)}>
       {/* Placeholder */}
       {!isLoaded && !hasError && (
         <img
@@ -101,7 +101,6 @@ export default function LazyImage({
           )}
           {/* Fallback image */}
           <img
-            ref={imgRef}
             src={fallbackSrc || src}
             alt={alt}
             className={cn(
@@ -126,4 +125,3 @@ export default function LazyImage({
     </div>
   );
 }
-
