@@ -94,15 +94,6 @@ const collections = [
     essencePt: 'Elegância que prepara o cenário.',
   },
   {
-    id: 'napkin-rings',
-    name: 'Napkin Rings',
-    image: '/images/complementary_napkin_rings.webp',
-    phrase: 'Small details, grand impressions.',
-    phrasePt: 'Pequenos detalhes, grandes impressões.',
-    essence: 'The finishing touch of refinement.',
-    essencePt: 'O toque final de refinamento.',
-  },
-  {
     id: 'hand-towels',
     name: 'Hand Towels',
     image: '/images/complementary_hand_towels.webp',
