@@ -18,7 +18,6 @@ import { useAuth } from "@/_core/hooks/useAuth";
 
 // Lazy load pages for code splitting
 const Home = lazy(() => import("./pages/Home"));
-const Shop = lazy(() => import("./pages/Shop"));
 const ProductDetail = lazy(() => import("./pages/ProductDetail"));
 const SanityProducts = lazy(() => import("./pages/SanityProducts"));
 const SanityProductDetail = lazy(() => import("./pages/SanityProductDetail"));
@@ -82,7 +81,6 @@ function Router() {
         <Suspense fallback={<PageLoader />}>
           <Switch>
             <Route path={"/"} component={Home} />
-            <Route path="/shop" component={Shop} />
             <Route path="/shop/:slug" component={ProductDetail} />
             <Route path="/products" component={SanityProducts} />
             <Route path="/products/:slug" component={SanityProductDetail} />
