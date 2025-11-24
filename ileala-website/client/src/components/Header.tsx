@@ -115,7 +115,7 @@ export default function Header() {
           </div>
         )}
         {/* Social Media Icons */}
-        <div className="hidden lg:flex items-center gap-2 mr-2 ml-2">
+        <div className="hidden lg:flex items-center gap-3 mr-2 ml-6 pl-6 border-l border-border">
           <a 
             href="https://instagram.com/ileala.ae" 
             target="_blank" 
