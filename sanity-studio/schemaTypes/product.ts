@@ -60,9 +60,7 @@ export default defineType({
       options: {
         list: [
           {title: 'Tableware', value: 'tableware'},
-          {title: 'Home & Décor', value: 'home-decor'},
           {title: 'Bags & Accessories', value: 'bags-accessories'},
-          {title: 'Sleepwear', value: 'sleepwear'},
           {title: 'Pet Collection', value: 'pet-collection'},
         ],
       },

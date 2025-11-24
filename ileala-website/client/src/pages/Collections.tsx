@@ -84,6 +84,42 @@ const collections = [
     essence: 'The celebration of cycles and renewal.',
     essencePt: 'A celebração dos ciclos e da renovação.',
   },
+  {
+    id: 'tablecloths',
+    name: 'Tablecloths & Runners',
+    image: '/images/complementary_tablecloths.webp',
+    phrase: 'The foundation of every table.',
+    phrasePt: 'A base de cada mesa.',
+    essence: 'Elegance that sets the stage.',
+    essencePt: 'Elegância que prepara o cenário.',
+  },
+  {
+    id: 'napkin-rings',
+    name: 'Napkin Rings',
+    image: '/images/complementary_napkin_rings.webp',
+    phrase: 'Small details, grand impressions.',
+    phrasePt: 'Pequenos detalhes, grandes impressões.',
+    essence: 'The finishing touch of refinement.',
+    essencePt: 'O toque final de refinamento.',
+  },
+  {
+    id: 'hand-towels',
+    name: 'Hand Towels',
+    image: '/images/complementary_hand_towels.webp',
+    phrase: 'Softness meets sophistication.',
+    phrasePt: 'Maciez encontra sofisticação.',
+    essence: 'Comfort woven into every fiber.',
+    essencePt: 'Conforto tecido em cada fibra.',
+  },
+  {
+    id: 'cushions',
+    name: 'Cushions',
+    image: '/images/complementary_cushions.webp',
+    phrase: 'Where comfort embraces beauty.',
+    phrasePt: 'Onde o conforto abraça a beleza.',
+    essence: 'Artistry you can rest upon.',
+    essencePt: 'Arte onde você pode descansar.',
+  },
 ];
 
 export default function Collections() {
@@ -159,66 +195,7 @@ export default function Collections() {
         </div>
       </section>
 
-      {/* Additional Collections */}
-      <section className="py-16 bg-muted/30">
-        <div className="container">
-          <h2 className="text-3xl font-bold text-center mb-12 text-primary">Complementary Collections</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
-            <div className="text-center">
-              <div className="aspect-square overflow-hidden rounded-lg mb-4">
-                <img 
-                  src="/images/complementary_tablecloths.webp" 
-                  alt="Tablecloths & Runners"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <h3 className="text-xl font-semibold mb-3">Tablecloths & Runners</h3>
-              <p className="text-sm italic text-muted-foreground">
-                {t.collections.tablecloths}
-              </p>
-            </div>
-            <div className="text-center">
-              <div className="aspect-square overflow-hidden rounded-lg mb-4">
-                <img 
-                  src="/images/complementary_napkin_rings.webp" 
-                  alt="Napkin Rings"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <h3 className="text-xl font-semibold mb-3">Napkin Rings</h3>
-              <p className="text-sm italic text-muted-foreground">
-                {t.collections.napkinRings}
-              </p>
-            </div>
-            <div className="text-center">
-              <div className="aspect-square overflow-hidden rounded-lg mb-4">
-                <img 
-                  src="/images/complementary_hand_towels.webp" 
-                  alt="Hand Towels"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <h3 className="text-xl font-semibold mb-3">Hand Towels</h3>
-              <p className="text-sm italic text-muted-foreground">
-                {t.collections.handTowels}
-              </p>
-            </div>
-            <div className="text-center">
-              <div className="aspect-square overflow-hidden rounded-lg mb-4">
-                <img 
-                  src="/images/complementary_cushions.webp" 
-                  alt="Cushions"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <h3 className="text-xl font-semibold mb-3">Cushions</h3>
-              <p className="text-sm italic text-muted-foreground">
-                {t.collections.cushions}
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
+
     </div>
   );
 }
