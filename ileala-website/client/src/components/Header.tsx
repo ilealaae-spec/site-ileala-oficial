@@ -54,9 +54,6 @@ export default function Header() {
           <Link href="/contact" className="text-sm font-medium transition-colors hover:text-primary">
             {t.nav.contact}
           </Link>
-          <Link href="/shop" className="text-sm font-medium transition-colors hover:text-primary">
-            {language === 'en' ? 'Shop' : 'Loja'}
-          </Link>
         </nav>
 
         <div className="flex items-center gap-2">
