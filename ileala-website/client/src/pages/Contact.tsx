@@ -60,7 +60,7 @@ export default function Contact() {
               <h3 className="text-xl font-semibold mb-3">Social Media</h3>
               <div className="flex gap-4 justify-center">
                 <a 
-                  href="https://instagram.com/ileala" 
+                  href="https://www.instagram.com/ileala.ae" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-primary hover:text-primary/80 transition-colors"
@@ -68,7 +68,7 @@ export default function Contact() {
                   <Instagram className="h-6 w-6" />
                 </a>
                 <a 
-                  href="https://facebook.com/ileala" 
+                  href="https://www.facebook.com/share/17f63HzTAk/?mibextid=wwXIfr" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-primary hover:text-primary/80 transition-colors"
