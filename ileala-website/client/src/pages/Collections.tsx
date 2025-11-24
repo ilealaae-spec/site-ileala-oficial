@@ -84,33 +84,6 @@ const collections = [
     essence: 'The celebration of cycles and renewal.',
     essencePt: 'A celebração dos ciclos e da renovação.',
   },
-  {
-    id: 'tablecloths',
-    name: 'Tablecloths & Runners',
-    image: '/images/complementary_tablecloths.webp',
-    phrase: 'The foundation of every table.',
-    phrasePt: 'A base de cada mesa.',
-    essence: 'Elegance that sets the stage.',
-    essencePt: 'Elegância que prepara o cenário.',
-  },
-  {
-    id: 'hand-towels',
-    name: 'Hand Towels',
-    image: '/images/complementary_hand_towels.webp',
-    phrase: 'Softness meets sophistication.',
-    phrasePt: 'Maciez encontra sofisticação.',
-    essence: 'Comfort woven into every fiber.',
-    essencePt: 'Conforto tecido em cada fibra.',
-  },
-  {
-    id: 'cushions',
-    name: 'Cushions',
-    image: '/images/complementary_cushions.webp',
-    phrase: 'Where comfort embraces beauty.',
-    phrasePt: 'Onde o conforto abraça a beleza.',
-    essence: 'Artistry you can rest upon.',
-    essencePt: 'Arte onde você pode descansar.',
-  },
 ];
 
 export default function Collections() {

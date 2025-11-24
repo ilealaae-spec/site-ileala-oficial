@@ -44,8 +44,10 @@ const About = lazy(() => import("./pages/About"));
 const Collections = lazy(() => import("./pages/Collections"));
 const CollectionPage = lazy(() => import("./pages/CollectionPage"));
 const PetCollection = lazy(() => import("./pages/PetCollection"));
-const BagsAccessories = lazy(() => import("./pages/BagsAccessories"));
+const Accessories = lazy(() => import("./pages/Accessories"));
 const NapkinRings = lazy(() => import("./pages/NapkinRings"));
+const TableEssentials = lazy(() => import("./pages/TableEssentials"));
+const HomeAccents = lazy(() => import("./pages/HomeAccents"));
 const Contact = lazy(() => import("./pages/Contact"));
 const AIPolicy = lazy(() => import("./pages/AIPolicy"));
 const Terms = lazy(() => import("./pages/Terms"));
@@ -127,8 +129,10 @@ function Router() {
             <Route path={"/collections"} component={Collections} />
             <Route path="/collections/:slug" component={CollectionPage} />
             <Route path={"/napkin-rings"} component={NapkinRings} />
+            <Route path={"/table-essentials"} component={TableEssentials} />
+            <Route path={"/home-accents"} component={HomeAccents} />
+            <Route path={"/accessories"} component={Accessories} />
             <Route path={"/pet-collection"} component={PetCollection} />
-            <Route path={"/bags-accessories"} component={BagsAccessories} />
             <Route path={"/contact"} component={Contact} />
             <Route path={"/ai-policy"} component={AIPolicy} />
             <Route path={"/terms"} component={Terms} />

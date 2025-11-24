@@ -48,11 +48,17 @@ export default function Header() {
           <Link href="/napkin-rings" className="text-sm font-medium transition-colors hover:text-primary">
             {language === 'en' ? 'Napkin Rings' : 'Porta Guardanapos'}
           </Link>
+          <Link href="/table-essentials" className="text-sm font-medium transition-colors hover:text-primary">
+            {language === 'en' ? 'Table Essentials' : 'Essenciais de Mesa'}
+          </Link>
+          <Link href="/home-accents" className="text-sm font-medium transition-colors hover:text-primary">
+            {language === 'en' ? 'Home Accents' : 'Detalhes para Casa'}
+          </Link>
+          <Link href="/accessories" className="text-sm font-medium transition-colors hover:text-primary">
+            {language === 'en' ? 'Accessories' : 'Acessórios'}
+          </Link>
           <Link href="/pet-collection" className="text-sm font-medium transition-colors hover:text-primary">
             {language === 'en' ? 'Pet Collection' : 'Pet Collection'}
-          </Link>
-          <Link href="/bags-accessories" className="text-sm font-medium transition-colors hover:text-primary">
-            {language === 'en' ? 'Bags & Accessories' : 'Bolsas & Acessórios'}
           </Link>
           <Link href="/contact" className="text-sm font-medium transition-colors hover:text-primary">
             {t.nav.contact}
