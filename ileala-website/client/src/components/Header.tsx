@@ -45,6 +45,9 @@ export default function Header() {
           <Link href="/collections" className="text-sm font-medium transition-colors hover:text-primary">
             {t.nav.collections}
           </Link>
+          <Link href="/napkin-rings" className="text-sm font-medium transition-colors hover:text-primary">
+            {language === 'en' ? 'Napkin Rings' : 'Porta Guardanapos'}
+          </Link>
           <Link href="/pet-collection" className="text-sm font-medium transition-colors hover:text-primary">
             {language === 'en' ? 'Pet Collection' : 'Pet Collection'}
           </Link>
