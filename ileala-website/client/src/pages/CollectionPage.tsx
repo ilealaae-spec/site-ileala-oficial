@@ -173,7 +173,7 @@ export default function CollectionPage() {
               {/* Product Image */}
               <div
                 className="relative h-80 bg-gray-100 cursor-pointer overflow-hidden"
-                onClick={() => setLocation(`/shop/${product.slug.current}`)}
+                onClick={() => setLocation(`/sanity-products/${product.slug.current}`)}
               >
                 {product.mainImage ? (
                   <LazyImage
@@ -199,7 +199,7 @@ export default function CollectionPage() {
               <div className="p-6">
                 <h3
                   className="text-xl font-semibold text-gray-900 mb-2 cursor-pointer hover:text-primary transition-colors"
-                  onClick={() => setLocation(`/shop/${product.slug.current}`)}
+                  onClick={() => setLocation(`/sanity-products/${product.slug.current}`)}
                 >
                   {product.name}
                 </h3>
