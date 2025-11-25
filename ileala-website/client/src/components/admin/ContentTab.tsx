@@ -131,22 +131,48 @@ export default function ContentTab() {
       
       let successCount = 0;
       let errorCount = 0;
+      const failedKeys: string[] = [];
+      
+      console.log('[Import] Starting import of', Object.keys(enFlat).length, 'translations');
       
       for (const key of Object.keys(enFlat)) {
         try {
-          await upsertMutation.mutateAsync({
+          const data = {
             key,
             contentType: 'text',
             contentEN: enFlat[key],
             contentPT: ptFlat[key] || enFlat[key],
             metadata: JSON.stringify({ category: key.split('.')[0], imported: true }),
+          };
+          
+          console.log(`[Import] Importing ${key}:`, {
+            enLength: enFlat[key]?.length,
+            ptLength: (ptFlat[key] || enFlat[key])?.length,
           });
+          
+          await upsertMutation.mutateAsync(data);
           successCount++;
-        } catch (error) {
-          console.error(`Failed to import ${key}:`, error);
+          console.log(`[Import] ✅ Success: ${key}`);
+        } catch (error: any) {
+          console.error(`[Import] ❌ Failed to import ${key}:`, {
+            error: error.message,
+            data: {
+              key,
+              enLength: enFlat[key]?.length,
+              ptLength: (ptFlat[key] || enFlat[key])?.length,
+            }
+          });
+          failedKeys.push(key);
           errorCount++;
         }
       }
+      
+      console.log('[Import] Summary:', {
+        total: Object.keys(enFlat).length,
+        success: successCount,
+        errors: errorCount,
+        failedKeys,
+      });
       
       toast.success(language === 'en'
         ? `Imported ${successCount} entries! ${errorCount > 0 ? `(${errorCount} errors)` : ''}`
@@ -154,6 +180,7 @@ export default function ContentTab() {
       
       utils.cms.content.list.invalidate();
     } catch (error) {
+      console.error('[Import] Fatal error:', error);
       toast.error(language === 'en' ? 'Import failed!' : 'Falha na importação!');
     } finally {
       setIsImporting(false);
