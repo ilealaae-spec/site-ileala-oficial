@@ -12,7 +12,7 @@ export default function AdminEmergencyLogin() {
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
-    const loginMutation = trpc.user.login.useMutation({
+    const loginMutation = trpc.auth.login.useMutation({
         onSuccess: () => {
             toast.success('Emergency login successful');
             // Force a hard reload to ensure session cookies are picked up
