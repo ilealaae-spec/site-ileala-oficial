@@ -35,7 +35,7 @@ export default function Header() {
           />
         </Link>
 
-        <nav className="hidden md:flex items-center space-x-8">
+        <nav className="hidden md:flex items-center space-x-8 ml-12">
           <Link href="/" className="text-sm font-medium transition-colors hover:text-primary">
             {t.nav.home}
           </Link>
@@ -65,7 +65,28 @@ export default function Header() {
           </Link>
         </nav>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4">
+        {/* Social Media Icons */}
+        <div className="hidden lg:flex items-center gap-3 pl-4 border-l border-border">
+          <a 
+            href="https://instagram.com/ileala.ae" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-muted-foreground hover:text-primary transition-colors"
+            aria-label="Instagram"
+          >
+            <Instagram className="h-4 w-4" />
+          </a>
+          <a 
+            href="https://www.facebook.com/share/17f63HzTAk/?mibextid=wwXIfr" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-muted-foreground hover:text-primary transition-colors"
+            aria-label="Facebook"
+          >
+            <Facebook className="h-4 w-4" />
+          </a>
+        </div>
         {/* User Menu */}
         {isAuthenticated && user ? (
           <DropdownMenu>
@@ -114,27 +135,7 @@ export default function Header() {
             </Link>
           </div>
         )}
-        {/* Social Media Icons */}
-        <div className="hidden lg:flex items-center gap-3 mr-2 ml-6 pl-6 border-l border-border">
-          <a 
-            href="https://instagram.com/ileala.ae" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="text-muted-foreground hover:text-primary transition-colors"
-            aria-label="Instagram"
-          >
-            <Instagram className="h-4 w-4" />
-          </a>
-          <a 
-            href="https://www.facebook.com/share/17f63HzTAk/?mibextid=wwXIfr" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="text-muted-foreground hover:text-primary transition-colors"
-            aria-label="Facebook"
-          >
-            <Facebook className="h-4 w-4" />
-          </a>
-        </div>
+
         <Link href="/cart" className="inline-flex">
           <Button variant="ghost" size="sm" className="relative" asChild>
             <span>
