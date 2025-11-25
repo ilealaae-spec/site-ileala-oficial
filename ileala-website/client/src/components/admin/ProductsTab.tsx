@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function ProductsTab() {
   const { language } = useLanguage();
@@ -25,12 +26,31 @@ export default function ProductsTab() {
     namePT: '',
     descriptionEN: '',
     descriptionPT: '',
+    descriptionEN_full: '',
+    descriptionPT_full: '',
     price: '',
+    salePrice: '',
     imageUrl: '',
+    mainImage: '',
+    mainImageAlt: '',
+    images: '',
     collection: '',
     category: '',
     stock: '',
+    material: '',
+    dimensions: '',
+    colors: '',
+    careInstructionsEN: '',
+    careInstructionsPT: '',
+    weight: '',
+    sku: '',
+    inStock: true,
+    stockQuantity: '',
     featured: false,
+    isNew: false,
+    onSale: false,
+    seoTitle: '',
+    seoDescription: '',
   });
 
   const utils = trpc.useUtils();
@@ -76,12 +96,31 @@ export default function ProductsTab() {
       namePT: '',
       descriptionEN: '',
       descriptionPT: '',
+      descriptionEN_full: '',
+      descriptionPT_full: '',
       price: '',
+      salePrice: '',
       imageUrl: '',
+      mainImage: '',
+      mainImageAlt: '',
+      images: '',
       collection: '',
       category: '',
       stock: '',
+      material: '',
+      dimensions: '',
+      colors: '',
+      careInstructionsEN: '',
+      careInstructionsPT: '',
+      weight: '',
+      sku: '',
+      inStock: true,
+      stockQuantity: '',
       featured: false,
+      isNew: false,
+      onSale: false,
+      seoTitle: '',
+      seoDescription: '',
     });
     setEditingProduct(null);
   };
@@ -93,12 +132,31 @@ export default function ProductsTab() {
       namePT: product.namePT || '',
       descriptionEN: product.descriptionEN || '',
       descriptionPT: product.descriptionPT || '',
+      descriptionEN_full: product.descriptionEN_full || '',
+      descriptionPT_full: product.descriptionPT_full || '',
       price: (product.price / 100).toString(),
+      salePrice: product.salePrice ? (product.salePrice / 100).toString() : '',
       imageUrl: product.imageUrl || '',
+      mainImage: product.mainImage || '',
+      mainImageAlt: product.mainImageAlt || '',
+      images: product.images || '',
       collection: product.collection || '',
       category: product.category || '',
       stock: product.stock.toString(),
+      material: product.material || '',
+      dimensions: product.dimensions || '',
+      colors: product.colors || '',
+      careInstructionsEN: product.careInstructionsEN || '',
+      careInstructionsPT: product.careInstructionsPT || '',
+      weight: product.weight ? product.weight.toString() : '',
+      sku: product.sku || '',
+      inStock: product.inStock !== undefined ? product.inStock : true,
+      stockQuantity: product.stockQuantity ? product.stockQuantity.toString() : '',
       featured: product.featured === 1,
+      isNew: product.isNew || false,
+      onSale: product.onSale || false,
+      seoTitle: product.seoTitle || '',
+      seoDescription: product.seoDescription || '',
     });
     setIsDialogOpen(true);
   };
@@ -107,6 +165,7 @@ export default function ProductsTab() {
     e.preventDefault();
     
     const priceInFils = Math.round(parseFloat(formData.price) * 100);
+    const salePriceInFils = formData.salePrice ? Math.round(parseFloat(formData.salePrice) * 100) : undefined;
     
     // Generate slug from nameEN
     const slug = formData.nameEN.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Date.now();
@@ -118,12 +177,31 @@ export default function ProductsTab() {
       namePT: formData.namePT,
       descriptionEN: formData.descriptionEN || undefined,
       descriptionPT: formData.descriptionPT || undefined,
+      descriptionEN_full: formData.descriptionEN_full || undefined,
+      descriptionPT_full: formData.descriptionPT_full || undefined,
       price: priceInFils,
+      salePrice: salePriceInFils,
       imageUrl: formData.imageUrl || undefined,
+      mainImage: formData.mainImage || undefined,
+      mainImageAlt: formData.mainImageAlt || undefined,
+      images: formData.images || undefined,
       collection: formData.collection || undefined,
       category: formData.category || undefined,
       stock: parseInt(formData.stock),
+      material: formData.material || undefined,
+      dimensions: formData.dimensions || undefined,
+      colors: formData.colors || undefined,
+      careInstructionsEN: formData.careInstructionsEN || undefined,
+      careInstructionsPT: formData.careInstructionsPT || undefined,
+      weight: formData.weight ? parseFloat(formData.weight) : undefined,
+      sku: formData.sku || undefined,
+      inStock: formData.inStock,
+      stockQuantity: formData.stockQuantity ? parseInt(formData.stockQuantity) : undefined,
       featured: formData.featured ? 1 : 0,
+      isNew: formData.isNew,
+      onSale: formData.onSale,
+      seoTitle: formData.seoTitle || undefined,
+      seoDescription: formData.seoDescription || undefined,
     };
 
     if (editingProduct) {
@@ -180,10 +258,10 @@ export default function ProductsTab() {
             <Card key={product.id} className="p-6">
               <div className="flex gap-6">
                 <div className="w-24 h-24 flex-shrink-0 overflow-hidden rounded-md bg-muted">
-                  {product.imageUrl ? (
+                  {product.imageUrl || product.mainImage ? (
                     <img
-                      src={product.imageUrl}
-                      alt={product.nameEN}
+                      src={product.mainImage || product.imageUrl}
+                      alt={product.mainImageAlt || product.nameEN}
                       className="w-full h-full object-cover"
                     />
                   ) : (
@@ -198,12 +276,22 @@ export default function ProductsTab() {
                   <p className="text-sm text-muted-foreground mb-2">{product.namePT}</p>
                   <div className="flex gap-4 text-sm flex-wrap">
                     <span className="font-semibold text-primary">{formatPrice(product.price)}</span>
+                    {product.salePrice && (
+                      <span className="text-green-600 font-semibold">Sale: {formatPrice(product.salePrice)}</span>
+                    )}
                     <span className={product.stock < 10 ? 'text-orange-600 font-semibold' : ''}>
                       Stock: {product.stock}
                     </span>
+                    {product.sku && <span>SKU: {product.sku}</span>}
                     {product.collection && <span>Collection: {product.collection}</span>}
                     {product.featured === 1 && (
-                      <span className="text-green-600 font-semibold">Featured</span>
+                      <span className="text-green-600 font-semibold">⭐ Featured</span>
+                    )}
+                    {product.isNew && (
+                      <span className="text-blue-600 font-semibold">🆕 New</span>
+                    )}
+                    {product.onSale && (
+                      <span className="text-red-600 font-semibold">🔥 Sale</span>
                     )}
                   </div>
                 </div>
@@ -248,7 +336,7 @@ export default function ProductsTab() {
 
       {/* Product Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editingProduct 
@@ -258,115 +346,384 @@ export default function ProductsTab() {
             </DialogTitle>
           </DialogHeader>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="nameEN">Name (English)</Label>
-                <Input
-                  id="nameEN"
-                  value={formData.nameEN}
-                  onChange={(e) => setFormData({ ...formData, nameEN: e.target.value })}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="namePT">Nome (Português)</Label>
-                <Input
-                  id="namePT"
-                  value={formData.namePT}
-                  onChange={(e) => setFormData({ ...formData, namePT: e.target.value })}
-                  required
-                />
-              </div>
-            </div>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <Tabs defaultValue="basic" className="w-full">
+              <TabsList className="grid w-full grid-cols-5">
+                <TabsTrigger value="basic">
+                  {language === 'en' ? 'Basic' : 'Básico'}
+                </TabsTrigger>
+                <TabsTrigger value="pricing">
+                  {language === 'en' ? 'Pricing' : 'Preços'}
+                </TabsTrigger>
+                <TabsTrigger value="images">
+                  {language === 'en' ? 'Images' : 'Imagens'}
+                </TabsTrigger>
+                <TabsTrigger value="specs">
+                  {language === 'en' ? 'Specs' : 'Especificações'}
+                </TabsTrigger>
+                <TabsTrigger value="seo">SEO</TabsTrigger>
+              </TabsList>
 
-            <div>
-              <Label htmlFor="descriptionEN">Description (English)</Label>
-              <Textarea
-                id="descriptionEN"
-                value={formData.descriptionEN}
-                onChange={(e) => setFormData({ ...formData, descriptionEN: e.target.value })}
-                rows={3}
-              />
-            </div>
+              {/* BASIC TAB */}
+              <TabsContent value="basic" className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="nameEN">Name (English) *</Label>
+                    <Input
+                      id="nameEN"
+                      value={formData.nameEN}
+                      onChange={(e) => setFormData({ ...formData, nameEN: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="namePT">Nome (Português) *</Label>
+                    <Input
+                      id="namePT"
+                      value={formData.namePT}
+                      onChange={(e) => setFormData({ ...formData, namePT: e.target.value })}
+                      required
+                    />
+                  </div>
+                </div>
 
-            <div>
-              <Label htmlFor="descriptionPT">Descrição (Português)</Label>
-              <Textarea
-                id="descriptionPT"
-                value={formData.descriptionPT}
-                onChange={(e) => setFormData({ ...formData, descriptionPT: e.target.value })}
-                rows={3}
-              />
-            </div>
+                <div>
+                  <Label htmlFor="descriptionEN">Short Description (English)</Label>
+                  <Textarea
+                    id="descriptionEN"
+                    value={formData.descriptionEN}
+                    onChange={(e) => setFormData({ ...formData, descriptionEN: e.target.value })}
+                    rows={2}
+                    maxLength={160}
+                    placeholder="Max 160 characters"
+                  />
+                </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="price">Price (AED)</Label>
-                <Input
-                  id="price"
-                  type="number"
-                  step="0.01"
-                  value={formData.price}
-                  onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="stock">Stock</Label>
-                <Input
-                  id="stock"
-                  type="number"
-                  value={formData.stock}
-                  onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
-                  required
-                />
-              </div>
-            </div>
+                <div>
+                  <Label htmlFor="descriptionPT">Descrição Curta (Português)</Label>
+                  <Textarea
+                    id="descriptionPT"
+                    value={formData.descriptionPT}
+                    onChange={(e) => setFormData({ ...formData, descriptionPT: e.target.value })}
+                    rows={2}
+                    maxLength={160}
+                    placeholder="Máximo 160 caracteres"
+                  />
+                </div>
 
-            <div>
-              <Label htmlFor="imageUrl">Image URL</Label>
-              <Input
-                id="imageUrl"
-                type="url"
-                value={formData.imageUrl}
-                onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-              />
-            </div>
+                <div>
+                  <Label htmlFor="descriptionEN_full">Full Description (English)</Label>
+                  <Textarea
+                    id="descriptionEN_full"
+                    value={formData.descriptionEN_full}
+                    onChange={(e) => setFormData({ ...formData, descriptionEN_full: e.target.value })}
+                    rows={6}
+                    placeholder="Complete product description"
+                  />
+                </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="collection">Collection</Label>
-                <Input
-                  id="collection"
-                  value={formData.collection}
-                  onChange={(e) => setFormData({ ...formData, collection: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="category">Category</Label>
-                <Input
-                  id="category"
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                />
-              </div>
-            </div>
+                <div>
+                  <Label htmlFor="descriptionPT_full">Descrição Completa (Português)</Label>
+                  <Textarea
+                    id="descriptionPT_full"
+                    value={formData.descriptionPT_full}
+                    onChange={(e) => setFormData({ ...formData, descriptionPT_full: e.target.value })}
+                    rows={6}
+                    placeholder="Descrição completa do produto"
+                  />
+                </div>
 
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="featured"
-                checked={formData.featured}
-                onChange={(e) => setFormData({ ...formData, featured: e.target.checked })}
-                className="rounded"
-              />
-              <Label htmlFor="featured" className="cursor-pointer">
-                {language === 'en' ? 'Featured Product' : 'Produto em Destaque'}
-              </Label>
-            </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="collection">Collection</Label>
+                    <Input
+                      id="collection"
+                      value={formData.collection}
+                      onChange={(e) => setFormData({ ...formData, collection: e.target.value })}
+                      placeholder="e.g., Napkin Rings"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="category">Category</Label>
+                    <Input
+                      id="category"
+                      value={formData.category}
+                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                      placeholder="e.g., tableware"
+                    />
+                  </div>
+                </div>
 
-            <div className="flex justify-end gap-2 pt-4">
+                <div className="flex gap-4 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="featured"
+                      checked={formData.featured}
+                      onChange={(e) => setFormData({ ...formData, featured: e.target.checked })}
+                      className="rounded"
+                    />
+                    <Label htmlFor="featured" className="cursor-pointer">
+                      ⭐ {language === 'en' ? 'Featured Product' : 'Produto em Destaque'}
+                    </Label>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="isNew"
+                      checked={formData.isNew}
+                      onChange={(e) => setFormData({ ...formData, isNew: e.target.checked })}
+                      className="rounded"
+                    />
+                    <Label htmlFor="isNew" className="cursor-pointer">
+                      🆕 {language === 'en' ? 'New Product' : 'Produto Novo'}
+                    </Label>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="onSale"
+                      checked={formData.onSale}
+                      onChange={(e) => setFormData({ ...formData, onSale: e.target.checked })}
+                      className="rounded"
+                    />
+                    <Label htmlFor="onSale" className="cursor-pointer">
+                      🔥 {language === 'en' ? 'On Sale' : 'Em Promoção'}
+                    </Label>
+                  </div>
+                </div>
+              </TabsContent>
+
+              {/* PRICING TAB */}
+              <TabsContent value="pricing" className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="price">Price (AED) *</Label>
+                    <Input
+                      id="price"
+                      type="number"
+                      step="0.01"
+                      value={formData.price}
+                      onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                      required
+                      placeholder="e.g., 390.00"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="salePrice">Sale Price (AED)</Label>
+                    <Input
+                      id="salePrice"
+                      type="number"
+                      step="0.01"
+                      value={formData.salePrice}
+                      onChange={(e) => setFormData({ ...formData, salePrice: e.target.value })}
+                      placeholder="Leave empty if not on sale"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="stock">Stock (Legacy)</Label>
+                    <Input
+                      id="stock"
+                      type="number"
+                      value={formData.stock}
+                      onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="stockQuantity">Stock Quantity</Label>
+                    <Input
+                      id="stockQuantity"
+                      type="number"
+                      value={formData.stockQuantity}
+                      onChange={(e) => setFormData({ ...formData, stockQuantity: e.target.value })}
+                      placeholder="Actual quantity"
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <div className="flex items-center gap-2 h-10">
+                      <input
+                        type="checkbox"
+                        id="inStock"
+                        checked={formData.inStock}
+                        onChange={(e) => setFormData({ ...formData, inStock: e.target.checked })}
+                        className="rounded"
+                      />
+                      <Label htmlFor="inStock" className="cursor-pointer">
+                        {language === 'en' ? 'In Stock' : 'Em Estoque'}
+                      </Label>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="sku">SKU (Product Code)</Label>
+                  <Input
+                    id="sku"
+                    value={formData.sku}
+                    onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+                    placeholder="e.g., NAPKGREE23X5GREE"
+                  />
+                </div>
+              </TabsContent>
+
+              {/* IMAGES TAB */}
+              <TabsContent value="images" className="space-y-4">
+                <div>
+                  <Label htmlFor="imageUrl">Image URL (Legacy)</Label>
+                  <Input
+                    id="imageUrl"
+                    type="url"
+                    value={formData.imageUrl}
+                    onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+                    placeholder="https://cdn.sanity.io/images/..."
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="mainImage">Main Image URL</Label>
+                  <Input
+                    id="mainImage"
+                    type="url"
+                    value={formData.mainImage}
+                    onChange={(e) => setFormData({ ...formData, mainImage: e.target.value })}
+                    placeholder="https://cdn.sanity.io/images/..."
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="mainImageAlt">Main Image Alt Text</Label>
+                  <Input
+                    id="mainImageAlt"
+                    value={formData.mainImageAlt}
+                    onChange={(e) => setFormData({ ...formData, mainImageAlt: e.target.value })}
+                    placeholder="Description for accessibility"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="images">Additional Images (JSON)</Label>
+                  <Textarea
+                    id="images"
+                    value={formData.images}
+                    onChange={(e) => setFormData({ ...formData, images: e.target.value })}
+                    rows={4}
+                    placeholder='[{"url": "https://...", "alt": "Description"}]'
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    JSON array of image objects (max 10 images)
+                  </p>
+                </div>
+              </TabsContent>
+
+              {/* SPECS TAB */}
+              <TabsContent value="specs" className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="material">Material</Label>
+                    <Input
+                      id="material"
+                      value={formData.material}
+                      onChange={(e) => setFormData({ ...formData, material: e.target.value })}
+                      placeholder="e.g., Resin, Rustic Wood"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="dimensions">Dimensions</Label>
+                    <Input
+                      id="dimensions"
+                      value={formData.dimensions}
+                      onChange={(e) => setFormData({ ...formData, dimensions: e.target.value })}
+                      placeholder="e.g., Diameter: 5 cm Height: 3 cm"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="weight">Weight (kg)</Label>
+                    <Input
+                      id="weight"
+                      type="number"
+                      step="0.01"
+                      value={formData.weight}
+                      onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
+                      placeholder="e.g., 0.19"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="colors">Available Colors (JSON)</Label>
+                    <Input
+                      id="colors"
+                      value={formData.colors}
+                      onChange={(e) => setFormData({ ...formData, colors: e.target.value })}
+                      placeholder='["Green", "Gold"]'
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="careInstructionsEN">Care Instructions (English)</Label>
+                  <Textarea
+                    id="careInstructionsEN"
+                    value={formData.careInstructionsEN}
+                    onChange={(e) => setFormData({ ...formData, careInstructionsEN: e.target.value })}
+                    rows={4}
+                    placeholder="Washing and care instructions"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="careInstructionsPT">Instruções de Cuidado (Português)</Label>
+                  <Textarea
+                    id="careInstructionsPT"
+                    value={formData.careInstructionsPT}
+                    onChange={(e) => setFormData({ ...formData, careInstructionsPT: e.target.value })}
+                    rows={4}
+                    placeholder="Instruções de lavagem e cuidado"
+                  />
+                </div>
+              </TabsContent>
+
+              {/* SEO TAB */}
+              <TabsContent value="seo" className="space-y-4">
+                <div>
+                  <Label htmlFor="seoTitle">SEO Title</Label>
+                  <Input
+                    id="seoTitle"
+                    value={formData.seoTitle}
+                    onChange={(e) => setFormData({ ...formData, seoTitle: e.target.value })}
+                    maxLength={60}
+                    placeholder="Max 60 characters"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {formData.seoTitle.length}/60 characters
+                  </p>
+                </div>
+
+                <div>
+                  <Label htmlFor="seoDescription">SEO Description</Label>
+                  <Textarea
+                    id="seoDescription"
+                    value={formData.seoDescription}
+                    onChange={(e) => setFormData({ ...formData, seoDescription: e.target.value })}
+                    rows={3}
+                    maxLength={160}
+                    placeholder="Max 160 characters"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {formData.seoDescription.length}/160 characters
+                  </p>
+                </div>
+              </TabsContent>
+            </Tabs>
+
+            <div className="flex justify-end gap-2 pt-4 border-t">
               <Button
                 type="button"
                 variant="outline"

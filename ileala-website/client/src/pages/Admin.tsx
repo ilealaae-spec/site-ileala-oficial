@@ -3,7 +3,7 @@ import { useAuth } from '@/_core/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useLocation } from 'wouter';
-import { Loader2, LayoutDashboard, Mail, Users, Package, ShoppingCart, Shield, Palette, FileText } from 'lucide-react';
+import { Loader2, LayoutDashboard, Mail, Users, Package, ShoppingCart, Shield, Palette, FileText, Image } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 // Import tab components
@@ -14,6 +14,7 @@ import ProductsTab from '@/components/admin/ProductsTab';
 import OrdersTab from '@/components/admin/OrdersTab';
 import ArtisansTab from '@/components/admin/ArtisansTab';
 import ContentTab from '@/components/admin/ContentTab';
+import MediaTab from '@/components/admin/MediaTab';
 
 export default function Admin() {
   const { language } = useLanguage();
@@ -114,7 +115,7 @@ export default function Admin() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-7 mb-8">
+          <TabsList className="grid w-full grid-cols-8 mb-8">
             <TabsTrigger value="dashboard" className="flex items-center gap-2">
               <LayoutDashboard className="w-4 h-4" />
               <span className="hidden md:inline">
@@ -157,6 +158,12 @@ export default function Admin() {
                 {language === 'en' ? 'Content' : 'Conteúdo'}
               </span>
             </TabsTrigger>
+            <TabsTrigger value="media" className="flex items-center gap-2">
+              <Image className="w-4 h-4" />
+              <span className="hidden md:inline">
+                {language === 'en' ? 'Media' : 'Mídia'}
+              </span>
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard">
@@ -185,6 +192,10 @@ export default function Admin() {
 
           <TabsContent value="content">
             <ContentTab />
+          </TabsContent>
+
+          <TabsContent value="media">
+            <MediaTab />
           </TabsContent>
         </Tabs>
       </div>
