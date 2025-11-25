@@ -83,22 +83,34 @@ export const appRouter = router({
           throw new Error('Invalid email or password');
         }
 
-        // Create session data
-        const sessionData = {
-          id: user.id,
-          email: user.email,
-          name: user.name || null,
-          role: user.role || 'user',
-        };
+        // Update last signed in
+        await db.updateUser(user.id, {
+          lastSignedIn: new Date(),
+        });
 
-        // Set cookie with session data
+        // Create session token (encrypted and secure)
+        const token = await sdk.createSessionToken(user.id, {
+          name: user.name || null,
+          email: user.email,
+          role: user.role || 'user',
+        });
+
+        // Set cookie with token
         const cookieOptions = getSessionCookieOptions(ctx.req);
-        ctx.res.cookie(COOKIE_NAME, JSON.stringify(sessionData), {
+        ctx.res.cookie(COOKIE_NAME, token, {
           ...cookieOptions,
           maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year
         });
 
-        return { success: true, user: sessionData };
+        return { 
+          success: true, 
+          user: {
+            id: user.id,
+            email: user.email,
+            name: user.name || null,
+            role: user.role || 'user',
+          }
+        };
       }),
     register: publicProcedure
       .input(z.object({
