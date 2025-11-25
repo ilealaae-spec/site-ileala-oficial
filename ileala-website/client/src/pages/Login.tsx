@@ -62,16 +62,17 @@ export default function Login() {
     onSuccess: async () => {
       toast.success(language === 'en' ? 'Login successful!' : 'Login realizado com sucesso!');
       
-      // Invalidate and refetch auth data to update Header
+      // Invalidate auth data
       await utils.auth.me.invalidate();
-      await refresh();
       
-      // Small delay to ensure state updates
+      // Reload page to ensure Header updates with user data
+      const params = new URLSearchParams(window.location.search);
+      const redirect = params.get('redirect') || '/cart';
+      
+      // Use window.location.href to force full page reload
       setTimeout(() => {
-        const params = new URLSearchParams(window.location.search);
-        const redirect = params.get('redirect') || '/cart';
-        setLocation(redirect);
-      }, 100);
+        window.location.href = redirect;
+      }, 500);
     },
     onError: (error) => {
       toast.error(error.message || (language === 'en' ? 'Invalid email or password' : 'Email ou senha inválidos'));
