@@ -38,6 +38,9 @@ async function startServer() {
   const app = express();
   const server = createServer(app);
   
+  // Trust proxy - required for Railway and other reverse proxies
+  app.set('trust proxy', 1);
+  
   // Security headers (must be first)
   setupSecurityHeaders(app);
   
