@@ -177,7 +177,7 @@ export default function About() {
               <Card className="overflow-hidden hover:shadow-xl transition-shadow">
                 <div className="aspect-square overflow-hidden">
                   <img 
-                    src="/images/mestre_zeeshan.webp" 
+                    src="/images/artisans/zeeshan.webp" 
                     alt="Mr. Zeeshan - Tailor"
                     className="w-full h-full object-cover"
                   />
@@ -197,7 +197,7 @@ export default function About() {
               <Card className="overflow-hidden hover:shadow-xl transition-shadow">
                 <div className="aspect-square overflow-hidden">
                   <img 
-                    src="/images/sarajuddin.webp" 
+                    src="/images/artisans/sarajuddin.webp" 
                     alt="Mr. Sarajuddin - Tailor" 
                     className="w-full h-full object-cover"
                   />
@@ -217,7 +217,7 @@ export default function About() {
               <Card className="overflow-hidden hover:shadow-xl transition-shadow">
                 <div className="aspect-square overflow-hidden">
                   <img 
-                    src="/images/ge.webp" 
+                    src="/images/artisans/ge.webp" 
                     alt="Ge - Production Manager" 
                     className="w-full h-full object-cover"
                   />
