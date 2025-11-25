@@ -141,87 +141,10 @@ export default function ArtisansMap() {
             alt="Embroidered World Map" 
             className="absolute inset-0 w-full h-full object-contain rounded-lg"
           />
-          
-          {/* SVG Overlay for Markers */}
-          <svg
-            viewBox="0 0 100 50"
-            className="absolute inset-0 w-full h-full"
-            style={{ pointerEvents: 'none' }}
-          >
-            <g style={{ pointerEvents: 'auto' }}>
-          
-            {/* Artisan markers */}
-            {artisans.map((artisan) => {
-            const pos = getMapPosition(artisan.lat, artisan.lng);
-            const isSelected = selectedArtisan?.id === artisan.id;
-            
-            return (
-              <g key={artisan.id}>
-                {/* Marker circle */}
-                <circle
-                  cx={pos.x}
-                  cy={pos.y}
-                  r={isSelected ? 2 : 1.5}
-                  fill={isSelected ? '#16a34a' : '#059669'}
-                  stroke="white"
-                  strokeWidth="0.3"
-                  className="cursor-pointer transition-all hover:r-2"
-                  onClick={() => setSelectedArtisan(artisan)}
-                  style={{ cursor: 'pointer' }}
-                />
-                
-                {/* Pulse animation for selected */}
-                {isSelected && (
-                  <circle
-                    cx={pos.x}
-                    cy={pos.y}
-                    r={3}
-                    fill="none"
-                    stroke="#16a34a"
-                    strokeWidth="0.3"
-                    opacity="0.5"
-                  >
-                    <animate
-                      attributeName="r"
-                      from="2"
-                      to="4"
-                      dur="1.5s"
-                      repeatCount="indefinite"
-                    />
-                    <animate
-                      attributeName="opacity"
-                      from="0.5"
-                      to="0"
-                      dur="1.5s"
-                      repeatCount="indefinite"
-                    />
-                  </circle>
-                )}
-                
-                {/* Label */}
-                <text
-                  x={pos.x}
-                  y={pos.y - 2}
-                  fontSize="2"
-                  fill="#064e3b"
-                  textAnchor="middle"
-                  className="pointer-events-none font-semibold"
-                  style={{ textShadow: '0 0 2px white' }}
-                >
-                  {artisan.name.split(' ')[0]}
-                </text>
-              </g>
-            );
-            })}
-          </g>
-        </svg>
+
         </div>
 
-        {/* Legend */}
-        <div className="mt-4 flex items-center justify-center gap-2 text-sm text-muted-foreground">
-          <div className="w-3 h-3 rounded-full bg-primary"></div>
-          <span>{language === 'en' ? 'Click on markers to learn more' : 'Clique nos marcadores para saber mais'}</span>
-        </div>
+
       </div>
 
       {/* Artisan Info Cards */}
