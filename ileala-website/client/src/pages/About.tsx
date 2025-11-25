@@ -27,7 +27,7 @@ export default function About() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-20">
             <div>
               <img 
-                src="/images/about_hero.webp" 
+                src="/images/about-galeries-lafayette.webp" 
                 alt="Elma Bichara and Tarik Ali"
                 className="w-full rounded-lg shadow-xl"
               />
