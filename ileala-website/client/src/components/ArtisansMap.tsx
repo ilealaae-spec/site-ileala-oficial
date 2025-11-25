@@ -133,13 +133,13 @@ export default function ArtisansMap() {
 
   return (
     <div className="w-full">
-      <div className="relative bg-gradient-to-br from-primary/5 to-primary/10 rounded-lg p-8 mb-8">
+      <div className="relative mb-8">
         {/* Embroidered World Map Background */}
         <div className="relative w-full" style={{ paddingBottom: '50%' }}>
           <img 
             src={embroideredWorldMap} 
             alt="Embroidered World Map" 
-            className="absolute inset-0 w-full h-full object-contain rounded-lg"
+            className="absolute inset-0 w-full h-full object-contain"
           />
 
         </div>
