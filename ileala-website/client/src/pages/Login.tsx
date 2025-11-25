@@ -59,14 +59,33 @@ export default function Login() {
   }, [utils, refresh, isAuthenticated, user, setLocation]);
   
   const loginMutation = trpc.auth.login.useMutation({
-    onSuccess: () => {
+    onSuccess: async (data) => {
       toast.success(language === 'en' ? 'Login successful!' : 'Login realizado com sucesso!');
-      utils.auth.me.invalidate();
       
-      // Redirect to cart or home
-      const params = new URLSearchParams(window.location.search);
-      const redirect = params.get('redirect') || '/cart';
-      setLocation(redirect);
+      // Invalidate and refetch user data
+      await utils.auth.me.invalidate();
+      await refresh();
+      
+      // Wait a bit for the cookie to be set and user data to be refreshed
+      setTimeout(async () => {
+        // Refetch user data to get the role
+        const userData = await utils.auth.me.fetch();
+        
+        // Redirect based on user role
+        const params = new URLSearchParams(window.location.search);
+        let redirect = params.get('redirect');
+        
+        if (!redirect) {
+          // If user is admin, redirect to admin panel
+          if (userData?.role === 'admin') {
+            redirect = '/admin';
+          } else {
+            redirect = '/cart';
+          }
+        }
+        
+        setLocation(redirect);
+      }, 500);
     },
     onError: (error) => {
       toast.error(error.message || (language === 'en' ? 'Invalid email or password' : 'Email ou senha inválidos'));
