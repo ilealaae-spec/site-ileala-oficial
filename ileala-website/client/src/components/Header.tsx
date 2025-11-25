@@ -60,33 +60,14 @@ export default function Header() {
           <Link href="/pet-collection" className="text-sm font-medium transition-colors hover:text-primary">
             {language === 'en' ? 'Pet Collection' : 'Pet Collection'}
           </Link>
-          <Link href="/contact" className="text-sm font-medium transition-colors hover:text-primary">
-            {t.nav.contact}
-          </Link>
         </nav>
 
-        <div className="flex items-center gap-4">
-        {/* Social Media Icons */}
-        <div className="hidden lg:flex items-center gap-3 pl-4 border-l border-border">
-          <a 
-            href="https://instagram.com/ileala.ae" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="text-muted-foreground hover:text-primary transition-colors"
-            aria-label="Instagram"
-          >
-            <Instagram className="h-4 w-4" />
-          </a>
-          <a 
-            href="https://www.facebook.com/share/17f63HzTAk/?mibextid=wwXIfr" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="text-muted-foreground hover:text-primary transition-colors"
-            aria-label="Facebook"
-          >
-            <Facebook className="h-4 w-4" />
-          </a>
-        </div>
+        <div className="flex items-center gap-6">
+        {/* Contact Link */}
+        <Link href="/contact" className="hidden lg:inline-flex text-sm font-medium transition-colors hover:text-primary">
+          {t.nav.contact}
+        </Link>
+        
         {/* User Menu */}
         {isAuthenticated && user ? (
           <DropdownMenu>
@@ -121,10 +102,9 @@ export default function Header() {
             </DropdownMenuContent>
           </DropdownMenu>
         ) : (
-          <div className="flex items-center gap-2">
+          <div className="hidden lg:flex items-center gap-3">
             <Link href="/login">
               <Button variant="ghost" size="sm">
-                <User className="h-4 w-4 mr-2" />
                 {language === 'en' ? 'Login' : 'Entrar'}
               </Button>
             </Link>
@@ -135,6 +115,28 @@ export default function Header() {
             </Link>
           </div>
         )}
+
+        {/* Social Media Icons */}
+        <div className="hidden lg:flex items-center gap-3">
+          <a 
+            href="https://instagram.com/ileala.ae" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-muted-foreground hover:text-primary transition-colors"
+            aria-label="Instagram"
+          >
+            <Instagram className="h-4 w-4" />
+          </a>
+          <a 
+            href="https://www.facebook.com/share/17f63HzTAk/?mibextid=wwXIfr" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-muted-foreground hover:text-primary transition-colors"
+            aria-label="Facebook"
+          >
+            <Facebook className="h-4 w-4" />
+          </a>
+        </div>
 
         <Link href="/cart" className="inline-flex">
           <Button variant="ghost" size="sm" className="relative" asChild>
