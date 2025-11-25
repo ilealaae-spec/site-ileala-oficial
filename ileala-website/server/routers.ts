@@ -88,16 +88,18 @@ export const appRouter = router({
           lastSignedIn: new Date(),
         });
 
-        // Create session token (encrypted and secure)
-        const token = await sdk.createSessionToken(user.id, {
-          name: user.name || null,
+        // Create session data for traditional email/password login
+        const sessionData = {
+          id: user.id,
           email: user.email,
+          name: user.name || null,
           role: user.role || 'user',
-        });
+          loginMethod: 'email',
+        };
 
-        // Set cookie with token
+        // Set cookie with JSON session data
         const cookieOptions = getSessionCookieOptions(ctx.req);
-        ctx.res.cookie(COOKIE_NAME, token, {
+        ctx.res.cookie(COOKIE_NAME, JSON.stringify(sessionData), {
           ...cookieOptions,
           maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year
         });
