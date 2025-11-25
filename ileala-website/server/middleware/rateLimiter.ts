@@ -103,10 +103,20 @@ export const passwordResetLimiter = rateLimit({
 // General API rate limiter (fallback)
 export const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Max 100 requests per IP
+  max: 500, // Max 500 requests per IP (increased for admin operations)
   message: 'Too many requests from this IP. Please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
+  // Skip rate limiting for authenticated admin users
+  skip: (req) => {
+    // Check if user is authenticated and is admin
+    const user = (req as any).user;
+    if (user && user.role === 'admin') {
+      console.log(`[RateLimit] Skipping for admin user: ${user.email}`);
+      return true;
+    }
+    return false;
+  },
   handler: (req, res) => {
     console.log(`[RateLimit] API request blocked for IP: ${req.ip}`);
     res.status(429).json({

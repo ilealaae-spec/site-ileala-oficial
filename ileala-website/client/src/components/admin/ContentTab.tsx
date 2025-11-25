@@ -133,37 +133,51 @@ export default function ContentTab() {
       let errorCount = 0;
       const failedKeys: string[] = [];
       
-      console.log('[Import] Starting import of', Object.keys(enFlat).length, 'translations');
+      const allKeys = Object.keys(enFlat);
+      console.log('[Import] Starting import of', allKeys.length, 'translations in batches of 10');
       
-      for (const key of Object.keys(enFlat)) {
-        try {
-          const data = {
-            key,
-            contentType: 'text',
-            contentEN: enFlat[key],
-            contentPT: ptFlat[key] || enFlat[key],
-            metadata: JSON.stringify({ category: key.split('.')[0], imported: true }),
-          };
-          
-          console.log(`[Import] Importing ${key}:`, {
-            enLength: enFlat[key]?.length,
-            ptLength: (ptFlat[key] || enFlat[key])?.length,
-          });
-          
-          await upsertMutation.mutateAsync(data);
-          successCount++;
-          console.log(`[Import] ✅ Success: ${key}`);
-        } catch (error: any) {
-          console.error(`[Import] ❌ Failed to import ${key}:`, {
-            error: error.message,
-            data: {
+      // Process in batches of 10 to avoid rate limiting
+      const BATCH_SIZE = 10;
+      for (let i = 0; i < allKeys.length; i += BATCH_SIZE) {
+        const batch = allKeys.slice(i, i + BATCH_SIZE);
+        console.log(`[Import] Processing batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(allKeys.length / BATCH_SIZE)}`);
+        
+        // Process batch sequentially to avoid overwhelming the server
+        for (const key of batch) {
+          try {
+            const data = {
               key,
+              contentType: 'text',
+              contentEN: enFlat[key],
+              contentPT: ptFlat[key] || enFlat[key],
+              metadata: JSON.stringify({ category: key.split('.')[0], imported: true }),
+            };
+            
+            console.log(`[Import] Importing ${key}:`, {
               enLength: enFlat[key]?.length,
               ptLength: (ptFlat[key] || enFlat[key])?.length,
-            }
-          });
-          failedKeys.push(key);
-          errorCount++;
+            });
+            
+            await upsertMutation.mutateAsync(data);
+            successCount++;
+            console.log(`[Import] ✅ Success: ${key}`);
+          } catch (error: any) {
+            console.error(`[Import] ❌ Failed to import ${key}:`, {
+              error: error.message,
+              data: {
+                key,
+                enLength: enFlat[key]?.length,
+                ptLength: (ptFlat[key] || enFlat[key])?.length,
+              }
+            });
+            failedKeys.push(key);
+            errorCount++;
+          }
+        }
+        
+        // Small delay between batches to be nice to the server
+        if (i + BATCH_SIZE < allKeys.length) {
+          await new Promise(resolve => setTimeout(resolve, 100));
         }
       }
       
