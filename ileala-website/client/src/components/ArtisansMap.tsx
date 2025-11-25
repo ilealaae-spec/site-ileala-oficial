@@ -133,50 +133,24 @@ export default function ArtisansMap() {
   return (
     <div className="w-full">
       <div className="relative bg-gradient-to-br from-primary/5 to-primary/10 rounded-lg p-8 mb-8">
-        {/* SVG World Map */}
-        <svg
-          viewBox="0 0 100 50"
-          className="w-full h-auto"
-          style={{ maxHeight: '500px' }}
-        >
-          {/* Simplified world map background */}
-          <rect x="0" y="0" width="100" height="50" fill="#f0f9ff" />
-          
-          {/* Continents (simplified shapes) */}
-          {/* Asia */}
-          <path
-            d="M 60 15 Q 70 12, 80 15 L 85 25 Q 82 30, 75 28 L 70 32 Q 65 30, 60 28 Z"
-            fill="#e0f2fe"
-            stroke="#0ea5e9"
-            strokeWidth="0.2"
+        {/* Embroidered World Map Background */}
+        <div className="relative w-full" style={{ paddingBottom: '50%' }}>
+          <img 
+            src="/images/embroidered-world-map.png" 
+            alt="Embroidered World Map" 
+            className="absolute inset-0 w-full h-full object-contain rounded-lg"
           />
           
-          {/* Europe */}
-          <path
-            d="M 48 12 L 52 10 L 56 12 L 55 18 L 50 20 L 47 16 Z"
-            fill="#e0f2fe"
-            stroke="#0ea5e9"
-            strokeWidth="0.2"
-          />
+          {/* SVG Overlay for Markers */}
+          <svg
+            viewBox="0 0 100 50"
+            className="absolute inset-0 w-full h-full"
+            style={{ pointerEvents: 'none' }}
+          >
+            <g style={{ pointerEvents: 'auto' }}>
           
-          {/* Africa */}
-          <path
-            d="M 48 20 L 52 22 L 54 30 L 50 38 L 46 36 L 44 28 Z"
-            fill="#e0f2fe"
-            stroke="#0ea5e9"
-            strokeWidth="0.2"
-          />
-          
-          {/* Americas */}
-          <path
-            d="M 20 15 L 25 12 L 28 18 L 26 35 L 22 38 L 18 30 Z"
-            fill="#e0f2fe"
-            stroke="#0ea5e9"
-            strokeWidth="0.2"
-          />
-          
-          {/* Artisan markers */}
-          {artisans.map((artisan) => {
+            {/* Artisan markers */}
+            {artisans.map((artisan) => {
             const pos = getMapPosition(artisan.lat, artisan.lng);
             const isSelected = selectedArtisan?.id === artisan.id;
             
@@ -237,8 +211,10 @@ export default function ArtisansMap() {
                 </text>
               </g>
             );
-          })}
+            })}
+          </g>
         </svg>
+        </div>
 
         {/* Legend */}
         <div className="mt-4 flex items-center justify-center gap-2 text-sm text-muted-foreground">
