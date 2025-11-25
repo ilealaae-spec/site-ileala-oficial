@@ -55,29 +55,28 @@ function isSecureRequest(req: any): boolean {
 export function getSessionCookieOptions(
   req: any
 ): Pick<CookieOptions, "httpOnly" | "path" | "sameSite" | "secure"> {
-  // const hostname = req.hostname;
-  // const shouldSetDomain =
-  //   hostname &&
-  //   !LOCAL_HOSTS.has(hostname) &&
-  //   !isIpAddress(hostname) &&
-  //   hostname !== "127.0.0.1" &&
-  //   hostname !== "::1";
-
-  // const domain =
-  //   shouldSetDomain && !hostname.startsWith(".")
-  //     ? `.${hostname}`
-  //     : shouldSetDomain
-  //       ? hostname
-  //       : undefined;
-
   const isSecure = isSecureRequest(req);
   
-  return {
+  // Force secure in production for Railway/Vercel deployments
+  const forceSecure = process.env.NODE_ENV === "production";
+  
+  const options = {
     httpOnly: true,
     path: "/",
-    // Use 'lax' for same-site requests, 'none' only if secure and cross-site
-    sameSite: isSecure ? "lax" : "lax", // Changed from "none" to "lax" for better compatibility
-    secure: isSecure,
-    // domain removido do tipo de retorno pois não está sendo usado
+    sameSite: "lax" as const,
+    secure: forceSecure || isSecure,
   };
+  
+  // Debug logging
+  console.log('[Cookie] Options:', {
+    isSecure,
+    forceSecure,
+    nodeEnv: process.env.NODE_ENV,
+    hostname: req?.hostname,
+    protocol: req?.protocol,
+    forwardedProto: getHeaderValue(req, "x-forwarded-proto"),
+    finalOptions: options,
+  });
+  
+  return options;
 }

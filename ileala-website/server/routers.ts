@@ -99,10 +99,20 @@ export const appRouter = router({
 
         // Set cookie with JSON session data
         const cookieOptions = getSessionCookieOptions(ctx.req);
-        ctx.res.cookie(COOKIE_NAME, JSON.stringify(sessionData), {
+        const finalCookieOptions = {
           ...cookieOptions,
           maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year
+        };
+        
+        console.log('[Auth] Setting cookie:', {
+          name: COOKIE_NAME,
+          options: finalCookieOptions,
+          sessionData,
         });
+        
+        ctx.res.cookie(COOKIE_NAME, JSON.stringify(sessionData), finalCookieOptions);
+        
+        console.log('[Auth] Cookie set successfully');
 
         return { 
           success: true, 
