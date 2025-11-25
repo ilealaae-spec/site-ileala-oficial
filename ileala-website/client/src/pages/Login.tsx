@@ -67,7 +67,7 @@ export default function Login() {
       
       // Get redirect path
       const params = new URLSearchParams(window.location.search);
-      const redirect = params.get('redirect') || '/cart';
+      const redirect = params.get('redirect') || '/';
       
       // Force full page reload to ensure Header updates
       setTimeout(() => {

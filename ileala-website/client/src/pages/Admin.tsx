@@ -54,7 +54,7 @@ export default function Admin() {
 
   // Redirect to login if no user found
   if (!currentUser) {
-    setLocation('/login');
+    setLocation('/login?redirect=/admin');
     return null;
   }
 
