@@ -65,14 +65,17 @@ export default function Login() {
       // Invalidate auth data
       await utils.auth.me.invalidate();
       
-      // Reload page to ensure Header updates with user data
+      // Get redirect path
       const params = new URLSearchParams(window.location.search);
       const redirect = params.get('redirect') || '/cart';
       
-      // Use window.location.href to force full page reload
+      // Force full page reload to ensure Header updates
       setTimeout(() => {
-        window.location.href = redirect;
-      }, 500);
+        // First navigate to the redirect path
+        window.history.pushState({}, '', redirect);
+        // Then force a hard reload
+        window.location.reload();
+      }, 300);
     },
     onError: (error) => {
       toast.error(error.message || (language === 'en' ? 'Invalid email or password' : 'Email ou senha inválidos'));
