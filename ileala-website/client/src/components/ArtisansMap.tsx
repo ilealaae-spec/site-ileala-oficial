@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Card } from '@/components/ui/card';
+import embroideredWorldMap from '/images/embroidered-world-map.png';
 
 interface Artisan {
   id: number;
@@ -136,7 +137,7 @@ export default function ArtisansMap() {
         {/* Embroidered World Map Background */}
         <div className="relative w-full" style={{ paddingBottom: '50%' }}>
           <img 
-            src="/images/embroidered-world-map.png" 
+            src={embroideredWorldMap} 
             alt="Embroidered World Map" 
             className="absolute inset-0 w-full h-full object-contain rounded-lg"
           />
