@@ -3,7 +3,7 @@ import { useAuth } from '@/_core/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useLocation } from 'wouter';
-import { Loader2, LayoutDashboard, Mail, Users, Package, ShoppingCart, Shield } from 'lucide-react';
+import { Loader2, LayoutDashboard, Mail, Users, Package, ShoppingCart, Shield, Palette, FileText } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 // Import tab components
@@ -12,6 +12,8 @@ import NewsletterTab from '@/components/admin/NewsletterTab';
 import UsersTab from '@/components/admin/UsersTab';
 import ProductsTab from '@/components/admin/ProductsTab';
 import OrdersTab from '@/components/admin/OrdersTab';
+import ArtisansTab from '@/components/admin/ArtisansTab';
+import ContentTab from '@/components/admin/ContentTab';
 
 export default function Admin() {
   const { language } = useLanguage();
@@ -112,7 +114,7 @@ export default function Admin() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-5 mb-8">
+          <TabsList className="grid w-full grid-cols-7 mb-8">
             <TabsTrigger value="dashboard" className="flex items-center gap-2">
               <LayoutDashboard className="w-4 h-4" />
               <span className="hidden md:inline">
@@ -143,6 +145,18 @@ export default function Admin() {
                 {language === 'en' ? 'Orders' : 'Pedidos'}
               </span>
             </TabsTrigger>
+            <TabsTrigger value="artisans" className="flex items-center gap-2">
+              <Palette className="w-4 h-4" />
+              <span className="hidden md:inline">
+                {language === 'en' ? 'Artisans' : 'Artesãos'}
+              </span>
+            </TabsTrigger>
+            <TabsTrigger value="content" className="flex items-center gap-2">
+              <FileText className="w-4 h-4" />
+              <span className="hidden md:inline">
+                {language === 'en' ? 'Content' : 'Conteúdo'}
+              </span>
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard">
@@ -163,6 +177,14 @@ export default function Admin() {
 
           <TabsContent value="orders">
             <OrdersTab />
+          </TabsContent>
+
+          <TabsContent value="artisans">
+            <ArtisansTab />
+          </TabsContent>
+
+          <TabsContent value="content">
+            <ContentTab />
           </TabsContent>
         </Tabs>
       </div>

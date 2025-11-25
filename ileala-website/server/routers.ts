@@ -743,6 +743,86 @@ export const appRouter = router({
         };
       }),
   }),
+  // CMS routes for managing artisans and site content
+  cms: router({
+    // Artisans management
+    artisans: router({
+      list: protectedProcedure
+        .query(async () => {
+          return await db.listArtisans();
+        }),
+      create: protectedProcedure
+        .input(z.object({
+          name: z.string().min(1),
+          bio: z.string().optional(),
+          bioEN: z.string().optional(),
+          bioPT: z.string().optional(),
+          photoUrl: z.string().optional(),
+          specialty: z.string().optional(),
+          location: z.string().optional(),
+          email: z.string().email().optional(),
+          phone: z.string().optional(),
+          socialMedia: z.string().optional(),
+          featured: z.number().default(0),
+        }))
+        .mutation(async ({ input }) => {
+          return await db.createArtisan(input);
+        }),
+      update: protectedProcedure
+        .input(z.object({
+          id: z.number(),
+          name: z.string().min(1).optional(),
+          bio: z.string().optional(),
+          bioEN: z.string().optional(),
+          bioPT: z.string().optional(),
+          photoUrl: z.string().optional(),
+          specialty: z.string().optional(),
+          location: z.string().optional(),
+          email: z.string().email().optional(),
+          phone: z.string().optional(),
+          socialMedia: z.string().optional(),
+          featured: z.number().optional(),
+          active: z.number().optional(),
+        }))
+        .mutation(async ({ input }) => {
+          const { id, ...data } = input;
+          return await db.updateArtisan(id, data);
+        }),
+      delete: protectedProcedure
+        .input(z.object({ id: z.number() }))
+        .mutation(async ({ input }) => {
+          return await db.deleteArtisan(input.id);
+        }),
+    }),
+    // Site content management
+    content: router({
+      list: protectedProcedure
+        .query(async () => {
+          return await db.listSiteContent();
+        }),
+      getByKey: publicProcedure
+        .input(z.object({ key: z.string() }))
+        .query(async ({ input }) => {
+          return await db.getSiteContentByKey(input.key);
+        }),
+      upsert: protectedProcedure
+        .input(z.object({
+          key: z.string().min(1),
+          contentType: z.string().min(1),
+          contentEN: z.string().optional(),
+          contentPT: z.string().optional(),
+          metadata: z.string().optional(),
+        }))
+        .mutation(async ({ input }) => {
+          return await db.upsertSiteContent(input);
+        }),
+      delete: protectedProcedure
+        .input(z.object({ id: z.number() }))
+        .mutation(async ({ input }) => {
+          return await db.deleteSiteContent(input.id);
+        }),
+    }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

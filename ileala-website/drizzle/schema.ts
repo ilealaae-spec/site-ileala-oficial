@@ -141,3 +141,72 @@ export const newsletter = pgTable("newsletter", {
 
 export type Newsletter = typeof newsletter.$inferSelect;
 export type InsertNewsletter = typeof newsletter.$inferInsert;
+
+// Artisans table - for managing artisan profiles
+export const artisans = pgTable("artisans", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  bio: text("bio"),
+  bioEN: text("bioEN"),
+  bioPT: text("bioPT"),
+  photoUrl: varchar("photoUrl", { length: 512 }),
+  specialty: varchar("specialty", { length: 255 }), // e.g., "Ceramics", "Textiles"
+  location: varchar("location", { length: 255 }),
+  email: varchar("email", { length: 320 }),
+  phone: varchar("phone", { length: 50 }),
+  socialMedia: text("socialMedia"), // JSON string with social links
+  featured: integer("featured").default(0).notNull(), // 0 = false, 1 = true
+  active: integer("active").default(1).notNull(), // 0 = inactive, 1 = active
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+
+export type Artisan = typeof artisans.$inferSelect;
+export type InsertArtisan = typeof artisans.$inferInsert;
+
+// Site content table - for managing editable site content
+export const siteContent = pgTable("siteContent", {
+  id: serial("id").primaryKey(),
+  key: varchar("key", { length: 255 }).notNull().unique(), // e.g., "about-hero-title", "footer-text"
+  contentType: varchar("contentType", { length: 50 }).notNull(), // text, html, markdown, image
+  contentEN: text("contentEN"),
+  contentPT: text("contentPT"),
+  metadata: text("metadata"), // JSON string for additional data
+  active: integer("active").default(1).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+
+export type SiteContent = typeof siteContent.$inferSelect;
+export type InsertSiteContent = typeof siteContent.$inferInsert;
+
+// Media library table - for managing uploaded images and files
+export const media = pgTable("media", {
+  id: serial("id").primaryKey(),
+  filename: varchar("filename", { length: 255 }).notNull(),
+  originalName: varchar("originalName", { length: 255 }).notNull(),
+  url: varchar("url", { length: 512 }).notNull(),
+  mimeType: varchar("mimeType", { length: 100 }).notNull(),
+  size: integer("size").notNull(), // File size in bytes
+  alt: varchar("alt", { length: 255 }), // Alt text for accessibility
+  caption: text("caption"),
+  folder: varchar("folder", { length: 255 }).default("general"), // Organize by folder
+  uploadedBy: integer("uploadedBy").references(() => users.id),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type Media = typeof media.$inferSelect;
+export type InsertMedia = typeof media.$inferInsert;
+
+// Site settings table - for global site configuration
+export const siteSettings = pgTable("siteSettings", {
+  id: serial("id").primaryKey(),
+  key: varchar("key", { length: 255 }).notNull().unique(), // e.g., "site-title", "contact-email"
+  value: text("value").notNull(),
+  description: text("description"), // What this setting controls
+  category: varchar("category", { length: 100 }).default("general"), // general, seo, social, etc.
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+
+export type SiteSetting = typeof siteSettings.$inferSelect;
+export type InsertSiteSetting = typeof siteSettings.$inferInsert;

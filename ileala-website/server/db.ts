@@ -759,3 +759,141 @@ export async function getNewsletterStats() {
     inactive: inactive.length,
   };
 }
+
+// ==================== CMS Functions ====================
+
+// Artisans functions
+export async function listArtisans() {
+  const db = await getDb();
+  if (!db) return [];
+  
+  try {
+    const { artisans } = await import("../drizzle/schema");
+    const result = await db.select().from(artisans).orderBy(artisans.createdAt);
+    return result;
+  } catch (error) {
+    logger.error("[Database] Failed to list artisans:", error);
+    return [];
+  }
+}
+
+export async function createArtisan(data: any) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  try {
+    const { artisans } = await import("../drizzle/schema");
+    const result = await db.insert(artisans).values(data).returning();
+    return result[0];
+  } catch (error) {
+    logger.error("[Database] Failed to create artisan:", error);
+    throw error;
+  }
+}
+
+export async function updateArtisan(id: number, data: any) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  try {
+    const { artisans } = await import("../drizzle/schema");
+    const { eq } = await import("drizzle-orm");
+    const result = await db.update(artisans)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(artisans.id, id))
+      .returning();
+    return result[0];
+  } catch (error) {
+    logger.error("[Database] Failed to update artisan:", error);
+    throw error;
+  }
+}
+
+export async function deleteArtisan(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  try {
+    const { artisans } = await import("../drizzle/schema");
+    const { eq } = await import("drizzle-orm");
+    await db.delete(artisans).where(eq(artisans.id, id));
+    return { success: true };
+  } catch (error) {
+    logger.error("[Database] Failed to delete artisan:", error);
+    throw error;
+  }
+}
+
+// Site content functions
+export async function listSiteContent() {
+  const db = await getDb();
+  if (!db) return [];
+  
+  try {
+    const { siteContent } = await import("../drizzle/schema");
+    const result = await db.select().from(siteContent).orderBy(siteContent.key);
+    return result;
+  } catch (error) {
+    logger.error("[Database] Failed to list site content:", error);
+    return [];
+  }
+}
+
+export async function getSiteContentByKey(key: string) {
+  const db = await getDb();
+  if (!db) return null;
+  
+  try {
+    const { siteContent } = await import("../drizzle/schema");
+    const { eq } = await import("drizzle-orm");
+    const result = await db.select().from(siteContent).where(eq(siteContent.key, key)).limit(1);
+    return result[0] || null;
+  } catch (error) {
+    logger.error("[Database] Failed to get site content by key:", error);
+    return null;
+  }
+}
+
+export async function upsertSiteContent(data: any) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  try {
+    const { siteContent } = await import("../drizzle/schema");
+    const { eq } = await import("drizzle-orm");
+    
+    // Check if content with this key exists
+    const existing = await getSiteContentByKey(data.key);
+    
+    if (existing) {
+      // Update existing
+      const result = await db.update(siteContent)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(siteContent.id, existing.id))
+        .returning();
+      return result[0];
+    } else {
+      // Insert new
+      const result = await db.insert(siteContent).values(data).returning();
+      return result[0];
+    }
+  } catch (error) {
+    logger.error("[Database] Failed to upsert site content:", error);
+    throw error;
+  }
+}
+
+export async function deleteSiteContent(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  try {
+    const { siteContent } = await import("../drizzle/schema");
+    const { eq } = await import("drizzle-orm");
+    await db.delete(siteContent).where(eq(siteContent.id, id));
+    return { success: true };
+  } catch (error) {
+    logger.error("[Database] Failed to delete site content:", error);
+    throw error;
+  }
+}
