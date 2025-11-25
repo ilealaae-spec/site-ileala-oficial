@@ -60,6 +60,7 @@ export default function Login() {
   
   const loginMutation = trpc.auth.login.useMutation({
     onSuccess: async () => {
+      console.log('[Login] Login successful!');
       toast.success(language === 'en' ? 'Login successful!' : 'Login realizado com sucesso!');
       
       // Invalidate auth data
@@ -68,6 +69,8 @@ export default function Login() {
       // Get redirect path
       const params = new URLSearchParams(window.location.search);
       const redirect = params.get('redirect') || '/';
+      
+      console.log('[Login] Redirecting to:', redirect);
       
       // Force full page reload to ensure Header updates
       setTimeout(() => {
@@ -78,6 +81,7 @@ export default function Login() {
       }, 300);
     },
     onError: (error) => {
+      console.error('[Login] Login error:', error);
       toast.error(error.message || (language === 'en' ? 'Invalid email or password' : 'Email ou senha inválidos'));
     },
   });
@@ -85,12 +89,22 @@ export default function Login() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log('[Login] handleSubmit called', { email, hasPassword: !!password });
+    
     if (!email || !password) {
+      console.log('[Login] Missing email or password');
       toast.error(language === 'en' ? 'Please fill in all fields' : 'Por favor, preencha todos os campos');
       return;
     }
 
-    loginMutation.mutate({ email, password });
+    console.log('[Login] Calling loginMutation.mutate');
+    try {
+      loginMutation.mutate({ email, password });
+      console.log('[Login] loginMutation.mutate called successfully');
+    } catch (error) {
+      console.error('[Login] Error calling loginMutation.mutate:', error);
+      toast.error('Login error: ' + (error as Error).message);
+    }
   };
 
   return (
