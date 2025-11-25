@@ -5,6 +5,7 @@ import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
 import { registerGoogleOAuthRoutes } from "./googleOAuth";
+import { registerStripeWebhookRoutes } from "../stripe-webhook-routes";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
@@ -58,6 +59,9 @@ async function startServer() {
   
   // Google OAuth routes (direct Google OAuth)
   registerGoogleOAuthRoutes(app);
+  
+  // Stripe webhook routes
+  registerStripeWebhookRoutes(app);
   
   // Health check endpoint
   app.get("/health", async (req, res) => {
