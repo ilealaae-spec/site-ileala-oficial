@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Card } from '@/components/ui/card';
-import embroideredWorldMap from '/images/embroidered-world-map.png';
+import embroideredWorldMap from '/images/embroidered-world-map.webp';
 
 interface Artisan {
   id: number;
