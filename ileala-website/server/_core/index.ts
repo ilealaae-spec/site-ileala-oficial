@@ -127,6 +127,31 @@ async function startServer() {
     }
   });
 
+  // Cookie debug endpoint
+  app.get("/api/debug-cookies", (req, res) => {
+    const { getSessionCookieOptions } = require("./cookies");
+    const cookieOptions = getSessionCookieOptions(req);
+    
+    res.json({
+      request: {
+        protocol: req.protocol,
+        hostname: req.hostname,
+        secure: req.secure,
+        headers: {
+          'x-forwarded-proto': req.headers['x-forwarded-proto'],
+          'x-forwarded-host': req.headers['x-forwarded-host'],
+          'host': req.headers['host'],
+        },
+      },
+      cookieOptions,
+      env: {
+        NODE_ENV: process.env.NODE_ENV,
+        VERCEL: process.env.VERCEL,
+      },
+      currentCookies: req.cookies,
+    });
+  });
+
   // Emergency admin creation route
   app.post("/api/create-emergency-admin", async (req, res) => {
     try {
