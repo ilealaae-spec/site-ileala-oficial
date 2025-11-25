@@ -35,6 +35,17 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 }
 
 async function startServer() {
+  // Run database migrations first
+  try {
+    logger.info("[Startup] Running database migrations...");
+    const { runMigrations } = await import("../migrate");
+    await runMigrations();
+    logger.info("[Startup] Database migrations completed successfully");
+  } catch (error) {
+    logger.error("[Startup] Failed to run migrations:", error);
+    // Continue anyway - migrations might have already been run
+  }
+
   const app = express();
   const server = createServer(app);
   
