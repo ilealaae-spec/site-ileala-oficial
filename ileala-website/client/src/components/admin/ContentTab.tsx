@@ -12,9 +12,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { trpc } from '@/lib/trpc';
-import { Loader2, Plus, Edit, Trash2, FileText, Code, Image as ImageIcon } from 'lucide-react';
+import { Loader2, Plus, Edit, Trash2, FileText, Code, Image as ImageIcon, Download, Trash } from 'lucide-react';
 import { toast } from 'sonner';
 import { useState } from 'react';
+import { translations } from '@/lib/i18n';
 import {
   Dialog,
   DialogContent,
@@ -26,6 +27,7 @@ export default function ContentTab() {
   const { language } = useLanguage();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingContent, setEditingContent] = useState<any>(null);
+  const [isImporting, setIsImporting] = useState(false);
   
   const [formData, setFormData] = useState({
     key: '',
@@ -94,6 +96,88 @@ export default function ContentTab() {
     upsertMutation.mutate(formData);
   };
 
+  // Flatten nested object to dot notation
+  const flattenObject = (obj: any, prefix = ''): Record<string, string> => {
+    const flattened: Record<string, string> = {};
+    
+    for (const [key, value] of Object.entries(obj)) {
+      const newKey = prefix ? `${prefix}.${key}` : key;
+      
+      if (typeof value === 'string') {
+        flattened[newKey] = value;
+      } else if (Array.isArray(value)) {
+        // Skip arrays (testimonials)
+        continue;
+      } else if (typeof value === 'object' && value !== null) {
+        Object.assign(flattened, flattenObject(value, newKey));
+      }
+    }
+    
+    return flattened;
+  };
+
+  const handleImportFromI18n = async () => {
+    if (!window.confirm(language === 'en' 
+      ? 'Import all translations from i18n? This will add all content entries.'
+      : 'Importar todas as traduções do i18n? Isso adicionará todas as entradas de conteúdo.')) {
+      return;
+    }
+
+    setIsImporting(true);
+    
+    try {
+      const enFlat = flattenObject(translations.en);
+      const ptFlat = flattenObject(translations.pt);
+      
+      let successCount = 0;
+      let errorCount = 0;
+      
+      for (const key of Object.keys(enFlat)) {
+        try {
+          await upsertMutation.mutateAsync({
+            key,
+            contentType: 'text',
+            contentEN: enFlat[key],
+            contentPT: ptFlat[key] || enFlat[key],
+            metadata: JSON.stringify({ category: key.split('.')[0], imported: true }),
+          });
+          successCount++;
+        } catch (error) {
+          console.error(`Failed to import ${key}:`, error);
+          errorCount++;
+        }
+      }
+      
+      toast.success(language === 'en'
+        ? `Imported ${successCount} entries! ${errorCount > 0 ? `(${errorCount} errors)` : ''}`
+        : `${successCount} entradas importadas! ${errorCount > 0 ? `(${errorCount} erros)` : ''}`);
+      
+      utils.cms.content.list.invalidate();
+    } catch (error) {
+      toast.error(language === 'en' ? 'Import failed!' : 'Falha na importação!');
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  const handleClearAll = async () => {
+    if (!window.confirm(language === 'en'
+      ? 'Delete ALL content entries? This cannot be undone!'
+      : 'Excluir TODAS as entradas de conteúdo? Isso não pode ser desfeito!')) {
+      return;
+    }
+
+    try {
+      for (const content of contents || []) {
+        await deleteMutation.mutateAsync({ id: content.id });
+      }
+      toast.success(language === 'en' ? 'All content deleted!' : 'Todo o conteúdo excluído!');
+      utils.cms.content.list.invalidate();
+    } catch (error) {
+      toast.error(language === 'en' ? 'Failed to clear content!' : 'Falha ao limpar conteúdo!');
+    }
+  };
+
   const getContentTypeIcon = (type: string) => {
     switch (type) {
       case 'text':
@@ -139,11 +223,51 @@ export default function ContentTab() {
               : 'Gerenciar conteúdo e textos editáveis do site'}
           </p>
         </div>
-        <Button onClick={() => setIsDialogOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          {language === 'en' ? 'Add Content' : 'Adicionar Conteúdo'}
-        </Button>
+        <div className="flex gap-2">
+          {(!contents || contents.length === 0) && (
+            <Button 
+              onClick={handleImportFromI18n}
+              disabled={isImporting}
+              variant="outline"
+            >
+              {isImporting ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="mr-2 h-4 w-4" />
+              )}
+              {language === 'en' ? 'Import from i18n' : 'Importar do i18n'}
+            </Button>
+          )}
+          {contents && contents.length > 0 && (
+            <Button 
+              onClick={handleClearAll}
+              variant="destructive"
+              size="sm"
+            >
+              <Trash className="mr-2 h-4 w-4" />
+              {language === 'en' ? 'Clear All' : 'Limpar Tudo'}
+            </Button>
+          )}
+          <Button onClick={() => setIsDialogOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            {language === 'en' ? 'Add Content' : 'Adicionar Conteúdo'}
+          </Button>
+        </div>
       </div>
+
+      {(!contents || contents.length === 0) && (
+        <Card className="p-8 text-center">
+          <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+          <h3 className="text-lg font-semibold mb-2">
+            {language === 'en' ? 'No content yet' : 'Nenhum conteúdo ainda'}
+          </h3>
+          <p className="text-muted-foreground mb-4">
+            {language === 'en'
+              ? 'Click "Import from i18n" to get started with all existing translations!'
+              : 'Clique em "Importar do i18n" para começar com todas as traduções existentes!'}
+          </p>
+        </Card>
+      )}
 
       <div className="grid gap-4">
         {contents?.map((content: any) => (
