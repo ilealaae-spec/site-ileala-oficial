@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Globe, ShoppingCart, Instagram, Facebook, User, LogOut, Package } from 'lucide-react';
+import { Globe, ShoppingCart, Instagram, Facebook, User, LogOut, Package, Shield } from 'lucide-react';
 
 export default function Header() {
   const { language, setLanguage, t } = useLanguage();
@@ -94,6 +94,19 @@ export default function Header() {
                   {language === 'en' ? 'My Orders' : 'Meus Pedidos'}
                 </Link>
               </DropdownMenuItem>
+              {user?.role === 'admin' && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/admin" className="flex items-center cursor-pointer bg-sage-50">
+                      <Shield className="h-4 w-4 mr-2 text-sage-700" />
+                      <span className="font-semibold text-sage-700">
+                        {language === 'en' ? 'Admin Panel' : 'Painel Admin'}
+                      </span>
+                    </Link>
+                  </DropdownMenuItem>
+                </>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
                 <LogOut className="h-4 w-4 mr-2" />

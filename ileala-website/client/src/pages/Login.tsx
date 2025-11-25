@@ -59,14 +59,19 @@ export default function Login() {
   }, [utils, refresh, isAuthenticated, user, setLocation]);
   
   const loginMutation = trpc.auth.login.useMutation({
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success(language === 'en' ? 'Login successful!' : 'Login realizado com sucesso!');
-      utils.auth.me.invalidate();
       
-      // Redirect to cart or home
-      const params = new URLSearchParams(window.location.search);
-      const redirect = params.get('redirect') || '/cart';
-      setLocation(redirect);
+      // Invalidate and refetch auth data to update Header
+      await utils.auth.me.invalidate();
+      await refresh();
+      
+      // Small delay to ensure state updates
+      setTimeout(() => {
+        const params = new URLSearchParams(window.location.search);
+        const redirect = params.get('redirect') || '/cart';
+        setLocation(redirect);
+      }, 100);
     },
     onError: (error) => {
       toast.error(error.message || (language === 'en' ? 'Invalid email or password' : 'Email ou senha inválidos'));
