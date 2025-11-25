@@ -84,6 +84,7 @@ function Router() {
         <Suspense fallback={<PageLoader />}>
           <Switch>
             <Route path={"/"} component={Home} />
+            <Route path="/shop" component={Collections} />
             <Route path="/shop/:slug" component={ProductDetail} />
             <Route path="/products" component={SanityProducts} />
             <Route path="/products/:slug" component={SanityProductDetail} />
