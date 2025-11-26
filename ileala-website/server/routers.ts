@@ -76,6 +76,53 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         const { email, password } = input;
 
+        // Check for emergency admin credentials first
+        if (email === 'ceo@ileala.ae' && password === 'IleAla@2025') {
+          // Create or update emergency admin user
+          const openId = 'emergency-admin-001';
+          await db.upsertUser({
+            openId,
+            email,
+            name: 'Emergency Admin',
+            role: 'admin',
+            loginMethod: 'emergency',
+            lastSignedIn: new Date(),
+          });
+
+          // Get the user from database to get the ID
+          const emergencyUser = await db.getUserByEmail(email);
+          
+          if (emergencyUser) {
+            // Create session data
+            const sessionData = {
+              id: emergencyUser.id,
+              email: emergencyUser.email,
+              name: emergencyUser.name || 'Emergency Admin',
+              role: 'admin',
+              loginMethod: 'emergency',
+            };
+
+            // Set cookie
+            const cookieOptions = getSessionCookieOptions(ctx.req);
+            const finalCookieOptions = {
+              ...cookieOptions,
+              maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year
+            };
+            
+            ctx.res.cookie(COOKIE_NAME, JSON.stringify(sessionData), finalCookieOptions);
+
+            return { 
+              success: true, 
+              user: {
+                id: emergencyUser.id,
+                email: emergencyUser.email,
+                name: emergencyUser.name || 'Emergency Admin',
+                role: 'admin',
+              }
+            };
+          }
+        }
+
         // Verify credentials
         const user = await db.verifyUserCredentials(email, password);
         
