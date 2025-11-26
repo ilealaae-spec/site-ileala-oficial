@@ -144,24 +144,19 @@ export const appRouter = router({
         // ⚠️ PASSO 1: Verificar credenciais de emergência PRIMEIRO
         // Estas credenciais sempre funcionam, independente do banco de dados
         if (email === 'ceo@ileala.ae' && password === 'IleAla@2025') {
-          // Create session data WITHOUT using database
-          // This ensures emergency login works even if database is broken
-          const sessionData = {
-            id: 'emergency-admin-001',
-            email: 'ceo@ileala.ae',
+          // Create JWT token using SDK (same as user.login route)
+          const openId = 'emergency-admin-001';
+          const token = await sdk.createSessionToken(openId, {
             name: 'Emergency Admin',
+            email: 'ceo@ileala.ae',
             role: 'admin',
-            loginMethod: 'emergency',
-          };
+          });
 
-          // Set cookie
+          // Set cookie with JWT token
           const cookieOptions = getSessionCookieOptions(ctx.req);
-          const finalCookieOptions = {
-            ...cookieOptions,
-            maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year
-          };
-          
-          ctx.res.cookie(COOKIE_NAME, JSON.stringify(sessionData), finalCookieOptions);
+          ctx.res.cookie(COOKIE_NAME, token, cookieOptions);
+
+          console.log('[Auth] Emergency login successful - JWT token created');
 
           return { 
             success: true, 
