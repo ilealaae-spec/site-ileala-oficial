@@ -53,12 +53,6 @@ export default function Admin() {
   // Use emergency user if available, otherwise use regular auth user
   const currentUser = emergencyUser || user;
 
-  // DEBUG: Log user data
-  console.log('[Admin] Auth user:', user);
-  console.log('[Admin] Emergency user:', emergencyUser);
-  console.log('[Admin] Current user:', currentUser);
-  console.log('[Admin] Current user role:', currentUser?.role);
-
   // Redirect to login if no user found
   if (!currentUser) {
     setLocation('/login?redirect=/admin');
