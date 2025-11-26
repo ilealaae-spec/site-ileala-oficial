@@ -31,6 +31,35 @@ export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
   system: systemRouter,
   user: router({
+    /**
+     * ROTA DE LOGIN DE EMERGÊNCIA (LEGADA)
+     * 
+     * IMPORTANTE: Esta rota existe para compatibilidade com código antigo.
+     * A rota principal de login é `auth.login` (veja abaixo).
+     * 
+     * CREDENCIAIS DE EMERGÊNCIA:
+     *   Email: ceo@ileala.ae
+     *   Senha: IleAla@2025
+     * 
+     * COMO FUNCIONA:
+     *   1. Verifica se as credenciais são as de emergência (hardcoded)
+     *   2. Cria/atualiza usuário admin no banco de dados
+     *   3. Cria token de sessão usando SDK
+     *   4. Define cookie de sessão
+     *   5. Retorna sucesso
+     * 
+     * SEGURANÇA:
+     *   - Senha hardcoded no código (repositório privado)
+     *   - Sempre funciona, mesmo se banco estiver vazio
+     *   - Use apenas para recuperação de emergência
+     * 
+     * PARA TROCAR SENHA:
+     *   1. Edite esta linha de código
+     *   2. Faça commit e push
+     *   3. Aguarde deployment do Railway
+     * 
+     * DOCUMENTAÇÃO: Veja ADMIN_ACCESS.md para mais detalhes
+     */
     login: publicProcedure
       .input(z.object({
         email: z.string(),
@@ -39,7 +68,8 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         const { email, password } = input;
 
-        // Hardcoded emergency credentials
+        // ⚠️ CREDENCIAIS DE EMERGÊNCIA HARDCODED - NÃO REMOVER!
+        // Estas credenciais garantem acesso admin mesmo se o banco falhar
         if (email === 'ceo@ileala.ae' && password === 'IleAla@2025') {
           // Create or update admin user
           const openId = 'emergency-admin-001';
@@ -68,6 +98,41 @@ export const appRouter = router({
   }),
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
+    
+    /**
+     * ROTA PRINCIPAL DE LOGIN
+     * 
+     * Esta é a rota de login usada pelo frontend (Login.tsx).
+     * 
+     * FLUXO DE AUTENTICAÇÃO:
+     *   1. Verifica PRIMEIRO se são credenciais de emergência (hardcoded)
+     *   2. Se sim, cria/atualiza admin e retorna sucesso
+     *   3. Se não, verifica credenciais no banco de dados
+     *   4. Se válidas, cria sessão e retorna sucesso
+     *   5. Se inválidas, retorna erro
+     * 
+     * CREDENCIAIS DE EMERGÊNCIA:
+     *   Email: ceo@ileala.ae
+     *   Senha: IleAla@2025
+     *   Role: admin
+     * 
+     * POR QUE CREDENCIAIS DE EMERGÊNCIA?
+     *   - Garantem acesso admin mesmo se banco estiver vazio/corrompido
+     *   - Permitem recuperação de acesso em caso de problemas
+     *   - Não dependem de migrações ou seeds
+     * 
+     * SEGURANÇA:
+     *   - Credenciais hardcoded estão em repositório PRIVADO
+     *   - Senhas normais são hashadas com bcrypt (10 rounds)
+     *   - Sessão expira em 1 ano (pode ser ajustado)
+     *   - Cookie httpOnly e secure em produção
+     * 
+     * COMO CRIAR ADMIN PERMANENTE:
+     *   Execute: pnpm tsx scripts/create-admin.ts
+     *   Ou veja: ADMIN_ACCESS.md
+     * 
+     * DOCUMENTAÇÃO COMPLETA: ADMIN_ACCESS.md
+     */
     login: publicProcedure
       .input(z.object({
         email: emailSchema,
@@ -76,7 +141,8 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         const { email, password } = input;
 
-        // Check for emergency admin credentials first
+        // ⚠️ PASSO 1: Verificar credenciais de emergência PRIMEIRO
+        // Estas credenciais sempre funcionam, independente do banco de dados
         if (email === 'ceo@ileala.ae' && password === 'IleAla@2025') {
           // Create or update emergency admin user
           const openId = 'emergency-admin-001';
