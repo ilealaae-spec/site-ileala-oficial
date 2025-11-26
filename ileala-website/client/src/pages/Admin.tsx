@@ -3,8 +3,12 @@ import { useAuth } from '@/_core/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useLocation } from 'wouter';
-import { Loader2, LayoutDashboard, Mail, Users, Package, ShoppingCart, Shield, Palette, FileText, Image } from 'lucide-react';
+import { Loader2, LayoutDashboard, Mail, Users, Package, ShoppingCart, Shield, Palette, FileText, Image, Lock, Eye, EyeOff } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { trpc } from '@/lib/trpc';
+import { toast } from 'sonner';
 
 // Import tab components
 import DashboardTab from '@/components/admin/DashboardTab';
@@ -23,6 +27,11 @@ export default function Admin() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [emergencyUser, setEmergencyUser] = useState<any>(null);
   const [checkingEmergency, setCheckingEmergency] = useState(true);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  
+  const utils = trpc.useUtils();
 
   // Check for emergency admin session
   useEffect(() => {
@@ -53,10 +62,121 @@ export default function Admin() {
   // Use emergency user if available, otherwise use regular auth user
   const currentUser = emergencyUser || user;
 
-  // Redirect to login if no user found
+  const loginMutation = trpc.auth.login.useMutation({
+    onSuccess: async () => {
+      console.log('[Admin] Login successful!');
+      toast.success(language === 'en' ? 'Login successful!' : 'Login realizado com sucesso!');
+      
+      // Invalidate auth data and reload page
+      await utils.auth.me.invalidate();
+      
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+    },
+    onError: (error) => {
+      console.error('[Admin] Login error:', error);
+      toast.error(error.message || (language === 'en' ? 'Invalid email or password' : 'Email ou senha inválidos'));
+    },
+  });
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!email || !password) {
+      toast.error(language === 'en' ? 'Please fill in all fields' : 'Por favor, preencha todos os campos');
+      return;
+    }
+
+    loginMutation.mutate({ email, password });
+  };
+
+  // Show login form if no user found
   if (!currentUser) {
-    setLocation('/login?redirect=/admin');
-    return null;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-sage-50 px-4 py-8">
+        <Card className="w-full max-w-md p-6">
+          <div className="text-center mb-8">
+            <img 
+              src="/images/logo_ile_ala.webp" 
+              alt="ILE ALA" 
+              className="h-16 w-auto mx-auto mb-4"
+            />
+            <h1 className="text-3xl font-display text-sage-900 mb-2">
+              {language === 'en' ? 'Admin Login' : 'Login Administrativo'}
+            </h1>
+            <p className="text-sage-600">
+              {language === 'en' ? 'Sign in to access admin panel' : 'Entre para acessar o painel admin'}
+            </p>
+          </div>
+
+          <form onSubmit={handleLogin} className="space-y-6">
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-sage-900 mb-2">
+                {language === 'en' ? 'Email' : 'E-mail'}
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sage-400 w-5 h-5" />
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder={language === 'en' ? 'admin@email.com' : 'admin@email.com'}
+                  className="pl-10"
+                  disabled={loginMutation.isPending}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-sage-900 mb-2">
+                {language === 'en' ? 'Password' : 'Senha'}
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sage-400 w-5 h-5" />
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder={language === 'en' ? 'Enter your password' : 'Digite sua senha'}
+                  className="pl-10 pr-10"
+                  disabled={loginMutation.isPending}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-sage-400 hover:text-sage-600 transition-colors"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+              </div>
+            </div>
+
+            <Button
+              type="submit"
+              disabled={loginMutation.isPending}
+              className="w-full"
+              size="lg"
+            >
+              {loginMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  {language === 'en' ? 'Signing in...' : 'Entrando...'}
+                </>
+              ) : (
+                <>
+                  <Shield className="w-4 h-4 mr-2" />
+                  {language === 'en' ? 'Sign In' : 'Entrar'}
+                </>
+              )}
+            </Button>
+          </form>
+        </Card>
+      </div>
+    );
   }
 
   // Check if user is admin
