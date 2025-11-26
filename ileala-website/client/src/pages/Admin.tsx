@@ -1,3 +1,5 @@
+import { useLanguage } from '@/contexts/LanguageContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/_core/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -20,6 +22,7 @@ import ContentTab from '@/components/admin/ContentTab';
 import MediaTab from '@/components/admin/MediaTab';
 
 export default function Admin() {
+  const { language } = useLanguage();
   const { user, isLoading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -63,7 +66,7 @@ export default function Admin() {
   const loginMutation = trpc.auth.login.useMutation({
     onSuccess: async () => {
       console.log('[Admin] Login successful!');
-      toast.success('Login successful!');
+      toast.success(language === 'en' ? 'Login successful!' : 'Login realizado com sucesso!');
       
       // Invalidate auth data and reload page
       await utils.auth.me.invalidate();
@@ -74,7 +77,7 @@ export default function Admin() {
     },
     onError: (error) => {
       console.error('[Admin] Login error:', error);
-      toast.error(error.message || ('Invalid email or password'));
+      toast.error(error.message || (language === 'en' ? 'Invalid email or password' : 'Email ou senha inválidos'));
     },
   });
 
@@ -82,7 +85,7 @@ export default function Admin() {
     e.preventDefault();
     
     if (!email || !password) {
-      toast.error('Please fill in all fields');
+      toast.error(language === 'en' ? 'Please fill in all fields' : 'Por favor, preencha todos os campos');
       return;
     }
 
@@ -101,17 +104,17 @@ export default function Admin() {
               className="h-16 w-auto mx-auto mb-4"
             />
             <h1 className="text-3xl font-display text-sage-900 mb-2">
-              {'Admin Login'}
+              {language === 'en' ? 'Admin Login' : 'Login Administrativo'}
             </h1>
             <p className="text-sage-600">
-              {'Sign in to access admin panel'}
+              {language === 'en' ? 'Sign in to access admin panel' : 'Entre para acessar o painel admin'}
             </p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-6">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-sage-900 mb-2">
-                {'Email'}
+                {language === 'en' ? 'Email' : 'E-mail'}
               </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sage-400 w-5 h-5" />
@@ -120,7 +123,7 @@ export default function Admin() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder={'admin@email.com'}
+                  placeholder={language === 'en' ? 'admin@email.com' : 'admin@email.com'}
                   className="pl-10"
                   disabled={loginMutation.isPending}
                 />
@@ -129,7 +132,7 @@ export default function Admin() {
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-sage-900 mb-2">
-                {'Password'}
+                {language === 'en' ? 'Password' : 'Senha'}
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sage-400 w-5 h-5" />
@@ -138,7 +141,7 @@ export default function Admin() {
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder={'Enter your password'}
+                  placeholder={language === 'en' ? 'Enter your password' : 'Digite sua senha'}
                   className="pl-10 pr-10"
                   disabled={loginMutation.isPending}
                 />
@@ -162,12 +165,12 @@ export default function Admin() {
               {loginMutation.isPending ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  {'Signing in...'}
+                  {language === 'en' ? 'Signing in...' : 'Entrando...'}
                 </>
               ) : (
                 <>
                   <Shield className="w-4 h-4 mr-2" />
-                  {'Sign In'}
+                  {language === 'en' ? 'Sign In' : 'Entrar'}
                 </>
               )}
             </Button>
@@ -183,15 +186,15 @@ export default function Admin() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-4">
-            {'Access Denied'}
+            {language === 'en' ? 'Access Denied' : 'Acesso Negado'}
           </h2>
           <p className="text-muted-foreground mb-8">
             {language === 'en' 
               ? 'You do not have permission to access this page.' 
-             }
+              : 'Você não tem permissão para acessar esta página.'}
           </p>
           <Button onClick={() => setLocation('/')}>
-            {'Go Home'}
+            {language === 'en' ? 'Go Home' : 'Ir para Início'}
           </Button>
         </div>
       </div>
@@ -204,13 +207,13 @@ export default function Admin() {
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
             <h1 className="text-4xl font-bold text-sage-900">
-              {'Admin Panel'}
+              {language === 'en' ? 'Admin Panel' : 'Painel Administrativo'}
             </h1>
             {emergencyUser && (
               <div className="flex items-center gap-2 px-3 py-1 bg-red-100 border-2 border-red-500 rounded-full">
                 <Shield className="w-4 h-4 text-red-600" />
                 <span className="text-xs font-bold text-red-600 uppercase">
-                  {'Emergency Mode'}
+                  {language === 'en' ? 'Emergency Mode' : 'Modo Emergência'}
                 </span>
               </div>
             )}
@@ -218,15 +221,15 @@ export default function Admin() {
           <p className="text-sage-600">
             {language === 'en' 
               ? 'Manage your store, products, orders, and customers' 
-             }
+              : 'Gerencie sua loja, produtos, pedidos e clientes'}
           </p>
           {emergencyUser && (
             <div className="mt-4 p-3 bg-yellow-50 border-l-4 border-yellow-500 rounded">
               <p className="text-sm text-yellow-800">
-                <strong>⚠️ {'Warning'}
+                <strong>⚠️ {language === 'en' ? 'Warning' : 'Aviso'}:</strong>{' '}
                 {language === 'en' 
                   ? 'You are logged in using emergency admin access. Some features may be limited.' 
-                 }
+                  : 'Você está logado usando acesso admin de emergência. Alguns recursos podem estar limitados.'}
               </p>
             </div>
           )}
@@ -237,49 +240,49 @@ export default function Admin() {
             <TabsTrigger value="dashboard" className="flex items-center gap-2">
               <LayoutDashboard className="w-4 h-4" />
               <span className="hidden md:inline">
-                {'Dashboard'}
+                {language === 'en' ? 'Dashboard' : 'Painel'}
               </span>
             </TabsTrigger>
             <TabsTrigger value="newsletter" className="flex items-center gap-2">
               <Mail className="w-4 h-4" />
               <span className="hidden md:inline">
-                {'Newsletter'}
+                {language === 'en' ? 'Newsletter' : 'Newsletter'}
               </span>
             </TabsTrigger>
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
               <span className="hidden md:inline">
-                {'Users'}
+                {language === 'en' ? 'Users' : 'Usuários'}
               </span>
             </TabsTrigger>
             <TabsTrigger value="products" className="flex items-center gap-2">
               <Package className="w-4 h-4" />
               <span className="hidden md:inline">
-                {'Products'}
+                {language === 'en' ? 'Products' : 'Produtos'}
               </span>
             </TabsTrigger>
             <TabsTrigger value="orders" className="flex items-center gap-2">
               <ShoppingCart className="w-4 h-4" />
               <span className="hidden md:inline">
-                {'Orders'}
+                {language === 'en' ? 'Orders' : 'Pedidos'}
               </span>
             </TabsTrigger>
             <TabsTrigger value="artisans" className="flex items-center gap-2">
               <Palette className="w-4 h-4" />
               <span className="hidden md:inline">
-                {'Artisans'}
+                {language === 'en' ? 'Artisans' : 'Artesãos'}
               </span>
             </TabsTrigger>
             <TabsTrigger value="content" className="flex items-center gap-2">
               <FileText className="w-4 h-4" />
               <span className="hidden md:inline">
-                {'Content'}
+                {language === 'en' ? 'Content' : 'Conteúdo'}
               </span>
             </TabsTrigger>
             <TabsTrigger value="media" className="flex items-center gap-2">
               <Image className="w-4 h-4" />
               <span className="hidden md:inline">
-                {'Media'}
+                {language === 'en' ? 'Media' : 'Mídia'}
               </span>
             </TabsTrigger>
           </TabsList>
