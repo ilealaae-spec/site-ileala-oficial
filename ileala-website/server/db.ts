@@ -654,6 +654,16 @@ export async function updateUser(userId: number, data: {
     .where(eq(users.id, userId));
 }
 
+export async function getAllUsers() {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  const allUsers = await db.select().from(users);
+  return allUsers;
+}
+
 
 // ===== NEWSLETTER =====
 

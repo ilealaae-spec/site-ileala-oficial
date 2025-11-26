@@ -977,6 +977,12 @@ export const appRouter = router({
         return await db.deleteMedia(input.id);
       }),
   }),
+  users: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+      return await db.getAllUsers();
+    }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;
