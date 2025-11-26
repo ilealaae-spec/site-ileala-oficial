@@ -144,49 +144,34 @@ export const appRouter = router({
         // ⚠️ PASSO 1: Verificar credenciais de emergência PRIMEIRO
         // Estas credenciais sempre funcionam, independente do banco de dados
         if (email === 'ceo@ileala.ae' && password === 'IleAla@2025') {
-          // Create or update emergency admin user
-          const openId = 'emergency-admin-001';
-          await db.upsertUser({
-            openId,
-            email,
+          // Create session data WITHOUT using database
+          // This ensures emergency login works even if database is broken
+          const sessionData = {
+            id: 'emergency-admin-001',
+            email: 'ceo@ileala.ae',
             name: 'Emergency Admin',
             role: 'admin',
             loginMethod: 'emergency',
-            lastSignedIn: new Date(),
-          });
+          };
 
-          // Get the user from database to get the ID
-          const emergencyUser = await db.getUserByEmail(email);
+          // Set cookie
+          const cookieOptions = getSessionCookieOptions(ctx.req);
+          const finalCookieOptions = {
+            ...cookieOptions,
+            maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year
+          };
           
-          if (emergencyUser) {
-            // Create session data
-            const sessionData = {
-              id: emergencyUser.id,
-              email: emergencyUser.email,
-              name: emergencyUser.name || 'Emergency Admin',
+          ctx.res.cookie(COOKIE_NAME, JSON.stringify(sessionData), finalCookieOptions);
+
+          return { 
+            success: true, 
+            user: {
+              id: 'emergency-admin-001',
+              email: 'ceo@ileala.ae',
+              name: 'Emergency Admin',
               role: 'admin',
-              loginMethod: 'emergency',
-            };
-
-            // Set cookie
-            const cookieOptions = getSessionCookieOptions(ctx.req);
-            const finalCookieOptions = {
-              ...cookieOptions,
-              maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year
-            };
-            
-            ctx.res.cookie(COOKIE_NAME, JSON.stringify(sessionData), finalCookieOptions);
-
-            return { 
-              success: true, 
-              user: {
-                id: emergencyUser.id,
-                email: emergencyUser.email,
-                name: emergencyUser.name || 'Emergency Admin',
-                role: 'admin',
-              }
-            };
-          }
+            }
+          };
         }
 
         // Verify credentials
