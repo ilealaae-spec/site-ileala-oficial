@@ -897,3 +897,64 @@ export async function deleteSiteContent(id: number) {
     throw error;
   }
 }
+
+
+// Media management functions
+export async function getAllMedia() {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  try {
+    const { media } = await import("../drizzle/schema");
+    const result = await db.select().from(media).orderBy(media.createdAt);
+    return result;
+  } catch (error) {
+    logger.error("[Database] Failed to get all media:", error);
+    throw error;
+  }
+}
+
+export async function createMedia(data: {
+  url: string;
+  filename: string;
+  type: string;
+  folder?: string;
+  altText?: string;
+  caption?: string;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  try {
+    const { media } = await import("../drizzle/schema");
+    const result = await db.insert(media).values({
+      url: data.url,
+      filename: data.filename,
+      type: data.type,
+      folder: data.folder || null,
+      altText: data.altText || null,
+      caption: data.caption || null,
+      createdAt: new Date(),
+    }).returning();
+    
+    return result[0];
+  } catch (error) {
+    logger.error("[Database] Failed to create media:", error);
+    throw error;
+  }
+}
+
+export async function deleteMedia(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  try {
+    const { media } = await import("../drizzle/schema");
+    const { eq } = await import("drizzle-orm");
+    await db.delete(media).where(eq(media.id, id));
+    return { success: true };
+  } catch (error) {
+    logger.error("[Database] Failed to delete media:", error);
+    throw error;
+  }
+}

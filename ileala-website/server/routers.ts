@@ -534,6 +534,13 @@ export const appRouter = router({
       if (!ctx.user) throw new Error('Not authenticated');
       return await db.getUserOrders(ctx.user.id);
     }),
+    list: protectedProcedure.query(async ({ ctx }) => {
+      // Only admins can list all orders
+      if (ctx.user?.role !== 'admin') {
+        throw new Error('Unauthorized: Admin access required');
+      }
+      return await db.getAllOrders();
+    }),
   }),
 
   // Admin router (protected - only for admin users)
@@ -832,6 +839,30 @@ export const appRouter = router({
           return await db.deleteSiteContent(input.id);
         }),
     }),
+  }),
+  // Media management router
+  media: router({
+    list: protectedProcedure
+      .query(async () => {
+        return await db.getAllMedia();
+      }),
+    create: protectedProcedure
+      .input(z.object({
+        url: z.string().url(),
+        filename: z.string().min(1),
+        type: z.string().min(1),
+        folder: z.string().optional(),
+        altText: z.string().optional(),
+        caption: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        return await db.createMedia(input);
+      }),
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        return await db.deleteMedia(input.id);
+      }),
   }),
 });
 
