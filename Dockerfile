@@ -23,5 +23,7 @@ COPY ileala-website/ .
 RUN pnpm run build
 
 # Start (permanece em ileala-website)
-CMD ["pnpm", "run", "start"]
+# Usar shell form para garantir que o comando seja executado no diretório correto
+WORKDIR /app/ileala-website
+CMD pnpm run start
 
