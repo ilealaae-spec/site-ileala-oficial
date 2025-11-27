@@ -250,9 +250,11 @@ async function startServer() {
     logger.warn(`Port ${preferredPort} is busy, using port ${port} instead`);
   }
 
-  server.listen(port, () => {
-    logger.info(`Server running on http://localhost:${port}/`);
-    logger.info(`Health check available at http://localhost:${port}/health`);
+  server.listen(port, "0.0.0.0", () => {
+    logger.info(`Server running on http://0.0.0.0:${port}/`);
+    logger.info(`Health check available at http://0.0.0.0:${port}/health`);
+    console.log(`✅ Server listening on port ${port}`);
+    console.log(`✅ Health check: http://0.0.0.0:${port}/health`);
   });
 }
 

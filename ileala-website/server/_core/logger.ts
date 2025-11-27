@@ -7,12 +7,10 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 export const logger = {
   /**
-   * Log info messages (only in development)
+   * Log info messages (always, for Railway debugging)
    */
   info: (...args: unknown[]) => {
-    if (!isProduction) {
-      console.log('[INFO]', ...args);
-    }
+    console.log('[INFO]', ...args);
   },
 
   /**
