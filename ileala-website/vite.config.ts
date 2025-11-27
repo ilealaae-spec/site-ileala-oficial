@@ -31,7 +31,17 @@ export default defineConfig({
         assetFileNames: `assets/[name]-[hash].[ext]`,
         // Ensure consistent hashing
         manualChunks: undefined,
-      }
+      },
+      onwarn(warning, warn) {
+        // Ignorar avisos de módulos externos e imports dinâmicos durante o build
+        if (warning.code === 'EXTERNAL_MODULE' || 
+            warning.code === 'UNRESOLVED_IMPORT' ||
+            (warning.message && warning.message.includes('@sentry/react')) ||
+            (warning.message && warning.message.includes('embroidered-world-map.webp'))) {
+          return;
+        }
+        warn(warning);
+      },
     },
     // Force rebuild by changing build ID
     assetsInlineLimit: 0,
