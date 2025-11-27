@@ -31,35 +31,8 @@ export default function Admin() {
   
   const utils = trpc.useUtils();
 
-  // Check for emergency admin session
-  useEffect(() => {
-    try {
-      const emergencySession = localStorage.getItem('emergency_admin_session');
-      if (emergencySession) {
-        const parsedSession = JSON.parse(emergencySession);
-        if (parsedSession && parsedSession.role === 'admin' && parsedSession.emergency) {
-          setEmergencyUser(parsedSession);
-        }
-      }
-    } catch (error) {
-      console.error('Error checking emergency session:', error);
-    } finally {
-      setCheckingEmergency(false);
-    }
-  }, []);
-
-  // Show loading while checking emergency session or auth
-  if (checkingEmergency || authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  // Use emergency user if available, otherwise use regular auth user
-  const currentUser = emergencyUser || user;
-
+  // ALL HOOKS MUST BE CALLED BEFORE ANY EARLY RETURNS
+  // This is critical to avoid React error #310
   const loginMutation = trpc.auth.login.useMutation({
     onSuccess: async () => {
       console.log('[Admin] Login successful!');
@@ -88,6 +61,35 @@ export default function Admin() {
       toast.error(error.message || 'Invalid email or password');
     },
   });
+
+  // Check for emergency admin session
+  useEffect(() => {
+    try {
+      const emergencySession = localStorage.getItem('emergency_admin_session');
+      if (emergencySession) {
+        const parsedSession = JSON.parse(emergencySession);
+        if (parsedSession && parsedSession.role === 'admin' && parsedSession.emergency) {
+          setEmergencyUser(parsedSession);
+        }
+      }
+    } catch (error) {
+      console.error('Error checking emergency session:', error);
+    } finally {
+      setCheckingEmergency(false);
+    }
+  }, []);
+
+  // Show loading while checking emergency session or auth
+  if (checkingEmergency || authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Use emergency user if available, otherwise use regular auth user
+  const currentUser = emergencyUser || user;
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
