@@ -67,23 +67,55 @@ export default function Login() {
       await utils.auth.me.invalidate();
       
       // Wait a bit for auth data to be available
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 800));
       
-      // Get fresh user data to check role
-      const userData = await utils.auth.me.fetch();
+      // Get fresh user data to check role - retry if needed
+      let userData;
+      let retries = 3;
+      while (retries > 0) {
+        try {
+          userData = await utils.auth.me.fetch();
+          if (userData) break;
+        } catch (error) {
+          console.warn('[Login] Failed to fetch user data, retrying...', error);
+        }
+        await new Promise(resolve => setTimeout(resolve, 300));
+        retries--;
+      }
       
-      // Get redirect path
+      console.log('[Login] User data after login:', userData);
+      
+      // Get redirect path from URL params
       const params = new URLSearchParams(window.location.search);
       let redirect = params.get('redirect');
       
-      // If no redirect specified and user is admin, redirect to admin panel
-      if (!redirect && userData?.role === 'admin') {
+      // Check if we're on admin domain (admin.ileala.ae)
+      const isAdminDomain = window.location.hostname === 'admin.ileala.ae' || 
+                           window.location.hostname.includes('admin');
+      
+      // SIMPLIFIED LOGIC:
+      // 1. If explicit redirect param exists, use it
+      // 2. If on admin domain, always redirect to /admin (users accessing admin domain likely want admin panel)
+      // 3. If user is admin (even on main domain), redirect to /admin
+      // 4. Otherwise, redirect to home
+      if (redirect) {
+        // Use explicit redirect parameter
+        console.log('[Login] Using explicit redirect:', redirect);
+      } else if (isAdminDomain) {
+        // If on admin domain, always go to /admin
         redirect = '/admin';
+        console.log('[Login] Admin domain detected, redirecting to /admin');
+      } else if (userData?.role === 'admin') {
+        // Admin users always go to /admin
+        redirect = '/admin';
+        console.log('[Login] Admin user detected, redirecting to /admin');
       } else {
-        redirect = redirect || '/';
+        // Default to home
+        redirect = '/';
+        console.log('[Login] Default redirect to home');
       }
       
-      console.log('[Login] Redirecting to:', redirect, 'User role:', userData?.role);
+      console.log('[Login] Final redirect:', redirect, 'User role:', userData?.role, 'Domain:', window.location.hostname);
       
       // Redirect to the target path immediately
       // Use window.location.href for a full navigation
