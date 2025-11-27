@@ -330,17 +330,35 @@ class SDKServer {
     if (!user) {
       try {
         const userInfo = await this.getUserInfoWithJwt(sessionCookie ?? "");
+        
+        // Validate that we have at least openId or email before upserting
+        if (!userInfo.openId && !userInfo.email) {
+          console.error("[Auth] Cannot sync user: missing both openId and email", {
+            hasOpenId: !!userInfo.openId,
+            hasEmail: !!userInfo.email,
+            userInfoKeys: Object.keys(userInfo),
+          });
+          throw ForbiddenError("Invalid user info: missing required fields");
+        }
+        
         await db.upsertUser({
-          openId: userInfo.openId,
+          openId: userInfo.openId || undefined,
           name: userInfo.name || null,
           email: userInfo.email ?? null,
           loginMethod: userInfo.loginMethod ?? userInfo.platform ?? null,
           lastSignedIn: signedInAt,
         });
-        user = await db.getUserByOpenId(userInfo.openId);
+        
+        // Try to get user by openId first, then by email if openId is missing
+        if (userInfo.openId) {
+          user = await db.getUserByOpenId(userInfo.openId);
+        } else if (userInfo.email) {
+          user = await db.getUserByEmail(userInfo.email);
+        }
       } catch (error) {
         console.error("[Auth] Failed to sync user from OAuth:", error);
-        throw ForbiddenError("Failed to sync user info");
+        // Don't throw error here - let the "User not found" check below handle it
+        // This prevents OAuth errors from breaking authentication for users with local accounts
       }
     }
 
