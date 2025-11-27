@@ -2,8 +2,9 @@ import { cn } from "@/lib/utils";
 import { AlertTriangle, RotateCcw, Home } from "lucide-react";
 import { Component, ReactNode } from "react";
 import React from "react";
-import { useLanguage } from "@/contexts/LanguageContext";
 import { errorTracker } from "@/lib/errorTracking";
+// Note: We intentionally don't import useLanguage here to avoid dependency on LanguageProvider
+// ErrorBoundary must work independently, even if LanguageProvider fails to mount
 
 interface Props {
   children: ReactNode;
@@ -51,7 +52,7 @@ class ErrorBoundaryClass extends Component<Props, State> {
         return this.props.fallback;
       }
 
-      // Default error UI
+      // Default error UI - uses simple component that doesn't depend on LanguageProvider
       return <ErrorFallback error={this.state.error} errorInfo={this.state.errorInfo} />;
     }
 
@@ -59,10 +60,19 @@ class ErrorBoundaryClass extends Component<Props, State> {
   }
 }
 
-// Separate component to use hooks
+// Simple error fallback that doesn't use hooks - works even if LanguageProvider is not mounted
+// This component is intentionally simple and always uses English to avoid dependency on LanguageProvider
 function ErrorFallback({ error, errorInfo }: { error: Error | null; errorInfo: React.ErrorInfo | null }) {
-  const { language } = useLanguage();
   const isDevelopment = process.env.NODE_ENV === 'development';
+  
+  // Always use English - this ensures ErrorBoundary works even if LanguageProvider fails
+  // The ErrorBoundary must work independently of other providers
+  const texts = {
+    title: 'Something went wrong',
+    message: 'We apologize for the inconvenience. Please try reloading the page or return to the home page.',
+    goHome: 'Go Home',
+    reload: 'Reload Page',
+  };
 
   return (
     <div className="flex items-center justify-center min-h-screen p-8 bg-background">
@@ -73,13 +83,11 @@ function ErrorFallback({ error, errorInfo }: { error: Error | null; errorInfo: R
         />
 
         <h2 className="text-2xl font-bold mb-2">
-          {language === 'en' ? 'Something went wrong' : 'Algo deu errado'}
+          {texts.title}
         </h2>
         
         <p className="text-muted-foreground mb-6 text-center">
-          {language === 'en' 
-            ? 'We apologize for the inconvenience. Please try reloading the page or return to the home page.'
-            : 'Pedimos desculpas pelo inconveniente. Tente recarregar a página ou retorne à página inicial.'}
+          {texts.message}
         </p>
 
         {isDevelopment && error && (
@@ -115,7 +123,7 @@ function ErrorFallback({ error, errorInfo }: { error: Error | null; errorInfo: R
             )}
           >
             <Home size={16} />
-            {language === 'en' ? 'Go Home' : 'Ir para Início'}
+            {texts.goHome}
           </button>
           
           <button
@@ -127,7 +135,7 @@ function ErrorFallback({ error, errorInfo }: { error: Error | null; errorInfo: R
             )}
           >
             <RotateCcw size={16} />
-            {language === 'en' ? 'Reload Page' : 'Recarregar Página'}
+            {texts.reload}
           </button>
         </div>
       </div>
