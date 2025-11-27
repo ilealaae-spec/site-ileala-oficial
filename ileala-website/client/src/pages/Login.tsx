@@ -85,13 +85,9 @@ export default function Login() {
       
       console.log('[Login] Redirecting to:', redirect, 'User role:', userData?.role);
       
-      // Force full page reload to ensure Header updates
-      setTimeout(() => {
-        // First navigate to the redirect path
-        window.history.pushState({}, '', redirect);
-        // Then force a hard reload
-        window.location.reload();
-      }, 300);
+      // Redirect to the target path immediately
+      // Use window.location.href for a full navigation
+      window.location.href = redirect;
     },
     onError: (error) => {
       console.error('[Login] Login error:', error);
