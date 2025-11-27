@@ -9,7 +9,8 @@ RUN npm install -g pnpm@10.4.1
 
 # Copiar arquivos de configuração do ileala-website
 COPY ileala-website/package.json ileala-website/pnpm-lock.yaml ./ileala-website/
-COPY ileala-website/.pnpmrc ileala-website/.nvmrc ./ileala-website/ 2>/dev/null || true
+COPY ileala-website/.pnpmrc ./ileala-website/
+COPY ileala-website/.nvmrc ./ileala-website/
 
 # Instalar dependências
 WORKDIR /app/ileala-website
