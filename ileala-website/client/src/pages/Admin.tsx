@@ -65,12 +65,23 @@ export default function Admin() {
       console.log('[Admin] Login successful!');
       toast.success('Login successful!');
       
-      // Invalidate auth data and reload page
+      // Invalidate auth data to get fresh user info
       await utils.auth.me.invalidate();
       
-      setTimeout(() => {
+      // Wait a bit for auth data to be available
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Get fresh user data to check role
+      const userData = await utils.auth.me.fetch();
+      
+      // If user is admin, stay on admin page, otherwise redirect
+      if (userData?.role === 'admin') {
+        // Reload to refresh the admin page
         window.location.reload();
-      }, 500);
+      } else {
+        // Not an admin, redirect to home
+        window.location.href = '/';
+      }
     },
     onError: (error) => {
       console.error('[Admin] Login error:', error);

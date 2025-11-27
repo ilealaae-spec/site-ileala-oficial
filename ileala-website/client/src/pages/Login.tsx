@@ -63,14 +63,27 @@ export default function Login() {
       console.log('[Login] Login successful!');
       toast.success(language === 'en' ? 'Login successful!' : 'Login realizado com sucesso!');
       
-      // Invalidate auth data
+      // Invalidate auth data to get fresh user info
       await utils.auth.me.invalidate();
+      
+      // Wait a bit for auth data to be available
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Get fresh user data to check role
+      const userData = await utils.auth.me.fetch();
       
       // Get redirect path
       const params = new URLSearchParams(window.location.search);
-      const redirect = params.get('redirect') || '/';
+      let redirect = params.get('redirect');
       
-      console.log('[Login] Redirecting to:', redirect);
+      // If no redirect specified and user is admin, redirect to admin panel
+      if (!redirect && userData?.role === 'admin') {
+        redirect = '/admin';
+      } else {
+        redirect = redirect || '/';
+      }
+      
+      console.log('[Login] Redirecting to:', redirect, 'User role:', userData?.role);
       
       // Force full page reload to ensure Header updates
       setTimeout(() => {
