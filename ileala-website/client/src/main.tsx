@@ -19,7 +19,17 @@ const redirectToLoginIfUnauthorized = (error: unknown) => {
 
   if (!isUnauthorized) return;
 
-  window.location.href = getLoginUrl();
+  // Check if we're on admin domain - if so, redirect to /login instead of OAuth
+  const isAdminDomain = window.location.hostname === 'admin.ileala.ae' || 
+                       window.location.hostname.includes('admin');
+  
+  if (isAdminDomain) {
+    // On admin domain, always use direct login page, not OAuth
+    window.location.href = '/login';
+  } else {
+    // On main domain, use OAuth login URL
+    window.location.href = getLoginUrl();
+  }
 };
 
 queryClient.getQueryCache().subscribe(event => {

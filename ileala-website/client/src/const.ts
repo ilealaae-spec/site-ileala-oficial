@@ -10,13 +10,24 @@ export const APP_LOGO =
 
 // Generate login URL at runtime so redirect URI reflects the current origin.
 export const getLoginUrl = () => {
+  // Check if we're on admin domain - if so, always use direct login page, not OAuth
+  if (typeof window !== 'undefined') {
+    const isAdminDomain = window.location.hostname === 'admin.ileala.ae' || 
+                         window.location.hostname.includes('admin');
+    
+    if (isAdminDomain) {
+      // On admin domain, always use direct login page
+      return '/login';
+    }
+  }
+  
   const oauthPortalUrl = import.meta.env.VITE_OAUTH_PORTAL_URL;
   const appId = import.meta.env.VITE_APP_ID;
   
-  // If OAuth is not configured, return a placeholder URL
+  // If OAuth is not configured, return login page
   if (!oauthPortalUrl || !appId) {
     console.warn('OAuth is not configured. Please set VITE_OAUTH_PORTAL_URL and VITE_APP_ID environment variables.');
-    return '#';
+    return '/login';
   }
   
   try {
@@ -32,7 +43,7 @@ export const getLoginUrl = () => {
     return url.toString();
   } catch (error) {
     console.error('Failed to construct login URL:', error);
-    return '#';
+    return '/login';
   }
 };
 
