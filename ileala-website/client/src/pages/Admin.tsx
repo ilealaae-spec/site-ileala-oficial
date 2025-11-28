@@ -1,14 +1,14 @@
 import { useAuth } from '@/_core/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useLocation } from 'wouter';
-import { Loader2, LayoutDashboard, Mail, Users, Package, ShoppingCart, Shield, Palette, FileText, Image, Lock, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Mail, Shield, Lock, Eye, EyeOff } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { trpc } from '@/lib/trpc';
 import { toast } from 'sonner';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import AdminLayoutWrapper from '@/components/admin/AdminLayoutWrapper';
 
 // Import tab components
 import DashboardTab from '@/components/admin/DashboardTab';
@@ -227,120 +227,103 @@ export default function Admin() {
     );
   }
 
+  const handleLogout = async () => {
+    try {
+      // Clear emergency session if exists
+      localStorage.removeItem('emergency_admin_session');
+      
+      // Logout via API
+      await utils.auth.logout.mutate();
+      
+      // Redirect to home
+      window.location.href = '/';
+    } catch (error) {
+      console.error('[Admin] Logout error:', error);
+      // Force redirect even if logout fails
+      window.location.href = '/';
+    }
+  };
+
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'dashboard':
+        return (
+          <ErrorBoundary>
+            <DashboardTab />
+          </ErrorBoundary>
+        );
+      case 'newsletter':
+        return (
+          <ErrorBoundary>
+            <NewsletterTab />
+          </ErrorBoundary>
+        );
+      case 'users':
+        return (
+          <ErrorBoundary>
+            <UsersTab />
+          </ErrorBoundary>
+        );
+      case 'products':
+        return (
+          <ErrorBoundary>
+            <ProductsTab />
+          </ErrorBoundary>
+        );
+      case 'orders':
+        return (
+          <ErrorBoundary>
+            <OrdersTab />
+          </ErrorBoundary>
+        );
+      case 'artisans':
+        return (
+          <ErrorBoundary>
+            <ArtisansTab />
+          </ErrorBoundary>
+        );
+      case 'content':
+        return (
+          <ErrorBoundary>
+            <ContentTab />
+          </ErrorBoundary>
+        );
+      case 'media':
+        return (
+          <ErrorBoundary>
+            <MediaTab />
+          </ErrorBoundary>
+        );
+      default:
+        return (
+          <ErrorBoundary>
+            <DashboardTab />
+          </ErrorBoundary>
+        );
+    }
+  };
+
   return (
-    <div className="w-full min-h-screen bg-sage-50">
-      <div className="container py-8">
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <h1 className="text-4xl font-bold text-sage-900">
-              Admin Panel
-            </h1>
-            {emergencyUser && (
-              <div className="flex items-center gap-2 px-3 py-1 bg-red-100 border-2 border-red-500 rounded-full">
-                <Shield className="w-4 h-4 text-red-600" />
-                <span className="text-xs font-bold text-red-600 uppercase">
-                  Emergency Mode
-                </span>
-              </div>
-            )}
+    <AdminLayoutWrapper
+      activeTab={activeTab}
+      onTabChange={setActiveTab}
+      userName={currentUser.name || undefined}
+      userEmail={currentUser.email || undefined}
+      onLogout={handleLogout}
+    >
+      {emergencyUser && (
+        <div className="mb-6 p-4 bg-yellow-50 border-l-4 border-yellow-500 rounded">
+          <div className="flex items-center gap-2 mb-2">
+            <Shield className="w-5 h-5 text-yellow-600" />
+            <span className="font-bold text-yellow-800">Emergency Mode</span>
           </div>
-          <p className="text-sage-600">
-            Manage your store, products, orders, and customers
+          <p className="text-sm text-yellow-800">
+            You are logged in using emergency admin access. Some features may be limited.
           </p>
-          {emergencyUser && (
-            <div className="mt-4 p-3 bg-yellow-50 border-l-4 border-yellow-500 rounded">
-              <p className="text-sm text-yellow-800">
-                <strong>⚠️ Warning:</strong> You are logged in using emergency admin access. Some features may be limited.
-              </p>
-            </div>
-          )}
         </div>
-
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-8 mb-8">
-            <TabsTrigger value="dashboard" className="flex items-center gap-2">
-              <LayoutDashboard className="w-4 h-4" />
-              <span className="hidden md:inline">Dashboard</span>
-            </TabsTrigger>
-            <TabsTrigger value="newsletter" className="flex items-center gap-2">
-              <Mail className="w-4 h-4" />
-              <span className="hidden md:inline">Newsletter</span>
-            </TabsTrigger>
-            <TabsTrigger value="users" className="flex items-center gap-2">
-              <Users className="w-4 h-4" />
-              <span className="hidden md:inline">Users</span>
-            </TabsTrigger>
-            <TabsTrigger value="products" className="flex items-center gap-2">
-              <Package className="w-4 h-4" />
-              <span className="hidden md:inline">Products</span>
-            </TabsTrigger>
-            <TabsTrigger value="orders" className="flex items-center gap-2">
-              <ShoppingCart className="w-4 h-4" />
-              <span className="hidden md:inline">Orders</span>
-            </TabsTrigger>
-            <TabsTrigger value="artisans" className="flex items-center gap-2">
-              <Palette className="w-4 h-4" />
-              <span className="hidden md:inline">Artisans</span>
-            </TabsTrigger>
-            <TabsTrigger value="content" className="flex items-center gap-2">
-              <FileText className="w-4 h-4" />
-              <span className="hidden md:inline">Content</span>
-            </TabsTrigger>
-            <TabsTrigger value="media" className="flex items-center gap-2">
-              <Image className="w-4 h-4" />
-              <span className="hidden md:inline">Media</span>
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="dashboard">
-            <ErrorBoundary>
-              <DashboardTab />
-            </ErrorBoundary>
-          </TabsContent>
-
-          <TabsContent value="newsletter">
-            <ErrorBoundary>
-              <NewsletterTab />
-            </ErrorBoundary>
-          </TabsContent>
-
-          <TabsContent value="users">
-            <ErrorBoundary>
-              <UsersTab />
-            </ErrorBoundary>
-          </TabsContent>
-
-          <TabsContent value="products">
-            <ErrorBoundary>
-              <ProductsTab />
-            </ErrorBoundary>
-          </TabsContent>
-
-          <TabsContent value="orders">
-            <ErrorBoundary>
-              <OrdersTab />
-            </ErrorBoundary>
-          </TabsContent>
-
-          <TabsContent value="artisans">
-            <ErrorBoundary>
-              <ArtisansTab />
-            </ErrorBoundary>
-          </TabsContent>
-
-          <TabsContent value="content">
-            <ErrorBoundary>
-              <ContentTab />
-            </ErrorBoundary>
-          </TabsContent>
-
-          <TabsContent value="media">
-            <ErrorBoundary>
-              <MediaTab />
-            </ErrorBoundary>
-          </TabsContent>
-        </Tabs>
-      </div>
-    </div>
+      )}
+      
+      {renderTabContent()}
+    </AdminLayoutWrapper>
   );
 }
