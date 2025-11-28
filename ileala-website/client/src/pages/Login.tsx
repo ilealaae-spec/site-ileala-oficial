@@ -77,20 +77,22 @@ export default function Login() {
         // Use explicit redirect parameter
         console.log('[Login] Using explicit redirect:', redirect);
       } else if (isAdminDomain) {
-        // If on admin domain, ALWAYS go to /admin (don't wait for auth.me)
-        redirect = '/admin';
-        console.log('[Login] Admin domain detected, redirecting to /admin immediately');
+        // If on admin domain, ALWAYS go to /admin on the SAME domain
+        // Use full URL to ensure we stay on admin.ileala.ae
+        redirect = `${window.location.protocol}//${window.location.hostname}/admin`;
+        console.log('[Login] Admin domain detected, redirecting to /admin on same domain:', redirect);
       } else if (data?.user?.role === 'admin') {
         // Check role from login response (faster than fetching auth.me)
-        redirect = '/admin';
-        console.log('[Login] Admin user detected from login response, redirecting to /admin');
+        // If user is admin but on main domain, redirect to admin domain
+        redirect = 'https://admin.ileala.ae/admin';
+        console.log('[Login] Admin user detected from login response, redirecting to admin domain');
       } else {
-        // Default to home
+        // Default to home on current domain
         redirect = '/';
         console.log('[Login] Default redirect to home');
       }
       
-      console.log('[Login] Redirecting to:', redirect, 'Domain:', window.location.hostname, 'User from response:', data?.user);
+      console.log('[Login] Redirecting to:', redirect, 'Current domain:', window.location.hostname, 'User from response:', data?.user);
       
       // Invalidate auth data in background (don't wait for it)
       utils.auth.me.invalidate().catch(err => {
@@ -101,6 +103,7 @@ export default function Login() {
       await new Promise(resolve => setTimeout(resolve, 300));
       
       // Redirect immediately - don't wait for auth.me.fetch()
+      // Use window.location.href for full page navigation
       window.location.href = redirect;
     },
     onError: (error) => {
