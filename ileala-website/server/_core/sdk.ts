@@ -280,7 +280,8 @@ class SDKServer {
       const sessionData = JSON.parse(sessionCookie);
       if (sessionData.id && sessionData.email) {
         // Traditional login session or Google OAuth session - fetch full user data from DB
-        const user = await db.getUserById(sessionData.id);
+        // Use email instead of id since getUserById doesn't exist
+        const user = await db.getUserByEmail(sessionData.email);
         
         if (user) {
           return user;
