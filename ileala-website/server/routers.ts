@@ -167,7 +167,10 @@ export const appRouter = router({
         // ⚠️ PASSO 1: Verificar credenciais de emergência PRIMEIRO
         // Estas credenciais sempre funcionam, independente do banco de dados
         if (email === 'ceo@ileala.ae' && password === 'IleAla@2025') {
-          // Create JWT token using SDK (same as user.login route)
+          // REMOVED: Database upsert to avoid constraint conflicts
+          // Emergency login works purely with session cookie, no DB required
+          // This prevents "users_email_key" constraint errors
+          /*
           const openId = 'emergency-admin-001';
           
           // Try to upsert user, but don't fail if it errors
@@ -184,6 +187,7 @@ export const appRouter = router({
             console.warn('[Auth] Could not upsert emergency admin user:', error);
             // Continue anyway - emergency login should work even if DB fails
           }
+          */
 
           // Create simple JSON session instead of JWT to bypass validation issues
           const sessionData = JSON.stringify({
