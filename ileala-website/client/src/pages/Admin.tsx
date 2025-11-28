@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { trpc } from '@/lib/trpc';
 import { toast } from 'sonner';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 // Import tab components
 import DashboardTab from '@/components/admin/DashboardTab';
@@ -284,35 +285,51 @@ export default function Admin() {
           </TabsList>
 
           <TabsContent value="dashboard">
-            <DashboardTab />
+            <ErrorBoundary>
+              <DashboardTab />
+            </ErrorBoundary>
           </TabsContent>
 
           <TabsContent value="newsletter">
-            <NewsletterTab />
+            <ErrorBoundary>
+              <NewsletterTab />
+            </ErrorBoundary>
           </TabsContent>
 
           <TabsContent value="users">
-            <UsersTab />
+            <ErrorBoundary>
+              <UsersTab />
+            </ErrorBoundary>
           </TabsContent>
 
           <TabsContent value="products">
-            <ProductsTab />
+            <ErrorBoundary>
+              <ProductsTab />
+            </ErrorBoundary>
           </TabsContent>
 
           <TabsContent value="orders">
-            <OrdersTab />
+            <ErrorBoundary>
+              <OrdersTab />
+            </ErrorBoundary>
           </TabsContent>
 
           <TabsContent value="artisans">
-            <ArtisansTab />
+            <ErrorBoundary>
+              <ArtisansTab />
+            </ErrorBoundary>
           </TabsContent>
 
           <TabsContent value="content">
-            <ContentTab />
+            <ErrorBoundary>
+              <ContentTab />
+            </ErrorBoundary>
           </TabsContent>
 
           <TabsContent value="media">
-            <MediaTab />
+            <ErrorBoundary>
+              <MediaTab />
+            </ErrorBoundary>
           </TabsContent>
         </Tabs>
       </div>
