@@ -93,6 +93,12 @@ export default function Admin() {
 
   // Use emergency user if available, otherwise use regular auth user
   const currentUser = emergencyUser || user;
+  
+  // DEBUG: Log user info
+  console.log('[Admin] DEBUG - emergencyUser:', emergencyUser);
+  console.log('[Admin] DEBUG - user:', user);
+  console.log('[Admin] DEBUG - currentUser:', currentUser);
+  console.log('[Admin] DEBUG - currentUser?.role:', currentUser?.role);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
