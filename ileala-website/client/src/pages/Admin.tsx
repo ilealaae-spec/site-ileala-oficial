@@ -80,6 +80,19 @@ export default function Admin() {
     }
   }, []);
 
+  // Force refresh auth data when component mounts if user is null but we're on admin page
+  useEffect(() => {
+    if (!user && !authLoading && !checkingEmergency) {
+      console.log('[Admin] No user found, refreshing auth data...');
+      // Wait a bit and then refresh
+      const timer = setTimeout(() => {
+        utils.auth.me.invalidate();
+        utils.auth.me.refetch();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [user, authLoading, checkingEmergency, utils]);
+
   // Show loading while checking emergency session or auth
   if (checkingEmergency || authLoading) {
     return (
