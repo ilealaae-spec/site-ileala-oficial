@@ -1,0 +1,8 @@
+[build]
+builder = "nixpacks"
+buildCommand = "cd ileala-website && pnpm install && pnpm run build"
+
+[deploy]
+startCommand = "cd ileala-website && pnpm run start"
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 10
