@@ -59,66 +59,48 @@ export default function Login() {
   }, [utils, refresh, isAuthenticated, user, setLocation]);
   
   const loginMutation = trpc.auth.login.useMutation({
-    onSuccess: async () => {
-      console.log('[Login] Login successful!');
+    onSuccess: async (data) => {
+      console.log('[Login] Login successful!', data);
       toast.success(language === 'en' ? 'Login successful!' : 'Login realizado com sucesso!');
       
-      // Invalidate auth data to get fresh user info
-      await utils.auth.me.invalidate();
-      
-      // Wait a bit for auth data to be available
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      // Get fresh user data to check role - retry if needed
-      let userData;
-      let retries = 3;
-      while (retries > 0) {
-        try {
-          userData = await utils.auth.me.fetch();
-          if (userData) break;
-        } catch (error) {
-          console.warn('[Login] Failed to fetch user data, retrying...', error);
-        }
-        await new Promise(resolve => setTimeout(resolve, 300));
-        retries--;
-      }
-      
-      console.log('[Login] User data after login:', userData);
+      // Check if we're on admin domain FIRST (before any async operations)
+      const isAdminDomain = window.location.hostname === 'admin.ileala.ae' || 
+                           window.location.hostname.includes('admin');
       
       // Get redirect path from URL params
       const params = new URLSearchParams(window.location.search);
       let redirect = params.get('redirect');
       
-      // Check if we're on admin domain (admin.ileala.ae)
-      const isAdminDomain = window.location.hostname === 'admin.ileala.ae' || 
-                           window.location.hostname.includes('admin');
-      
-      // SIMPLIFIED LOGIC:
-      // 1. If explicit redirect param exists, use it
-      // 2. If on admin domain, always redirect to /admin (users accessing admin domain likely want admin panel)
-      // 3. If user is admin (even on main domain), redirect to /admin
-      // 4. Otherwise, redirect to home
+      // DETERMINE REDIRECT IMMEDIATELY (don't wait for auth.me)
+      // Priority: URL redirect param > admin domain > user role from response > home
       if (redirect) {
         // Use explicit redirect parameter
         console.log('[Login] Using explicit redirect:', redirect);
       } else if (isAdminDomain) {
-        // If on admin domain, always go to /admin
+        // If on admin domain, ALWAYS go to /admin (don't wait for auth.me)
         redirect = '/admin';
-        console.log('[Login] Admin domain detected, redirecting to /admin');
-      } else if (userData?.role === 'admin') {
-        // Admin users always go to /admin
+        console.log('[Login] Admin domain detected, redirecting to /admin immediately');
+      } else if (data?.user?.role === 'admin') {
+        // Check role from login response (faster than fetching auth.me)
         redirect = '/admin';
-        console.log('[Login] Admin user detected, redirecting to /admin');
+        console.log('[Login] Admin user detected from login response, redirecting to /admin');
       } else {
         // Default to home
         redirect = '/';
         console.log('[Login] Default redirect to home');
       }
       
-      console.log('[Login] Final redirect:', redirect, 'User role:', userData?.role, 'Domain:', window.location.hostname);
+      console.log('[Login] Redirecting to:', redirect, 'Domain:', window.location.hostname, 'User from response:', data?.user);
       
-      // Redirect to the target path immediately
-      // Use window.location.href for a full navigation
+      // Invalidate auth data in background (don't wait for it)
+      utils.auth.me.invalidate().catch(err => {
+        console.warn('[Login] Failed to invalidate auth.me:', err);
+      });
+      
+      // Wait a tiny bit to ensure cookie is set, then redirect
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Redirect immediately - don't wait for auth.me.fetch()
       window.location.href = redirect;
     },
     onError: (error) => {
