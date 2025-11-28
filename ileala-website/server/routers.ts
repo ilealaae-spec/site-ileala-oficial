@@ -71,7 +71,10 @@ export const appRouter = router({
         // ⚠️ CREDENCIAIS DE EMERGÊNCIA HARDCODED - NÃO REMOVER!
         // Estas credenciais garantem acesso admin mesmo se o banco falhar
         if (email === 'ceo@ileala.ae' && password === 'IleAla@2025') {
-          // Try to create/update admin user, but don't fail if it errors
+          // REMOVED: Database upsert to avoid constraint conflicts
+          // Emergency login works purely with session cookie, no DB required
+          // This prevents "users_email_key" constraint errors
+          /*
           try {
             const openId = 'emergency-admin-001';
             await db.upsertUser({
@@ -86,6 +89,7 @@ export const appRouter = router({
             console.warn('[Auth] Could not upsert emergency admin user:', error);
             // Continue anyway - emergency login should work even if DB fails
           }
+          */
 
           // Create simple JSON session instead of JWT to bypass validation issues
           const sessionData = JSON.stringify({
