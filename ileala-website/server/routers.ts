@@ -104,7 +104,16 @@ export const appRouter = router({
 
           console.log('[Auth] Emergency login successful - JSON session created');
 
-          return { success: true };
+          // Return user object so frontend knows this is an admin
+          return { 
+            success: true,
+            user: {
+              id: 'emergency-admin-001',
+              email: 'ceo@ileala.ae',
+              name: 'Emergency Admin',
+              role: 'admin'
+            }
+          };
         }
 
         throw new Error('Invalid credentials');
