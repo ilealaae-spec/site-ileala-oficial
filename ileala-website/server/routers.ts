@@ -146,15 +146,21 @@ export const appRouter = router({
         if (email === 'ceo@ileala.ae' && password === 'IleAla@2025') {
           // Create JWT token using SDK (same as user.login route)
           const openId = 'emergency-admin-001';
-          // Create or update admin user in database
-          await db.upsertUser({
-            openId,
-            email: 'ceo@ileala.ae',
-            name: 'Emergency Admin',
-            role: 'admin',
-            loginMethod: 'emergency',
-            lastSignedIn: new Date(),
-          });
+          
+          // Try to upsert user, but don't fail if it errors
+          try {
+            await db.upsertUser({
+              openId,
+              email: 'ceo@ileala.ae',
+              name: 'Emergency Admin',
+              role: 'admin',
+              loginMethod: 'emergency',
+              lastSignedIn: new Date(),
+            });
+          } catch (error) {
+            console.warn('[Auth] Could not upsert emergency admin user:', error);
+            // Continue anyway - emergency login should work even if DB fails
+          }
 
           const token = await sdk.createSessionToken(openId, {
             name: 'Emergency Admin',
