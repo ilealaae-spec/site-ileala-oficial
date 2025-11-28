@@ -42,20 +42,9 @@ export default function Admin() {
       // Invalidate auth data to get fresh user info
       await utils.auth.me.invalidate();
       
-      // Wait a bit for auth data to be available
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Get fresh user data to check role
-      const userData = await utils.auth.me.fetch();
-      
-      // If user is admin, stay on admin page, otherwise redirect
-      if (userData?.role === 'admin') {
-        // Reload to refresh the admin page
-        window.location.reload();
-      } else {
-        // Not an admin, redirect to home
-        window.location.href = '/';
-      }
+      // Simply reload the page - the admin check will happen on page load
+      // If user is not admin, they will see "Access Denied" after reload
+      window.location.reload();
     },
     onError: (error) => {
       console.error('[Admin] Login error:', error);
