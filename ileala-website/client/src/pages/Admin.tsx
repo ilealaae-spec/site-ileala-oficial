@@ -103,7 +103,16 @@ export default function Admin() {
   };
 
   // Show login form if no user found
+  // Also check if user is still loading (might be null temporarily after redirect)
   if (!currentUser) {
+    // If auth is still loading, show loading spinner
+    if (authLoading) {
+      return (
+        <div className="min-h-screen flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      );
+    }
     return (
       <div className="min-h-screen flex items-center justify-center bg-sage-50 px-4 py-8">
         <Card className="w-full max-w-md p-6">
@@ -190,8 +199,8 @@ export default function Admin() {
     );
   }
 
-  // Check if user is admin
-  if (currentUser.role !== 'admin') {
+  // Check if user is admin - with null safety
+  if (!currentUser || currentUser.role !== 'admin') {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
