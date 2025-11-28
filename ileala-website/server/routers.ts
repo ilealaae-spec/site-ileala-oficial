@@ -146,10 +146,18 @@ export const appRouter = router({
         if (email === 'ceo@ileala.ae' && password === 'IleAla@2025') {
           // Create JWT token using SDK (same as user.login route)
           const openId = 'emergency-admin-001';
+          // Create or update admin user in database
+          await db.upsertUser({
+            openId,
+            email: 'ceo@ileala.ae',
+            name: 'Emergency Admin',
+            role: 'admin',
+            loginMethod: 'emergency',
+            lastSignedIn: new Date(),
+          });
+
           const token = await sdk.createSessionToken(openId, {
             name: 'Emergency Admin',
-            email: 'ceo@ileala.ae',
-            role: 'admin',
           });
 
           // Set cookie with JWT token
