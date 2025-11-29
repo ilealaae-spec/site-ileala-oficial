@@ -228,6 +228,19 @@ async function startServer() {
       });
     }
   });
+  // Redirect admin.ileala.ae root to /admin
+  app.use((req, res, next) => {
+    const hostname = req.hostname || req.get('host');
+    
+    // Check if accessing admin subdomain root
+    if (hostname?.includes('admin.ileala.ae') && req.path === '/') {
+      logger.info(`[Redirect] ${hostname}${req.path} -> /admin`);
+      return res.redirect(301, '/admin');
+    }
+    
+    next();
+  });
+
   // tRPC API
   app.use(
     "/api/trpc",
