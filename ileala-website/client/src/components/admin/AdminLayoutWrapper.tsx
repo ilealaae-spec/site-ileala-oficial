@@ -19,7 +19,7 @@ export default function AdminLayoutWrapper({
   userEmail,
   onLogout,
 }: AdminLayoutWrapperProps) {
-  console.log('[AdminLayoutWrapper] RENDERING NEW LAYOUT!!!');
+  console.log('[AdminLayoutWrapper] RENDERING NEW LAYOUT - Build: 20251129-134500');
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Sidebar */}
