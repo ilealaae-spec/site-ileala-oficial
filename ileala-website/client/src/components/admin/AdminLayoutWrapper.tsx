@@ -19,6 +19,7 @@ export default function AdminLayoutWrapper({
   userEmail,
   onLogout,
 }: AdminLayoutWrapperProps) {
+  console.log('[AdminLayoutWrapper] RENDERING NEW LAYOUT!!!');
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Sidebar */}
