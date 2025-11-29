@@ -326,17 +326,17 @@ export default function Admin() {
     }
   };
 
-  console.log('[Admin] RENDERING NEW MODERN LAYOUT - Build: 20251129-141900');
+  console.log('[Admin] RENDERING ULTRA MODERN DARK LAYOUT - Build: 20251129-155200');
 
   // INLINE MODERN LAYOUT (AdminLayoutWrapper + AdminSidebar + AdminHeader)
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Sidebar */}
-      <aside className="fixed left-0 top-0 h-screen w-64 bg-white border-r border-gray-200 flex flex-col z-20">
+      <aside className="fixed left-0 top-0 h-screen w-64 bg-gradient-to-b from-gray-900 to-gray-800 flex flex-col z-20 shadow-2xl">
         {/* Logo */}
-        <div className="p-6 border-b border-gray-200">
-          <h1 className="text-2xl font-bold text-primary">ILE ALA</h1>
-          <p className="text-sm text-muted-foreground">Admin Panel</p>
+        <div className="p-6 border-b border-gray-700">
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">ILE ALA</h1>
+          <p className="text-sm text-gray-400">Admin Panel</p>
         </div>
 
         {/* Navigation */}
@@ -352,8 +352,8 @@ export default function Admin() {
                 className={cn(
                   "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors",
                   isActive
-                    ? "bg-primary text-white"
-                    : "text-gray-700 hover:bg-gray-100"
+                    ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/50"
+                    : "text-gray-300 hover:bg-gray-700/50"
                 )}
               >
                 <Icon className="w-5 h-5" />
@@ -364,10 +364,10 @@ export default function Admin() {
         </nav>
 
         {/* Logout */}
-        <div className="p-4 border-t border-gray-200">
+        <div className="p-4 border-t border-gray-700">
           <Button
             variant="ghost"
-            className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
+            className="w-full justify-start text-red-400 hover:text-red-300 hover:bg-gray-700/50"
             onClick={handleLogout}
           >
             <LogOut className="w-5 h-5 mr-3" />
@@ -377,7 +377,7 @@ export default function Admin() {
       </aside>
 
       {/* Header */}
-      <header className="fixed top-0 left-64 right-0 h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 z-10">
+      <header className="fixed top-0 left-64 right-0 h-16 bg-white/80 backdrop-blur-md border-b border-gray-200 flex items-center justify-between px-6 z-10 shadow-sm">
         {/* Search Bar */}
         <div className="flex-1 max-w-md">
           <div className="relative">
@@ -402,7 +402,7 @@ export default function Admin() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white font-medium">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 flex items-center justify-center text-white font-medium shadow-lg">
                   {currentUser.name?.charAt(0)?.toUpperCase() || "A"}
                 </div>
                 <div className="text-left hidden md:block">
