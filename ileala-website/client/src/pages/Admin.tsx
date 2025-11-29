@@ -1,14 +1,26 @@
 import { useAuth } from '@/_core/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { useLocation } from 'wouter';
-import { Loader2, Mail, Shield, Lock, Eye, EyeOff } from 'lucide-react';
+import { 
+  Loader2, Mail, Shield, Lock, Eye, EyeOff,
+  LayoutDashboard, Users, Package, ShoppingCart, Palette, FileText, Image,
+  LogOut, Search, Bell, User
+} from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { trpc } from '@/lib/trpc';
 import { toast } from 'sonner';
 import ErrorBoundary from '@/components/ErrorBoundary';
-import AdminLayoutWrapper from '@/components/admin/AdminLayoutWrapper';
+import { cn } from '@/lib/utils';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 // Import tab components
 import DashboardTab from '@/components/admin/DashboardTab';
@@ -19,6 +31,17 @@ import OrdersTab from '@/components/admin/OrdersTab';
 import ArtisansTab from '@/components/admin/ArtisansTab';
 import ContentTab from '@/components/admin/ContentTab';
 import MediaTab from '@/components/admin/MediaTab';
+
+const tabs = [
+  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { id: "newsletter", label: "Newsletter", icon: Mail },
+  { id: "users", label: "Users", icon: Users },
+  { id: "products", label: "Products", icon: Package },
+  { id: "orders", label: "Orders", icon: ShoppingCart },
+  { id: "artisans", label: "Artisans", icon: Palette },
+  { id: "content", label: "Content", icon: FileText },
+  { id: "media", label: "Media", icon: Image },
+];
 
 export default function Admin() {
   const { user, isLoading: authLoading } = useAuth();
@@ -303,27 +326,123 @@ export default function Admin() {
     }
   };
 
+  console.log('[Admin] RENDERING NEW MODERN LAYOUT - Build: 20251129-141900');
+
+  // INLINE MODERN LAYOUT (AdminLayoutWrapper + AdminSidebar + AdminHeader)
   return (
-    <AdminLayoutWrapper
-      activeTab={activeTab}
-      onTabChange={setActiveTab}
-      userName={currentUser.name || undefined}
-      userEmail={currentUser.email || undefined}
-      onLogout={handleLogout}
-    >
-      {emergencyUser && (
-        <div className="mb-6 p-4 bg-yellow-50 border-l-4 border-yellow-500 rounded">
-          <div className="flex items-center gap-2 mb-2">
-            <Shield className="w-5 h-5 text-yellow-600" />
-            <span className="font-bold text-yellow-800">Emergency Mode</span>
-          </div>
-          <p className="text-sm text-yellow-800">
-            You are logged in using emergency admin access. Some features may be limited.
-          </p>
+    <div className="min-h-screen bg-gray-50">
+      {/* Sidebar */}
+      <aside className="fixed left-0 top-0 h-screen w-64 bg-white border-r border-gray-200 flex flex-col z-20">
+        {/* Logo */}
+        <div className="p-6 border-b border-gray-200">
+          <h1 className="text-2xl font-bold text-primary">ILE ALA</h1>
+          <p className="text-sm text-muted-foreground">Admin Panel</p>
         </div>
-      )}
-      
-      {renderTabContent()}
-    </AdminLayoutWrapper>
+
+        {/* Navigation */}
+        <nav className="flex-1 overflow-y-auto p-4 space-y-1">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors",
+                  isActive
+                    ? "bg-primary text-white"
+                    : "text-gray-700 hover:bg-gray-100"
+                )}
+              >
+                <Icon className="w-5 h-5" />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Logout */}
+        <div className="p-4 border-t border-gray-200">
+          <Button
+            variant="ghost"
+            className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
+            onClick={handleLogout}
+          >
+            <LogOut className="w-5 h-5 mr-3" />
+            Logout
+          </Button>
+        </div>
+      </aside>
+
+      {/* Header */}
+      <header className="fixed top-0 left-64 right-0 h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 z-10">
+        {/* Search Bar */}
+        <div className="flex-1 max-w-md">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Input
+              type="search"
+              placeholder="Search..."
+              className="pl-10 bg-gray-50 border-gray-200"
+            />
+          </div>
+        </div>
+
+        {/* Right Section */}
+        <div className="flex items-center gap-4">
+          {/* Notifications */}
+          <Button variant="ghost" size="icon" className="relative">
+            <Bell className="w-5 h-5" />
+            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+          </Button>
+
+          {/* User Menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white font-medium">
+                  {currentUser.name?.charAt(0)?.toUpperCase() || "A"}
+                </div>
+                <div className="text-left hidden md:block">
+                  <p className="text-sm font-medium">{currentUser.name || "Admin"}</p>
+                  <p className="text-xs text-muted-foreground">{currentUser.email || ""}</p>
+                </div>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem>Profile</DropdownMenuItem>
+              <DropdownMenuItem>Settings</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleLogout} className="text-red-600">
+                Logout
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="ml-64 mt-16 p-6">
+        <div className="max-w-7xl mx-auto">
+          {emergencyUser && (
+            <div className="mb-6 p-4 bg-yellow-50 border-l-4 border-yellow-500 rounded">
+              <div className="flex items-center gap-2 mb-2">
+                <Shield className="w-5 h-5 text-yellow-600" />
+                <span className="font-bold text-yellow-800">Emergency Mode</span>
+              </div>
+              <p className="text-sm text-yellow-800">
+                You are logged in using emergency admin access. Some features may be limited.
+              </p>
+            </div>
+          )}
+          
+          {renderTabContent()}
+        </div>
+      </main>
+    </div>
   );
 }
