@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { trpc } from '@/lib/trpc';
-import { Loader2, Plus, Edit, Trash2 } from 'lucide-react';
+import { Loader2, Plus, Edit, Trash2, Upload, X, ImagePlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { useState } from 'react';
 import {
@@ -20,6 +20,8 @@ export default function ProductsTab() {
   const { language } = useLanguage();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
+  const [uploadingMain, setUploadingMain] = useState(false);
+  const [additionalImages, setAdditionalImages] = useState<Array<{url: string, alt: string}>>([]);
   
   const [formData, setFormData] = useState({
     nameEN: '',
@@ -90,6 +92,15 @@ export default function ProductsTab() {
     },
   });
 
+  const uploadImageMutation = trpc.uploadImage.useMutation({
+    onSuccess: (data) => {
+      toast.success(language === 'en' ? 'Image uploaded!' : 'Imagem enviada!');
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
   const resetForm = () => {
     setFormData({
       nameEN: '',
@@ -123,6 +134,7 @@ export default function ProductsTab() {
       seoDescription: '',
     });
     setEditingProduct(null);
+    setAdditionalImages([]);
   };
 
   const handleEdit = (product: any) => {
@@ -158,6 +170,13 @@ export default function ProductsTab() {
       seoTitle: product.seoTitle || '',
       seoDescription: product.seoDescription || '',
     });
+    // Parse additional images
+    try {
+      const parsedImages = product.images ? JSON.parse(product.images) : [];
+      setAdditionalImages(Array.isArray(parsedImages) ? parsedImages : []);
+    } catch (e) {
+      setAdditionalImages([]);
+    }
     setIsDialogOpen(true);
   };
 
@@ -184,7 +203,7 @@ export default function ProductsTab() {
       imageUrl: formData.imageUrl || undefined,
       mainImage: formData.mainImage || undefined,
       mainImageAlt: formData.mainImageAlt || undefined,
-      images: formData.images || undefined,
+      images: additionalImages.length > 0 ? JSON.stringify(additionalImages) : undefined,
       collection: formData.collection || undefined,
       category: formData.category || undefined,
       stock: parseInt(formData.stock),
@@ -573,51 +592,144 @@ export default function ProductsTab() {
               </TabsContent>
 
               {/* IMAGES TAB */}
-              <TabsContent value="images" className="space-y-4">
-                <div>
-                  <Label htmlFor="imageUrl">Image URL (Legacy)</Label>
+              <TabsContent value="images" className="space-y-6">
+                {/* Main Image Upload */}
+                <div className="space-y-3">
+                  <Label>Main Product Image</Label>
+                  <div className="flex gap-4">
+                    {formData.mainImage && (
+                      <div className="relative w-32 h-32 rounded-lg overflow-hidden border-2 border-gray-200">
+                        <img
+                          src={formData.mainImage}
+                          alt="Main preview"
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, mainImage: '', mainImageAlt: '' })}
+                          className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+                    <label className="w-32 h-32 flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-primary hover:bg-gray-50 transition-colors">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        disabled={uploadingMain}
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          
+                          setUploadingMain(true);
+                          try {
+                            const reader = new FileReader();
+                            reader.onload = async (event) => {
+                              const base64 = event.target?.result as string;
+                              const base64Data = base64.split(',')[1];
+                              
+                              const result = await uploadImageMutation.mutateAsync({
+                                fileName: file.name,
+                                fileData: base64Data,
+                                contentType: file.type,
+                              });
+                              
+                              setFormData({ 
+                                ...formData, 
+                                mainImage: result.url,
+                                mainImageAlt: formData.nameEN || 'Product image'
+                              });
+                            };
+                            reader.readAsDataURL(file);
+                          } catch (error) {
+                            console.error('Upload error:', error);
+                          } finally {
+                            setUploadingMain(false);
+                          }
+                        }}
+                      />
+                      {uploadingMain ? (
+                        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                      ) : (
+                        <>
+                          <Upload className="w-8 h-8 text-gray-400" />
+                          <span className="text-xs text-gray-500 mt-2">Upload</span>
+                        </>
+                      )}
+                    </label>
+                  </div>
                   <Input
-                    id="imageUrl"
-                    type="url"
-                    value={formData.imageUrl}
-                    onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                    placeholder="https://cdn.sanity.io/images/..."
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="mainImage">Main Image URL</Label>
-                  <Input
-                    id="mainImage"
-                    type="url"
-                    value={formData.mainImage}
-                    onChange={(e) => setFormData({ ...formData, mainImage: e.target.value })}
-                    placeholder="https://cdn.sanity.io/images/..."
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="mainImageAlt">Main Image Alt Text</Label>
-                  <Input
-                    id="mainImageAlt"
+                    placeholder="Alt text for accessibility"
                     value={formData.mainImageAlt}
                     onChange={(e) => setFormData({ ...formData, mainImageAlt: e.target.value })}
-                    placeholder="Description for accessibility"
                   />
                 </div>
 
-                <div>
-                  <Label htmlFor="images">Additional Images (JSON)</Label>
-                  <Textarea
-                    id="images"
-                    value={formData.images}
-                    onChange={(e) => setFormData({ ...formData, images: e.target.value })}
-                    rows={4}
-                    placeholder='[{"url": "https://...", "alt": "Description"}]'
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    JSON array of image objects (max 10 images)
-                  </p>
+                {/* Additional Images */}
+                <div className="space-y-3">
+                  <Label>Additional Images (up to 10)</Label>
+                  <div className="grid grid-cols-4 gap-4">
+                    {additionalImages.map((img, index) => (
+                      <div key={index} className="relative group">
+                        <div className="w-full aspect-square rounded-lg overflow-hidden border-2 border-gray-200">
+                          <img
+                            src={img.url}
+                            alt={img.alt}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAdditionalImages(additionalImages.filter((_, i) => i !== index));
+                          }}
+                          className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                    
+                    {additionalImages.length < 10 && (
+                      <label className="w-full aspect-square flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-primary hover:bg-gray-50 transition-colors">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            
+                            try {
+                              const reader = new FileReader();
+                              reader.onload = async (event) => {
+                                const base64 = event.target?.result as string;
+                                const base64Data = base64.split(',')[1];
+                                
+                                const result = await uploadImageMutation.mutateAsync({
+                                  fileName: file.name,
+                                  fileData: base64Data,
+                                  contentType: file.type,
+                                });
+                                
+                                setAdditionalImages([
+                                  ...additionalImages,
+                                  { url: result.url, alt: formData.nameEN || 'Product image' }
+                                ]);
+                              };
+                              reader.readAsDataURL(file);
+                            } catch (error) {
+                              console.error('Upload error:', error);
+                            }
+                          }}
+                        />
+                        <ImagePlus className="w-8 h-8 text-gray-400" />
+                        <span className="text-xs text-gray-500 mt-2">Add</span>
+                      </label>
+                    )}
+                  </div>
                 </div>
               </TabsContent>
 
