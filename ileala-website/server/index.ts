@@ -18,6 +18,16 @@ async function startServer() {
 
   app.use(express.static(staticPath));
 
+  // Redirect admin.ileala.ae root to /admin
+  app.get("/", (req, res, next) => {
+    const host = req.get("host") || "";
+    if (host.startsWith("admin.")) {
+      console.log("[REDIRECT] Redirecting admin root to /admin");
+      return res.redirect(301, "/admin");
+    }
+    next();
+  });
+
   // Handle client-side routing - serve index.html for all routes
   app.get("*", (_req, res) => {
     res.sendFile(path.join(staticPath, "index.html"));
