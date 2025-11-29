@@ -77,9 +77,11 @@ function PageLoader() {
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
+  const isAdminRoute = window.location.pathname.startsWith('/admin');
+  
   return (
     <div className="flex flex-col min-h-screen">
-      <Header />
+      {!isAdminRoute && <Header />}
       <main className="flex-1">
         <Suspense fallback={<PageLoader />}>
           <Switch>
@@ -153,7 +155,7 @@ function Router() {
           </Switch>
         </Suspense>
       </main>
-      <Footer />
+      {!isAdminRoute && <Footer />}
     </div>
   );
 }
