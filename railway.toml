@@ -1,7 +1,7 @@
 [build]
 builder = "nixpacks"
 workingDir = "ileala-website"
-buildCommand = "pnpm install && pnpm run build"
+buildCommand = "pnpm install && rm -rf dist && pnpm run build"
 
 [deploy]
 startCommand = "pnpm run start"
