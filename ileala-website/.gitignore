@@ -3,9 +3,9 @@
 .pnpm-store/
 
 # Build outputs
-dist/
+# dist/ - Commented out to commit production build
 build/
-*.dist
+# *.dist
 
 # Environment variables
 .env
