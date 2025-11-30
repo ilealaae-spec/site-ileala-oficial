@@ -8,6 +8,7 @@ import Stripe from 'stripe';
 import { storagePut } from './storage';
 import { checkRateLimit, recordFailedAttempt, clearRateLimit, getClientIp } from './rate-limiter';
 import { createAuditLogger } from './audit-logger';
+import { recordLoginAttempt } from './login-notifications';
 import { validateUpload, validateImageBuffer, sanitizeFilename, generateSafeFilename } from './upload-validator';
 import { generate2FASecret, generate2FAQRCode, verify2FAToken, generateBackupCodes, verifyBackupCode, is2FAEnabled } from './two-factor';
 import { sdk } from "./_core/sdk";
@@ -218,6 +219,15 @@ export const appRouter = router({
           
           // Clear rate limit on successful login
           clearRateLimit(clientIp);
+          
+          // Record successful login
+          recordLoginAttempt({
+            userId: 1, // Emergency admin
+            email: 'ceo@ileala.ae',
+            ip: clientIp,
+            userAgent: ctx.req.headers['user-agent'],
+            success: true,
+          }).catch(err => console.error('[Login] Failed to record login attempt:', err));
 
           return { 
             success: true, 
@@ -237,6 +247,20 @@ export const appRouter = router({
           // Record failed attempt for rate limiting
           recordFailedAttempt(clientIp);
           console.warn(`[SECURITY] Failed login attempt for ${email} from IP ${clientIp}`);
+          
+          // Try to get user ID for failed login tracking
+          const failedUser = await db.getUserByEmail(email);
+          if (failedUser) {
+            recordLoginAttempt({
+              userId: failedUser.id,
+              email: email,
+              ip: clientIp,
+              userAgent: ctx.req.headers['user-agent'],
+              success: false,
+              failureReason: 'Invalid password',
+            }).catch(err => console.error('[Login] Failed to record login attempt:', err));
+          }
+          
           throw new Error('Invalid email or password');
         }
         
@@ -273,6 +297,15 @@ export const appRouter = router({
         ctx.res.cookie(COOKIE_NAME, JSON.stringify(sessionData), finalCookieOptions);
         
         console.log('[Auth] Cookie set successfully');
+        
+        // Record successful login
+        recordLoginAttempt({
+          userId: user.id,
+          email: user.email,
+          ip: clientIp,
+          userAgent: ctx.req.headers['user-agent'],
+          success: true,
+        }).catch(err => console.error('[Login] Failed to record login attempt:', err));
 
         return { 
           success: true, 

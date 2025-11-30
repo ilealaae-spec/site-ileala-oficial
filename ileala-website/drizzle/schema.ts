@@ -269,3 +269,22 @@ export const auditLogs = pgTable("audit_logs", {
 
 export type AuditLog = typeof auditLogs.$inferSelect;
 export type InsertAuditLog = typeof auditLogs.$inferInsert;
+
+// Login History table
+export const loginHistory = pgTable("login_history", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  ip: varchar("ip", { length: 45 }).notNull(),
+  userAgent: text("userAgent"),
+  success: integer("success").default(1).notNull(), // 1 = success, 0 = failed
+  failureReason: varchar("failureReason", { length: 255 }),
+  location: varchar("location", { length: 255 }),
+  deviceType: varchar("deviceType", { length: 50 }),
+  browser: varchar("browser", { length: 100 }),
+  os: varchar("os", { length: 100 }),
+  notificationSent: integer("notificationSent").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type LoginHistory = typeof loginHistory.$inferSelect;
+export type InsertLoginHistory = typeof loginHistory.$inferInsert;

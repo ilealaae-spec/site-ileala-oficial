@@ -1242,3 +1242,126 @@ export async function updateBackupCodes(userId: number, backupCodes: string) {
     throw error;
   }
 }
+
+// ============================================
+// Login History Functions
+// ============================================
+
+export async function createLoginHistory(data: {
+  userId: number;
+  ip: string;
+  userAgent: string | null;
+  success: number;
+  failureReason?: string | null;
+  location?: string;
+  deviceType?: string;
+  browser?: string;
+  os?: string;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  try {
+    const { loginHistory } = await import("../drizzle/schema");
+    
+    const result = await db.insert(loginHistory).values({
+      userId: data.userId,
+      ip: data.ip,
+      userAgent: data.userAgent,
+      success: data.success,
+      failureReason: data.failureReason || null,
+      location: data.location || null,
+      deviceType: data.deviceType || null,
+      browser: data.browser || null,
+      os: data.os || null,
+      notificationSent: 0,
+      createdAt: new Date(),
+    }).returning();
+    
+    return result[0];
+  } catch (error) {
+    logger.error("[Database] Failed to create login history:", error);
+    throw error;
+  }
+}
+
+export async function getRecentLoginHistory(userId: number, days: number = 30) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  try {
+    const { loginHistory } = await import("../drizzle/schema");
+    const { eq, and, gte, sql } = await import("drizzle-orm");
+    
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+    
+    const result = await db.select()
+      .from(loginHistory)
+      .where(
+        and(
+          eq(loginHistory.userId, userId),
+          gte(loginHistory.createdAt, cutoffDate)
+        )
+      )
+      .orderBy(sql`${loginHistory.createdAt} DESC`)
+      .limit(100);
+    
+    return result;
+  } catch (error) {
+    logger.error("[Database] Failed to get login history:", error);
+    return [];
+  }
+}
+
+export async function getRecentFailedLogins(userId: number, hours: number = 1): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  try {
+    const { loginHistory } = await import("../drizzle/schema");
+    const { eq, and, gte, sql } = await import("drizzle-orm");
+    
+    const cutoffDate = new Date();
+    cutoffDate.setHours(cutoffDate.getHours() - hours);
+    
+    const result = await db.select({ count: sql<number>`count(*)` })
+      .from(loginHistory)
+      .where(
+        and(
+          eq(loginHistory.userId, userId),
+          eq(loginHistory.success, 0),
+          gte(loginHistory.createdAt, cutoffDate)
+        )
+      );
+    
+    return result[0]?.count || 0;
+  } catch (error) {
+    logger.error("[Database] Failed to get failed logins count:", error);
+    return 0;
+  }
+}
+
+export async function markLoginNotificationSent(userId: number, ip: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  try {
+    const { loginHistory } = await import("../drizzle/schema");
+    const { eq, and, sql } = await import("drizzle-orm");
+    
+    await db.update(loginHistory)
+      .set({ notificationSent: 1 })
+      .where(
+        and(
+          eq(loginHistory.userId, userId),
+          eq(loginHistory.ip, ip)
+        )
+      );
+    
+    return { success: true };
+  } catch (error) {
+    logger.error("[Database] Failed to mark notification sent:", error);
+    throw error;
+  }
+}

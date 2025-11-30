@@ -90,6 +90,7 @@
     "tailwind-merge": "^3.3.1",
     "tailwindcss-animate": "^1.0.7",
     "tsx": "^4.19.1",
+    "ua-parser-js": "^2.0.6",
     "vaul": "^1.1.2",
     "wouter": "^3.3.5",
     "zod": "^4.1.12"
@@ -103,6 +104,7 @@
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19.1.16",
     "@types/react-dom": "^19.1.9",
+    "@types/ua-parser-js": "^0.7.39",
     "@vercel/node": "^3.0.0",
     "@vitejs/plugin-react": "^5.0.4",
     "add": "^2.0.6",
