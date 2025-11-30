@@ -726,8 +726,25 @@ export async function getCategoryById(id: number) {
 export async function createCategory(data: Omit<InsertCategory, 'parentId' | 'id' | 'createdAt' | 'updatedAt'>) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  const result = await db.insert(categories).values(data).returning();
-  return result[0];
+  
+  // Use SQL raw to avoid Drizzle including all schema fields
+  const result = await db.execute(
+    `INSERT INTO categories (slug, "nameEN", "namePT", "descriptionEN", "descriptionPT", "imageUrl", "displayOrder", active)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+     RETURNING *`,
+    [
+      data.slug,
+      data.nameEN,
+      data.namePT,
+      data.descriptionEN || null,
+      data.descriptionPT || null,
+      data.imageUrl || null,
+      data.displayOrder || 0,
+      data.active ?? 1
+    ]
+  );
+  
+  return result.rows[0] as Category;
 }
 
 export async function updateCategory(id: number, data: Partial<InsertCategory>) {
