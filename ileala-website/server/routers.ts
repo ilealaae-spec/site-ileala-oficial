@@ -1077,7 +1077,6 @@ export const appRouter = router({
         descriptionEN: z.string().optional(),
         descriptionPT: z.string().optional(),
         imageUrl: z.string().optional(),
-        parentId: z.number().optional(),
         displayOrder: z.number().default(0),
         active: z.number().default(1),
       }))
