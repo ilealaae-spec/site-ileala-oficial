@@ -92,7 +92,7 @@ export default function ProductsTab() {
     },
   });
 
-  const uploadImageMutation = trpc.uploadImage.useMutation({
+  const uploadImageMutation = trpc.admin.uploadImage.useMutation({
     onSuccess: (data) => {
       toast.success(language === 'en' ? 'Image uploaded!' : 'Imagem enviada!');
     },
