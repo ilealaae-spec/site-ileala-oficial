@@ -3,14 +3,26 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { trpc } from '@/lib/trpc';
-import { Loader2, Search, User, Mail, Calendar, Shield } from 'lucide-react';
+import { Loader2, Search, User, Mail, Calendar, Shield, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 export default function UsersTab() {
   const { language } = useLanguage();
   const [searchTerm, setSearchTerm] = useState('');
 
+  const utils = trpc.useUtils();
   const { data: users, isLoading } = trpc.users.list.useQuery();
+  
+  const deleteMutation = trpc.users.delete.useMutation({
+    onSuccess: () => {
+      toast.success(language === 'en' ? 'User deleted!' : 'Usuário excluído!');
+      utils.users.list.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
 
   const filteredUsers = users?.filter(user =>
     user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -141,6 +153,29 @@ export default function UsersTab() {
                     {user.poBox && <p>PO Box: {user.poBox}</p>}
                   </div>
                 )}
+                
+                <div className="flex items-center">
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => {
+                      if (window.confirm(
+                        language === 'en' 
+                          ? `Delete user ${user.name || user.email}?` 
+                          : `Excluir usuário ${user.name || user.email}?`
+                      )) {
+                        deleteMutation.mutate({ id: user.id });
+                      }
+                    }}
+                    disabled={deleteMutation.isPending}
+                  >
+                    {deleteMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-4 h-4" />
+                    )}
+                  </Button>
+                </div>
               </div>
             </Card>
           ))

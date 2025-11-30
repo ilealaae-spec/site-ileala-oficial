@@ -664,6 +664,22 @@ export async function getAllUsers() {
   return allUsers;
 }
 
+export async function deleteUser(userId: number) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  // Delete user's related data first
+  await db.delete(cartItems).where(eq(cartItems.userId, userId));
+  await db.delete(orders).where(eq(orders.userId, userId));
+  
+  // Delete the user
+  await db.delete(users).where(eq(users.id, userId));
+  
+  return { success: true };
+}
+
 
 // ===== NEWSLETTER =====
 

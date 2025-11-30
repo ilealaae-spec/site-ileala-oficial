@@ -1007,6 +1007,15 @@ export const appRouter = router({
       if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
       return await db.getAllUsers();
     }),
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+        // Prevent deleting yourself
+        if (ctx.user?.id === input.id) throw new Error('Cannot delete your own account');
+        await db.deleteUser(input.id);
+        return { success: true };
+      }),
   }),
 });
 
