@@ -8,6 +8,7 @@ import Stripe from 'stripe';
 import { storagePut } from './storage';
 import { checkRateLimit, recordFailedAttempt, clearRateLimit, getClientIp } from './rate-limiter';
 import { createAuditLogger } from './audit-logger';
+import { validateUpload, validateImageBuffer, sanitizeFilename, generateSafeFilename } from './upload-validator';
 import { sdk } from "./_core/sdk";
 import {
   emailSchema,
@@ -816,13 +817,40 @@ export const appRouter = router({
         // Decode base64
         const buffer = Buffer.from(input.fileData, 'base64');
         
-        // Generate unique filename
-        const timestamp = Date.now();
-        const ext = input.fileName.split('.').pop();
-        const key = `products/${timestamp}-${input.fileName}`;
+        // 🔒 SECURITY: Validate upload
+        const validation = validateUpload(input.fileName, input.contentType, buffer.length);
+        if (!validation.valid) {
+          console.warn(`[SECURITY] Upload rejected: ${validation.error}`);
+          throw new Error(validation.error);
+        }
+        
+        // 🔒 SECURITY: Validate image buffer (check magic numbers)
+        const bufferValidation = validateImageBuffer(buffer);
+        if (!bufferValidation.valid) {
+          console.warn(`[SECURITY] Upload rejected: ${bufferValidation.error}`);
+          throw new Error(bufferValidation.error);
+        }
+        
+        // Generate safe filename
+        const safeFilename = generateSafeFilename(input.fileName);
+        const key = `products/${safeFilename}`;
+        
+        console.log(`[Upload] Validated and uploading: ${safeFilename}`);
         
         // Upload to S3
         const result = await storagePut(key, buffer, input.contentType);
+        
+        // Audit log
+        const audit = createAuditLogger(ctx);
+        await audit.log({
+          action: 'create',
+          entity: 'media',
+          metadata: {
+            filename: safeFilename,
+            size: buffer.length,
+            contentType: input.contentType,
+          },
+        });
         
         return { url: result.url, key: result.key };
       }),
