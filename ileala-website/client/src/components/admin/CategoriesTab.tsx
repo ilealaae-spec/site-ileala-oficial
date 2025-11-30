@@ -87,16 +87,18 @@ export default function CategoriesTab() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const data = {
+    const data: any = {
       slug: formData.slug,
       nameEN: formData.nameEN,
       namePT: formData.namePT,
-      descriptionEN: formData.descriptionEN || undefined,
-      descriptionPT: formData.descriptionPT || undefined,
-      imageUrl: formData.imageUrl || undefined,
       displayOrder: parseInt(formData.displayOrder) || 0,
       active: formData.active ? 1 : 0,
     };
+
+    // Only include optional fields if they have values
+    if (formData.descriptionEN) data.descriptionEN = formData.descriptionEN;
+    if (formData.descriptionPT) data.descriptionPT = formData.descriptionPT;
+    if (formData.imageUrl) data.imageUrl = formData.imageUrl;
 
     if (editingCategory) {
       updateMutation.mutate({ id: editingCategory.id, ...data });
