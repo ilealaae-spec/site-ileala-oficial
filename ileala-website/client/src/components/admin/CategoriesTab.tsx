@@ -139,22 +139,29 @@ export default function CategoriesTab() {
       // Read file as base64
       const reader = new FileReader();
       reader.onloadend = async () => {
-        const base64 = reader.result as string;
-        const result = await uploadImageMutation.mutateAsync({
-          filename: file.name,
-          contentType: file.type,
-          data: base64,
-        });
-        setFormData(prev => ({ ...prev, imageUrl: result.url }));
-        toast.success(language === 'en' ? 'Image uploaded!' : 'Imagem enviada!');
-        setUploading(false);
+        try {
+          const base64 = reader.result as string;
+          const result = await uploadImageMutation.mutateAsync({
+            filename: file.name,
+            contentType: file.type,
+            data: base64,
+          });
+          setFormData(prev => ({ ...prev, imageUrl: result.url }));
+          toast.success(language === 'en' ? 'Image uploaded!' : 'Imagem enviada!');
+        } catch (error: any) {
+          console.error('Upload error:', error);
+          toast.error(error?.message || (language === 'en' ? 'Upload failed' : 'Falha no upload'));
+        } finally {
+          setUploading(false);
+        }
       };
       reader.onerror = () => {
-        toast.error(language === 'en' ? 'Upload failed' : 'Falha no upload');
+        toast.error(language === 'en' ? 'Failed to read file' : 'Falha ao ler arquivo');
         setUploading(false);
       };
       reader.readAsDataURL(file);
-    } catch (error) {
+    } catch (error: any) {
+      console.error('File read error:', error);
       toast.error(language === 'en' ? 'Upload failed' : 'Falha no upload');
       setUploading(false);
     }
