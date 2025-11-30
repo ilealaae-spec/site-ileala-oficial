@@ -19,14 +19,9 @@ RUN pnpm install --no-frozen-lockfile
 # Copiar código do ileala-website
 COPY ileala-website/ .
 
-# Delete dist/ to force clean rebuild
-RUN rm -rf dist
-
-# Build with VITE environment variables
-RUN pnpm run build
-
-# Run post-build script to replace VITE_* placeholders
-RUN node scripts/post-build.js
+# Use pre-built dist/ from repository (skip rebuild)
+# The dist/ directory is committed with correct build from local environment
+RUN echo "Using pre-built dist/ from repository"
 
 # Start (permanece em ileala-website)
 # Garantir que estamos no diretório correto
