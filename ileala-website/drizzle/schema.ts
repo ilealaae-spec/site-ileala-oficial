@@ -247,3 +247,21 @@ export const siteSettings = pgTable("siteSettings", {
 
 export type SiteSetting = typeof siteSettings.$inferSelect;
 export type InsertSiteSetting = typeof siteSettings.$inferInsert;
+
+// Audit Logs table - for security and compliance
+export const auditLogs = pgTable("audit_logs", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").references(() => users.id),
+  userEmail: varchar("userEmail", { length: 320 }).notNull(),
+  action: varchar("action", { length: 50 }).notNull(), // create, update, delete, login, logout
+  entity: varchar("entity", { length: 50 }).notNull(), // product, category, collection, user, etc
+  entityId: integer("entityId"), // ID of the affected entity
+  ipAddress: varchar("ipAddress", { length: 45 }), // IPv4 or IPv6
+  userAgent: text("userAgent"),
+  changes: text("changes"), // JSON string of before/after data
+  metadata: text("metadata"), // JSON string of additional context
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type AuditLog = typeof auditLogs.$inferSelect;
+export type InsertAuditLog = typeof auditLogs.$inferInsert;

@@ -2,7 +2,7 @@ import { eq, sql } from "drizzle-orm";
 // Newsletter fix: omit name field if undefined - Build v2
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import { InsertUser, users, products, Product, InsertProduct, orders, Order, InsertOrder, orderItems, OrderItem, InsertOrderItem, cartItems, CartItem, InsertCartItem, coupons, Coupon, InsertCoupon, newsletter, Newsletter, InsertNewsletter, categories, Category, InsertCategory, collections, Collection, InsertCollection, siteSettings, SiteSetting, InsertSiteSetting } from "../drizzle/schema";
+import { InsertUser, users, products, Product, InsertProduct, orders, Order, InsertOrder, orderItems, OrderItem, InsertOrderItem, cartItems, CartItem, InsertCartItem, coupons, Coupon, InsertCoupon, newsletter, Newsletter, InsertNewsletter, categories, Category, InsertCategory, collections, Collection, InsertCollection, siteSettings, SiteSetting, InsertSiteSetting, auditLogs, AuditLog, InsertAuditLog } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { logger } from './_core/logger';
 

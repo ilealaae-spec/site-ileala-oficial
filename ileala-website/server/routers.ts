@@ -7,6 +7,7 @@ import * as db from "./db";
 import Stripe from 'stripe';
 import { storagePut } from './storage';
 import { checkRateLimit, recordFailedAttempt, clearRateLimit, getClientIp } from './rate-limiter';
+import { createAuditLogger } from './audit-logger';
 import { sdk } from "./_core/sdk";
 import {
   emailSchema,
@@ -1101,7 +1102,19 @@ export const appRouter = router({
       }))
       .mutation(async ({ ctx, input }) => {
         if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
-        return await db.createCategory(input);
+        
+        const result = await db.createCategory(input);
+        
+        // Audit log
+        const audit = createAuditLogger(ctx);
+        await audit.log({
+          action: 'create',
+          entity: 'category',
+          entityId: result[0]?.id,
+          changes: { after: input },
+        });
+        
+        return result;
       }),
     update: protectedProcedure
       .input(z.object({
@@ -1119,13 +1132,42 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
         const { id, ...data } = input;
-        return await db.updateCategory(id, data);
+        
+        // Get current data for audit
+        const before = await db.getCategoryById(id);
+        
+        const result = await db.updateCategory(id, data);
+        
+        // Audit log
+        const audit = createAuditLogger(ctx);
+        await audit.log({
+          action: 'update',
+          entity: 'category',
+          entityId: id,
+          changes: { before, after: data },
+        });
+        
+        return result;
       }),
     delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
         if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+        
+        // Get current data for audit
+        const before = await db.getCategoryById(input.id);
+        
         await db.deleteCategory(input.id);
+        
+        // Audit log
+        const audit = createAuditLogger(ctx);
+        await audit.log({
+          action: 'delete',
+          entity: 'category',
+          entityId: input.id,
+          changes: { before },
+        });
+        
         return { success: true };
       }),
   }),
