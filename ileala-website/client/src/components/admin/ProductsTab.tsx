@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { trpc } from '@/lib/trpc';
 import { Loader2, Plus, Edit, Trash2, Upload, X, ImagePlus } from 'lucide-react';
 import { toast } from 'sonner';
@@ -57,6 +58,8 @@ export default function ProductsTab() {
 
   const utils = trpc.useUtils();
   const { data: products, isLoading } = trpc.products.list.useQuery();
+  const { data: collections } = trpc.collections.list.useQuery();
+  const { data: categories } = trpc.categories.list.useQuery();
   
   const createMutation = trpc.products.create.useMutation({
     onSuccess: () => {
@@ -455,21 +458,41 @@ export default function ProductsTab() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="collection">Collection</Label>
-                    <Input
-                      id="collection"
+                    <Select
                       value={formData.collection}
-                      onChange={(e) => setFormData({ ...formData, collection: e.target.value })}
-                      placeholder="e.g., Napkin Rings"
-                    />
+                      onValueChange={(value) => setFormData({ ...formData, collection: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select collection" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        {collections && collections.map((col) => (
+                          <SelectItem key={col.id} value={col.slug}>
+                            {language === 'en' ? col.nameEN : col.namePT}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div>
                     <Label htmlFor="category">Category</Label>
-                    <Input
-                      id="category"
+                    <Select
                       value={formData.category}
-                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                      placeholder="e.g., tableware"
-                    />
+                      onValueChange={(value) => setFormData({ ...formData, category: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        {categories && categories.map((cat) => (
+                          <SelectItem key={cat.id} value={cat.slug}>
+                            {language === 'en' ? cat.nameEN : cat.namePT}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 
