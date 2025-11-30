@@ -9,7 +9,7 @@
     "dev": "NODE_ENV=development tsx watch server/_core/index.ts",
     "build": "echo '[BUILD] Cleaning cache...' && rm -rf dist node_modules/.vite .vite client/.vite && echo '[BUILD] Cache cleaned!' && vite build && node scripts/post-build.js",
     "build:production": "if [ -d 'dist/public' ]; then echo '[BUILD] Using pre-built assets from dist/'; else pnpm run build; fi",
-    "start": "pnpm run build && NODE_ENV=production tsx server/_core/index.ts",
+    "start": "rm -rf dist && pnpm run build && NODE_ENV=production tsx server/_core/index.ts",
     "migrate": "tsx server/migrate.ts",
     "check": "tsc --noEmit",
     "format": "prettier --write .",
