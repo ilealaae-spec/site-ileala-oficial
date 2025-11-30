@@ -714,7 +714,9 @@ export async function updateUserRole(userId: number, role: 'user' | 'admin') {
 export async function getAllCategories() {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  return await db.select().from(categories).orderBy(categories.displayOrder);
+  const result = await db.select().from(categories).orderBy(categories.displayOrder);
+  console.log('[DEBUG] getAllCategories result:', JSON.stringify(result, null, 2));
+  return result;
 }
 
 export async function getActiveCategories() {
