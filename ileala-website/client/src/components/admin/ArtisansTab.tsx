@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { trpc } from '@/lib/trpc';
-import { Loader2, Plus, Edit, Trash2, Star } from 'lucide-react';
+import { Loader2, Plus, Edit, Trash2, Star, Upload, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useState } from 'react';
 import {
@@ -20,6 +20,7 @@ export default function ArtisansTab() {
   const { language } = useLanguage();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingArtisan, setEditingArtisan] = useState<any>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -65,6 +66,15 @@ export default function ArtisansTab() {
     onSuccess: () => {
       toast.success(language === 'en' ? 'Artisan deleted!' : 'Artesão excluído!');
       utils.cms.artisans.list.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const uploadImageMutation = trpc.admin.uploadImage.useMutation({
+    onSuccess: (data) => {
+      toast.success(language === 'en' ? 'Image uploaded!' : 'Imagem enviada!');
     },
     onError: (error) => {
       toast.error(error.message);
@@ -257,13 +267,70 @@ export default function ArtisansTab() {
               </div>
 
               <div>
-                <Label htmlFor="photoUrl">{language === 'en' ? 'Photo URL' : 'URL da Foto'}</Label>
-                <Input
-                  id="photoUrl"
-                  type="url"
-                  value={formData.photoUrl}
-                  onChange={(e) => setFormData({ ...formData, photoUrl: e.target.value })}
-                />
+                <Label>{language === 'en' ? 'Photo' : 'Foto'}</Label>
+                <div className="flex gap-4 items-start">
+                  {formData.photoUrl && (
+                    <div className="relative w-32 h-32 rounded-lg overflow-hidden border-2 border-gray-200">
+                      <img
+                        src={formData.photoUrl}
+                        alt={formData.name || 'Artisan photo'}
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, photoUrl: '' })}
+                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+                  <label className="w-32 h-32 flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-primary hover:bg-gray-50 transition-colors">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      disabled={uploadingPhoto}
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        
+                        setUploadingPhoto(true);
+                        try {
+                          const reader = new FileReader();
+                          reader.onload = async (event) => {
+                            const base64 = event.target?.result as string;
+                            const base64Data = base64.split(',')[1];
+                            
+                            const result = await uploadImageMutation.mutateAsync({
+                              fileName: file.name,
+                              fileData: base64Data,
+                              contentType: file.type,
+                            });
+                            
+                            setFormData({ 
+                              ...formData, 
+                              photoUrl: result.url
+                            });
+                          };
+                          reader.readAsDataURL(file);
+                        } catch (error) {
+                          console.error('Upload error:', error);
+                        } finally {
+                          setUploadingPhoto(false);
+                        }
+                      }}
+                    />
+                    {uploadingPhoto ? (
+                      <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                    ) : (
+                      <>
+                        <Upload className="w-8 h-8 text-gray-400" />
+                        <span className="text-xs text-gray-500 mt-2">Upload</span>
+                      </>
+                    )}
+                  </label>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
