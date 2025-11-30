@@ -19,8 +19,8 @@ RUN pnpm install --no-frozen-lockfile
 # Copiar código do ileala-website
 COPY ileala-website/ .
 
-# Build - Skip if dist/ already exists (pre-built)
-RUN if [ ! -d "dist" ]; then pnpm run build; else echo "Using pre-built assets from dist/"; fi
+# Build - Use build:production which checks for pre-built assets
+RUN pnpm run build:production
 
 # Start (permanece em ileala-website)
 # Garantir que estamos no diretório correto
