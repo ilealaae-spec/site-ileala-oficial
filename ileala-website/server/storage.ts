@@ -24,6 +24,15 @@ export async function storagePut(
 ): Promise<{ key: string; url: string }> {
   const key = normalizeKey(relKey);
   
+  console.log('[S3] Upload attempt:', {
+    bucket: BUCKET_NAME,
+    region: process.env.AWS_REGION || 'us-east-1',
+    key,
+    contentType,
+    hasAccessKey: !!process.env.AWS_ACCESS_KEY_ID,
+    hasSecretKey: !!process.env.AWS_SECRET_ACCESS_KEY,
+  });
+  
   // Convert data to Buffer if it's a string
   const buffer = typeof data === 'string' ? Buffer.from(data) : Buffer.from(data);
   
@@ -37,14 +46,21 @@ export async function storagePut(
   });
   
   try {
+    console.log('[S3] Sending PutObjectCommand...');
     await s3Client.send(command);
+    console.log('[S3] Upload successful!');
     
     // Generate public URL
     const url = `https://${BUCKET_NAME}.s3.${process.env.AWS_REGION || 'us-east-1'}.amazonaws.com/${key}`;
     
     return { key, url };
   } catch (error) {
-    console.error('S3 upload error:', error);
+    console.error('[S3] Upload error:', error);
+    console.error('[S3] Error details:', {
+      name: error instanceof Error ? error.name : 'Unknown',
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     throw new Error(`Storage upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
