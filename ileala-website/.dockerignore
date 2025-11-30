@@ -1,0 +1,8 @@
+dist/
+node_modules/
+.git/
+.vite/
+client/.vite/
+*.log
+.env
+.env.local
