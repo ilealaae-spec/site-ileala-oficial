@@ -130,6 +130,12 @@ export async function getProductsByCollection(collection: string) {
   return db.select().from(products).where(eq(products.collection, collection));
 }
 
+export async function getProductsByCategory(category: string) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(products).where(eq(products.category, category));
+}
+
 export async function createProduct(product: InsertProduct) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -702,6 +708,14 @@ export async function getAllCategories() {
   return await db.select().from(categories).orderBy(categories.displayOrder);
 }
 
+export async function getActiveCategories() {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.select().from(categories)
+    .where(eq(categories.active, true))
+    .orderBy(categories.displayOrder);
+}
+
 export async function getCategoryById(id: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -740,6 +754,14 @@ export async function getAllCollections() {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   return await db.select().from(collections).orderBy(collections.displayOrder);
+}
+
+export async function getActiveCollections() {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.select().from(collections)
+    .where(eq(collections.active, true))
+    .orderBy(collections.displayOrder);
 }
 
 export async function getCollectionById(id: number) {

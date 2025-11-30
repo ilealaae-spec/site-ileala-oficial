@@ -4,6 +4,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/_core/hooks/useAuth';
 import { Button } from '@/components/ui/button';
+import { trpc } from '@/lib/trpc';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,6 +19,7 @@ export default function Header() {
   const { language, setLanguage, t } = useLanguage();
   const { totalItems } = useCart();
   const { user, isAuthenticated, logout } = useAuth();
+  const { data: categories = [] } = trpc.categories.listActive.useQuery();
 
   const handleLogout = async () => {
     await logout();
@@ -45,21 +47,15 @@ export default function Header() {
           <Link href="/collections" className="text-sm font-medium transition-colors hover:text-primary">
             {t.nav.collections}
           </Link>
-          <Link href="/napkin-rings" className="text-sm font-medium transition-colors hover:text-primary">
-            {language === 'en' ? 'Napkin Rings' : 'Porta Guardanapos'}
-          </Link>
-          <Link href="/table-essentials" className="text-sm font-medium transition-colors hover:text-primary">
-            {language === 'en' ? 'Table Essentials' : 'Essenciais de Mesa'}
-          </Link>
-          <Link href="/home-accents" className="text-sm font-medium transition-colors hover:text-primary">
-            {language === 'en' ? 'Home Accents' : 'Detalhes para Casa'}
-          </Link>
-          <Link href="/accessories" className="text-sm font-medium transition-colors hover:text-primary">
-            {language === 'en' ? 'Accessories' : 'Acessórios'}
-          </Link>
-          <Link href="/pet-collection" className="text-sm font-medium transition-colors hover:text-primary">
-            {language === 'en' ? 'Pet Collection' : 'Pet Collection'}
-          </Link>
+          {categories.map((category: any) => (
+            <Link 
+              key={category.id} 
+              href={`/category/${category.slug}`} 
+              className="text-sm font-medium transition-colors hover:text-primary"
+            >
+              {language === 'en' ? category.nameEN : category.namePT}
+            </Link>
+          ))}
         </nav>
 
         <div className="flex items-center gap-6">

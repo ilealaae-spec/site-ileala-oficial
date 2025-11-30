@@ -43,6 +43,7 @@ const AdminLayout = lazy(() => import("./components/AdminLayout"));
 const About = lazy(() => import("./pages/About"));
 const Collections = lazy(() => import("./pages/Collections"));
 const CollectionPage = lazy(() => import("./pages/CollectionPage"));
+const CategoryPage = lazy(() => import("./pages/CategoryPage"));
 const PetCollection = lazy(() => import("./pages/PetCollection"));
 const Accessories = lazy(() => import("./pages/Accessories"));
 const NapkinRings = lazy(() => import("./pages/NapkinRings"));
@@ -131,6 +132,7 @@ function Router() {
             <Route path="/about" component={About} />
             <Route path={"/collections"} component={Collections} />
             <Route path="/collections/:slug" component={CollectionPage} />
+            <Route path="/category/:slug" component={CategoryPage} />
             <Route path={"/napkin-rings"} component={NapkinRings} />
             <Route path={"/table-essentials"} component={TableEssentials} />
             <Route path={"/home-accents"} component={HomeAccents} />

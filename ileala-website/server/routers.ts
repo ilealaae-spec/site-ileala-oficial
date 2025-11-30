@@ -449,6 +449,17 @@ export const appRouter = router({
         setCached(cacheKey, products, 5 * 60 * 1000); // 5 minutes
         return products;
       }),
+    byCategory: publicProcedure
+      .input(z.object({ category: z.string() }))
+      .query(async ({ input }) => {
+        const cacheKey = CacheKeys.products(`category:${input.category}`);
+        const cached = getCached(cacheKey);
+        if (cached) return cached;
+        
+        const products = await db.getProductsByCategory(input.category);
+        setCached(cacheKey, products, 5 * 60 * 1000); // 5 minutes
+        return products;
+      }),
     create: protectedProcedure
       .input(z.object({
         name: z.string(),
@@ -1040,9 +1051,23 @@ export const appRouter = router({
       }),
   }),
   categories: router({
-    list: protectedProcedure.query(async ({ ctx }) => {
-      if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
-      return await db.getAllCategories();
+    list: publicProcedure.query(async () => {
+      const cacheKey = CacheKeys.products('categories');
+      const cached = getCached(cacheKey);
+      if (cached) return cached;
+      
+      const categories = await db.getAllCategories();
+      setCached(cacheKey, categories, 10 * 60 * 1000); // 10 minutes
+      return categories;
+    }),
+    listActive: publicProcedure.query(async () => {
+      const cacheKey = CacheKeys.products('categories:active');
+      const cached = getCached(cacheKey);
+      if (cached) return cached;
+      
+      const categories = await db.getActiveCategories();
+      setCached(cacheKey, categories, 10 * 60 * 1000); // 10 minutes
+      return categories;
     }),
     create: protectedProcedure
       .input(z.object({
@@ -1087,9 +1112,23 @@ export const appRouter = router({
       }),
   }),
   collections: router({
-    list: protectedProcedure.query(async ({ ctx }) => {
-      if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
-      return await db.getAllCollections();
+    list: publicProcedure.query(async () => {
+      const cacheKey = CacheKeys.products('collections');
+      const cached = getCached(cacheKey);
+      if (cached) return cached;
+      
+      const collections = await db.getAllCollections();
+      setCached(cacheKey, collections, 10 * 60 * 1000); // 10 minutes
+      return collections;
+    }),
+    listActive: publicProcedure.query(async () => {
+      const cacheKey = CacheKeys.products('collections:active');
+      const cached = getCached(cacheKey);
+      if (cached) return cached;
+      
+      const collections = await db.getActiveCollections();
+      setCached(cacheKey, collections, 10 * 60 * 1000); // 10 minutes
+      return collections;
     }),
     create: protectedProcedure
       .input(z.object({
