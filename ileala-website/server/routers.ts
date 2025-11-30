@@ -9,6 +9,7 @@ import { storagePut } from './storage';
 import { checkRateLimit, recordFailedAttempt, clearRateLimit, getClientIp } from './rate-limiter';
 import { createAuditLogger } from './audit-logger';
 import { recordLoginAttempt } from './login-notifications';
+import { getActiveSessions, terminateAllSessions, terminateSession } from './session-manager';
 import { validateUpload, validateImageBuffer, sanitizeFilename, generateSafeFilename } from './upload-validator';
 import { generate2FASecret, generate2FAQRCode, verify2FAToken, generateBackupCodes, verifyBackupCode, is2FAEnabled } from './two-factor';
 import { sdk } from "./_core/sdk";
@@ -547,6 +548,75 @@ export const appRouter = router({
           user: sessionData.user,
         };
       }),
+    
+    // Session management endpoints
+    getActiveSessions: protectedProcedure.query(async ({ ctx }) => {
+      if (!ctx.user) throw new Error('Not authenticated');
+      
+      const sessions = await getActiveSessions(ctx.user.id);
+      
+      return {
+        sessions: sessions.map(session => ({
+          id: session.id,
+          ip: session.ip,
+          deviceType: session.deviceType,
+          browser: session.browser,
+          os: session.os,
+          lastActivity: session.lastActivity,
+          createdAt: session.createdAt,
+        })),
+      };
+    }),
+    
+    terminateSession: protectedProcedure
+      .input(z.object({
+        sessionId: z.number(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        if (!ctx.user) throw new Error('Not authenticated');
+        
+        // Get the session to verify it belongs to the user
+        const sessions = await getActiveSessions(ctx.user.id);
+        const session = sessions.find(s => s.id === input.sessionId);
+        
+        if (!session) {
+          throw new Error('Session not found');
+        }
+        
+        await terminateSession(session.sessionToken);
+        
+        // Audit log
+        const audit = createAuditLogger(ctx);
+        await audit.log({
+          action: 'delete',
+          entity: 'user_session',
+          entityId: input.sessionId,
+          metadata: { action: 'session_terminated' },
+        });
+        
+        return { success: true };
+      }),
+    
+    terminateAllSessions: protectedProcedure.mutation(async ({ ctx }) => {
+      if (!ctx.user) throw new Error('Not authenticated');
+      
+      await terminateAllSessions(ctx.user.id);
+      
+      // Audit log
+      const audit = createAuditLogger(ctx);
+      await audit.log({
+        action: 'delete',
+        entity: 'user_session',
+        entityId: ctx.user.id,
+        metadata: { action: 'all_sessions_terminated' },
+      });
+      
+      // Clear current session cookie
+      const cookieOptions = getSessionCookieOptions(ctx.req);
+      ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+      
+      return { success: true };
+    }),
   }),
 
   // Newsletter router

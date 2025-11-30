@@ -288,3 +288,21 @@ export const loginHistory = pgTable("login_history", {
 
 export type LoginHistory = typeof loginHistory.$inferSelect;
 export type InsertLoginHistory = typeof loginHistory.$inferInsert;
+
+// User Sessions table
+export const userSessions = pgTable("user_sessions", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  sessionToken: varchar("sessionToken", { length: 255 }).notNull().unique(),
+  ip: varchar("ip", { length: 45 }).notNull(),
+  userAgent: text("userAgent"),
+  deviceType: varchar("deviceType", { length: 50 }),
+  browser: varchar("browser", { length: 100 }),
+  os: varchar("os", { length: 100 }),
+  lastActivity: timestamp("lastActivity").defaultNow().notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type UserSession = typeof userSessions.$inferSelect;
+export type InsertUserSession = typeof userSessions.$inferInsert;

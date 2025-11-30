@@ -1365,3 +1365,192 @@ export async function markLoginNotificationSent(userId: number, ip: string) {
     throw error;
   }
 }
+
+// ============================================
+// Session Management Functions
+// ============================================
+
+export async function createUserSession(data: {
+  userId: number;
+  sessionToken: string;
+  ip: string;
+  userAgent: string;
+  deviceType?: string;
+  browser?: string;
+  os?: string;
+  expiresAt: Date;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  try {
+    const { userSessions } = await import("../drizzle/schema");
+    
+    const result = await db.insert(userSessions).values({
+      userId: data.userId,
+      sessionToken: data.sessionToken,
+      ip: data.ip,
+      userAgent: data.userAgent,
+      deviceType: data.deviceType || null,
+      browser: data.browser || null,
+      os: data.os || null,
+      expiresAt: data.expiresAt,
+      lastActivity: new Date(),
+      createdAt: new Date(),
+    }).returning();
+    
+    return result[0];
+  } catch (error) {
+    logger.error("[Database] Failed to create user session:", error);
+    throw error;
+  }
+}
+
+export async function getUserSession(sessionToken: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  try {
+    const { userSessions } = await import("../drizzle/schema");
+    const { eq } = await import("drizzle-orm");
+    
+    const result = await db.select()
+      .from(userSessions)
+      .where(eq(userSessions.sessionToken, sessionToken))
+      .limit(1);
+    
+    return result[0] || null;
+  } catch (error) {
+    logger.error("[Database] Failed to get user session:", error);
+    return null;
+  }
+}
+
+export async function getUserSessions(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  try {
+    const { userSessions } = await import("../drizzle/schema");
+    const { eq, gt, sql } = await import("drizzle-orm");
+    
+    const now = new Date();
+    
+    const result = await db.select()
+      .from(userSessions)
+      .where(
+        eq(userSessions.userId, userId)
+      )
+      .orderBy(sql`${userSessions.lastActivity} DESC`);
+    
+    // Filter out expired sessions
+    return result.filter(session => new Date(session.expiresAt) > now);
+  } catch (error) {
+    logger.error("[Database] Failed to get user sessions:", error);
+    return [];
+  }
+}
+
+export async function updateSessionActivity(sessionToken: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  try {
+    const { userSessions } = await import("../drizzle/schema");
+    const { eq } = await import("drizzle-orm");
+    
+    await db.update(userSessions)
+      .set({ lastActivity: new Date() })
+      .where(eq(userSessions.sessionToken, sessionToken));
+    
+    return { success: true };
+  } catch (error) {
+    logger.error("[Database] Failed to update session activity:", error);
+    throw error;
+  }
+}
+
+export async function deleteUserSession(sessionToken: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  try {
+    const { userSessions } = await import("../drizzle/schema");
+    const { eq } = await import("drizzle-orm");
+    
+    await db.delete(userSessions)
+      .where(eq(userSessions.sessionToken, sessionToken));
+    
+    return { success: true };
+  } catch (error) {
+    logger.error("[Database] Failed to delete user session:", error);
+    throw error;
+  }
+}
+
+export async function deleteUserSessionsExcept(userId: number, exceptToken?: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  try {
+    const { userSessions } = await import("../drizzle/schema");
+    const { eq, and, ne } = await import("drizzle-orm");
+    
+    if (exceptToken) {
+      await db.delete(userSessions)
+        .where(
+          and(
+            eq(userSessions.userId, userId),
+            ne(userSessions.sessionToken, exceptToken)
+          )
+        );
+    } else {
+      await db.delete(userSessions)
+        .where(eq(userSessions.userId, userId));
+    }
+    
+    return { success: true };
+  } catch (error) {
+    logger.error("[Database] Failed to delete user sessions:", error);
+    throw error;
+  }
+}
+
+export async function deleteAllUserSessions(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  try {
+    const { userSessions } = await import("../drizzle/schema");
+    const { eq } = await import("drizzle-orm");
+    
+    await db.delete(userSessions)
+      .where(eq(userSessions.userId, userId));
+    
+    return { success: true };
+  } catch (error) {
+    logger.error("[Database] Failed to delete all user sessions:", error);
+    throw error;
+  }
+}
+
+export async function deleteExpiredSessions(): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  try {
+    const { userSessions } = await import("../drizzle/schema");
+    const { lt, sql } = await import("drizzle-orm");
+    
+    const now = new Date();
+    
+    const result = await db.delete(userSessions)
+      .where(lt(userSessions.expiresAt, now))
+      .returning({ id: userSessions.id });
+    
+    return result.length;
+  } catch (error) {
+    logger.error("[Database] Failed to delete expired sessions:", error);
+    return 0;
+  }
+}
