@@ -2,13 +2,18 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import fs from "node:fs";
 import path from "path";
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import { vitePluginManusRuntime } from "vite-plugin-manus-runtime";
 
 
 const plugins = [react(), tailwindcss(), vitePluginManusRuntime()];
 
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+  // Load env file based on `mode` in the current working directory.
+  // Set the third parameter to '' to load all env regardless of the `VITE_` prefix.
+  const env = loadEnv(mode, process.cwd(), '');
+  
+  return {
   plugins,
   resolve: {
     alias: {
@@ -62,4 +67,17 @@ export default defineConfig({
       deny: ["**/.*"],
     },
   },
+  define: {
+    // Manually inject VITE_* variables from .env file
+    'import.meta.env.VITE_APP_TITLE': JSON.stringify(env.VITE_APP_TITLE || 'ILE ALA - Luxury Home & Table Linens'),
+    'import.meta.env.VITE_APP_URL': JSON.stringify(env.VITE_APP_URL || 'https://admin.ileala.ae'),
+    'import.meta.env.VITE_APP_ID': JSON.stringify(env.VITE_APP_ID || 'ileala-admin'),
+    'import.meta.env.VITE_SITE_URL': JSON.stringify(env.VITE_SITE_URL || 'https://admin.ileala.ae'),
+    'import.meta.env.VITE_FRONTEND_FORGE_API_URL': JSON.stringify(env.VITE_FRONTEND_FORGE_API_URL || 'https://www.ileala.ae'),
+    'import.meta.env.VITE_GOOGLE_CLIENT_ID': JSON.stringify(env.VITE_GOOGLE_CLIENT_ID || ''),
+    'import.meta.env.VITE_OAUTH_PORTAL_URL': JSON.stringify(env.VITE_OAUTH_PORTAL_URL || ''),
+    'import.meta.env.VITE_LEGACY_BUILD': JSON.stringify(env.VITE_LEGACY_BUILD || 'true'),
+    'import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY': JSON.stringify(env.VITE_STRIPE_PUBLISHABLE_KEY || ''),
+  },
+};
 });
