@@ -1,1 +1,0 @@
-import{j as t,l as o}from"./index-D7DnbuuO.js";function d({className:a,...r}){return t.jsx("div",{"data-slot":"card",className:o("bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-6 shadow-sm",a),...r})}function e({className:a,...r}){return t.jsx("div",{"data-slot":"card-content",className:o("px-6",a),...r})}export{d as C,e as a};
