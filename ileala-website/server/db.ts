@@ -2,7 +2,7 @@ import { eq, sql } from "drizzle-orm";
 // Newsletter fix: omit name field if undefined - Build v2
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import { InsertUser, users, products, Product, InsertProduct, orders, Order, InsertOrder, orderItems, OrderItem, InsertOrderItem, cartItems, CartItem, InsertCartItem, coupons, Coupon, InsertCoupon, newsletter, Newsletter, InsertNewsletter } from "../drizzle/schema";
+import { InsertUser, users, products, Product, InsertProduct, orders, Order, InsertOrder, orderItems, OrderItem, InsertOrderItem, cartItems, CartItem, InsertCartItem, coupons, Coupon, InsertCoupon, newsletter, Newsletter, InsertNewsletter, categories, Category, InsertCategory, siteSettings, SiteSetting, InsertSiteSetting } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { logger } from './_core/logger';
 
@@ -677,6 +677,99 @@ export async function deleteUser(userId: number) {
   // Delete the user
   await db.delete(users).where(eq(users.id, userId));
   
+  return { success: true };
+}
+
+export async function updateUserRole(userId: number, role: 'user' | 'admin') {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  await db.update(users)
+    .set({ role })
+    .where(eq(users.id, userId));
+  
+  return { success: true };
+}
+
+
+// ===== CATEGORIES =====
+
+export async function getAllCategories() {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.select().from(categories).orderBy(categories.displayOrder);
+}
+
+export async function getCategoryById(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.select().from(categories).where(eq(categories.id, id));
+  return result[0] || null;
+}
+
+export async function createCategory(data: InsertCategory) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(categories).values(data).returning();
+  return result[0];
+}
+
+export async function updateCategory(id: number, data: Partial<InsertCategory>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.update(categories)
+    .set({ ...data, updatedAt: new Date() })
+    .where(eq(categories.id, id))
+    .returning();
+  return result[0];
+}
+
+export async function deleteCategory(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(categories).where(eq(categories.id, id));
+  return { success: true };
+}
+
+
+// ===== SITE SETTINGS =====
+
+export async function getAllSettings() {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.select().from(siteSettings);
+}
+
+export async function getSettingByKey(key: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.select().from(siteSettings).where(eq(siteSettings.key, key));
+  return result[0] || null;
+}
+
+export async function upsertSetting(key: string, value: string, description?: string, category?: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const existing = await getSettingByKey(key);
+  
+  if (existing) {
+    await db.update(siteSettings)
+      .set({ value, description, category, updatedAt: new Date() })
+      .where(eq(siteSettings.key, key));
+  } else {
+    await db.insert(siteSettings).values({ key, value, description, category });
+  }
+  
+  return { success: true };
+}
+
+export async function deleteSetting(key: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(siteSettings).where(eq(siteSettings.key, key));
   return { success: true };
 }
 

@@ -3,8 +3,16 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { trpc } from '@/lib/trpc';
-import { Loader2, Search, Package, Calendar, DollarSign, User } from 'lucide-react';
+import { Loader2, Search, Package, Calendar, DollarSign, User, Edit } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'sonner';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
@@ -16,8 +24,21 @@ export default function OrdersTab() {
   const { language } = useLanguage();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [editingStatus, setEditingStatus] = useState<string | null>(null);
 
+  const utils = trpc.useUtils();
   const { data: orders, isLoading } = trpc.orders.list.useQuery();
+  
+  const updateStatusMutation = trpc.orders.updateStatus.useMutation({
+    onSuccess: () => {
+      toast.success(language === 'en' ? 'Order status updated!' : 'Status do pedido atualizado!');
+      utils.orders.list.invalidate();
+      setEditingStatus(null);
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
 
   const filteredOrders = orders?.filter(order =>
     order.id.toString().includes(searchTerm) ||
@@ -231,12 +252,44 @@ export default function OrdersTab() {
                 <h3 className="font-semibold mb-3">
                   {language === 'en' ? 'Order Information' : 'Informações do Pedido'}
                 </h3>
-                <div className="space-y-2 text-sm">
-                  <p><span className="font-medium">Status:</span> 
-                    <span className={`ml-2 text-xs px-2 py-1 rounded ${getStatusColor(selectedOrder.status)}`}>
-                      {selectedOrder.status}
-                    </span>
-                  </p>
+                <div className="space-y-3 text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">Status:</span>
+                    <Select
+                      value={editingStatus || selectedOrder.status}
+                      onValueChange={setEditingStatus}
+                    >
+                      <SelectTrigger className="w-[180px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="processing">Processing</SelectItem>
+                        <SelectItem value="shipped">Shipped</SelectItem>
+                        <SelectItem value="delivered">Delivered</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="cancelled">Cancelled</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {editingStatus && editingStatus !== selectedOrder.status && (
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          updateStatusMutation.mutate({
+                            orderId: selectedOrder.id,
+                            status: editingStatus,
+                          });
+                        }}
+                        disabled={updateStatusMutation.isPending}
+                      >
+                        {updateStatusMutation.isPending ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          language === 'en' ? 'Save' : 'Salvar'
+                        )}
+                      </Button>
+                    )}
+                  </div>
                   <p><span className="font-medium">{language === 'en' ? 'Date' : 'Data'}:</span> {new Date(selectedOrder.createdAt).toLocaleString()}</p>
                   <p><span className="font-medium">Total:</span> <span className="text-lg font-bold text-primary">{formatPrice(selectedOrder.total)}</span></p>
                 </div>

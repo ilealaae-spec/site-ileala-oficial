@@ -3,9 +3,16 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { trpc } from '@/lib/trpc';
-import { Loader2, Search, User, Mail, Calendar, Shield, Trash2 } from 'lucide-react';
+import { Loader2, Search, User, Mail, Calendar, Shield, Trash2, Edit } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 export default function UsersTab() {
   const { language } = useLanguage();
@@ -17,6 +24,16 @@ export default function UsersTab() {
   const deleteMutation = trpc.users.delete.useMutation({
     onSuccess: () => {
       toast.success(language === 'en' ? 'User deleted!' : 'Usuário excluído!');
+      utils.users.list.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+  
+  const updateRoleMutation = trpc.users.updateRole.useMutation({
+    onSuccess: () => {
+      toast.success(language === 'en' ? 'User role updated!' : 'Função do usuário atualizada!');
       utils.users.list.invalidate();
     },
     onError: (error) => {
@@ -154,7 +171,30 @@ export default function UsersTab() {
                   </div>
                 )}
                 
-                <div className="flex items-center">
+                <div className="flex items-center gap-2">
+                  <Select
+                    value={user.role}
+                    onValueChange={(newRole) => {
+                      updateRoleMutation.mutate({ 
+                        id: user.id, 
+                        role: newRole as 'user' | 'admin' 
+                      });
+                    }}
+                    disabled={updateRoleMutation.isPending}
+                  >
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="user">
+                        {language === 'en' ? 'User' : 'Usuário'}
+                      </SelectItem>
+                      <SelectItem value="admin">
+                        Admin
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  
                   <Button
                     variant="destructive"
                     size="sm"

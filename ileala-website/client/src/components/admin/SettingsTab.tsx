@@ -1,0 +1,290 @@
+import { useLanguage } from '@/contexts/LanguageContext';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { trpc } from '@/lib/trpc';
+import { Loader2, Plus, Edit, Trash2, Settings, Save } from 'lucide-react';
+import { toast } from 'sonner';
+import { useState, useEffect } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+
+export default function SettingsTab() {
+  const { language } = useLanguage();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingSetting, setEditingSetting] = useState<any>(null);
+  
+  const [formData, setFormData] = useState({
+    key: '',
+    value: '',
+    description: '',
+    category: 'general',
+  });
+
+  const utils = trpc.useUtils();
+  const { data: settings, isLoading } = trpc.settings.list.useQuery();
+  
+  const upsertMutation = trpc.settings.upsert.useMutation({
+    onSuccess: () => {
+      toast.success(language === 'en' ? 'Setting saved!' : 'Configuração salva!');
+      utils.settings.list.invalidate();
+      resetForm();
+      setIsDialogOpen(false);
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const deleteMutation = trpc.settings.delete.useMutation({
+    onSuccess: () => {
+      toast.success(language === 'en' ? 'Setting deleted!' : 'Configuração excluída!');
+      utils.settings.list.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const resetForm = () => {
+    setFormData({
+      key: '',
+      value: '',
+      description: '',
+      category: 'general',
+    });
+    setEditingSetting(null);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    upsertMutation.mutate(formData);
+  };
+
+  const handleEdit = (setting: any) => {
+    setEditingSetting(setting);
+    setFormData({
+      key: setting.key,
+      value: setting.value,
+      description: setting.description || '',
+      category: setting.category || 'general',
+    });
+    setIsDialogOpen(true);
+  };
+
+  const handleDelete = (key: string) => {
+    if (window.confirm(
+      language === 'en' 
+        ? `Delete setting "${key}"?` 
+        : `Excluir configuração "${key}"?`
+    )) {
+      deleteMutation.mutate({ key });
+    }
+  };
+
+  // Group settings by category
+  const groupedSettings = settings?.reduce((acc: any, setting: any) => {
+    const cat = setting.category || 'general';
+    if (!acc[cat]) acc[cat] = [];
+    acc[cat].push(setting);
+    return acc;
+  }, {}) || {};
+
+  const categories = Object.keys(groupedSettings);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold">
+            {language === 'en' ? 'Store Settings' : 'Configurações da Loja'}
+          </h2>
+          <p className="text-muted-foreground">
+            {language === 'en' 
+              ? 'Manage global store configuration and preferences' 
+              : 'Gerencie configurações globais e preferências da loja'}
+          </p>
+        </div>
+        <Button onClick={() => { resetForm(); setIsDialogOpen(true); }}>
+          <Plus className="w-4 h-4 mr-2" />
+          {language === 'en' ? 'Add Setting' : 'Adicionar Configuração'}
+        </Button>
+      </div>
+
+      {categories.length > 0 ? (
+        categories.map((category) => (
+          <div key={category} className="space-y-3">
+            <h3 className="text-lg font-semibold capitalize">{category}</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {groupedSettings[category].map((setting: any) => (
+                <Card key={setting.key} className="p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold mb-1">{setting.key}</h4>
+                      {setting.description && (
+                        <p className="text-sm text-muted-foreground mb-2">
+                          {setting.description}
+                        </p>
+                      )}
+                      <div className="bg-sage-50 p-2 rounded font-mono text-sm break-all">
+                        {setting.value}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        {language === 'en' ? 'Updated:' : 'Atualizado:'} {new Date(setting.updatedAt).toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEdit(setting)}
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleDelete(setting.key)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </div>
+        ))
+      ) : (
+        <Card className="p-12">
+          <div className="text-center text-muted-foreground">
+            <Settings className="w-12 h-12 mx-auto mb-4 opacity-50" />
+            <p>{language === 'en' ? 'No settings yet' : 'Nenhuma configuração ainda'}</p>
+            <p className="text-sm mt-2">
+              {language === 'en' 
+                ? 'Add settings like shipping rates, tax rates, payment methods, etc.' 
+                : 'Adicione configurações como taxas de envio, impostos, métodos de pagamento, etc.'}
+            </p>
+          </div>
+        </Card>
+      )}
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {editingSetting
+                ? (language === 'en' ? 'Edit Setting' : 'Editar Configuração')
+                : (language === 'en' ? 'Add Setting' : 'Adicionar Configuração')}
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <Label htmlFor="key">{language === 'en' ? 'Setting Key' : 'Chave da Configuração'} *</Label>
+              <Input
+                id="key"
+                value={formData.key}
+                onChange={(e) => setFormData({ ...formData, key: e.target.value })}
+                placeholder="shipping_rate_local"
+                required
+                disabled={!!editingSetting}
+                className="font-mono"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                {language === 'en' 
+                  ? 'Use lowercase with underscores (e.g., tax_rate, currency)' 
+                  : 'Use minúsculas com underscores (ex: taxa_imposto, moeda)'}
+              </p>
+            </div>
+
+            <div>
+              <Label htmlFor="value">{language === 'en' ? 'Value' : 'Valor'} *</Label>
+              <Textarea
+                id="value"
+                value={formData.value}
+                onChange={(e) => setFormData({ ...formData, value: e.target.value })}
+                placeholder="25"
+                rows={3}
+                required
+                className="font-mono"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="description">{language === 'en' ? 'Description' : 'Descrição'}</Label>
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder={language === 'en' ? 'What this setting controls' : 'O que esta configuração controla'}
+                rows={2}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="category">{language === 'en' ? 'Category' : 'Categoria'}</Label>
+              <Select
+                value={formData.category}
+                onValueChange={(value) => setFormData({ ...formData, category: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="general">General</SelectItem>
+                  <SelectItem value="shipping">Shipping</SelectItem>
+                  <SelectItem value="payment">Payment</SelectItem>
+                  <SelectItem value="tax">Tax</SelectItem>
+                  <SelectItem value="currency">Currency</SelectItem>
+                  <SelectItem value="email">Email</SelectItem>
+                  <SelectItem value="seo">SEO</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex gap-2 justify-end pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsDialogOpen(false)}
+              >
+                {language === 'en' ? 'Cancel' : 'Cancelar'}
+              </Button>
+              <Button
+                type="submit"
+                disabled={upsertMutation.isPending}
+              >
+                {upsertMutation.isPending && (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                )}
+                <Save className="w-4 h-4 mr-2" />
+                {language === 'en' ? 'Save' : 'Salvar'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

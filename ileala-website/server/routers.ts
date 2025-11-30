@@ -679,6 +679,16 @@ export const appRouter = router({
       }
       return await db.getAllOrders();
     }),
+    updateStatus: protectedProcedure
+      .input(z.object({ 
+        orderId: z.number(),
+        status: z.enum(['pending', 'processing', 'shipped', 'delivered', 'completed', 'cancelled'])
+      }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+        await db.updateOrderStatus(input.orderId, input.status);
+        return { success: true };
+      }),
   }),
 
   // Admin router (protected - only for admin users)
@@ -1014,6 +1024,89 @@ export const appRouter = router({
         // Prevent deleting yourself
         if (ctx.user?.id === input.id) throw new Error('Cannot delete your own account');
         await db.deleteUser(input.id);
+        return { success: true };
+      }),
+    updateRole: protectedProcedure
+      .input(z.object({ 
+        id: z.number(), 
+        role: z.enum(['user', 'admin']) 
+      }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+        // Prevent changing your own role
+        if (ctx.user?.id === input.id) throw new Error('Cannot change your own role');
+        await db.updateUserRole(input.id, input.role);
+        return { success: true };
+      }),
+  }),
+  categories: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+      return await db.getAllCategories();
+    }),
+    create: protectedProcedure
+      .input(z.object({
+        slug: z.string(),
+        nameEN: z.string(),
+        namePT: z.string(),
+        descriptionEN: z.string().optional(),
+        descriptionPT: z.string().optional(),
+        imageUrl: z.string().optional(),
+        parentId: z.number().optional(),
+        displayOrder: z.number().default(0),
+        active: z.number().default(1),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+        return await db.createCategory(input);
+      }),
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        slug: z.string().optional(),
+        nameEN: z.string().optional(),
+        namePT: z.string().optional(),
+        descriptionEN: z.string().optional(),
+        descriptionPT: z.string().optional(),
+        imageUrl: z.string().optional(),
+        parentId: z.number().optional(),
+        displayOrder: z.number().optional(),
+        active: z.number().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+        const { id, ...data } = input;
+        return await db.updateCategory(id, data);
+      }),
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+        await db.deleteCategory(input.id);
+        return { success: true };
+      }),
+  }),
+  settings: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+      return await db.getAllSettings();
+    }),
+    upsert: protectedProcedure
+      .input(z.object({
+        key: z.string(),
+        value: z.string(),
+        description: z.string().optional(),
+        category: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+        return await db.upsertSetting(input.key, input.value, input.description, input.category);
+      }),
+    delete: protectedProcedure
+      .input(z.object({ key: z.string() }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+        await db.deleteSetting(input.key);
         return { success: true };
       }),
   }),

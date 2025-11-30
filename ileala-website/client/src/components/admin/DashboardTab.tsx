@@ -97,6 +97,133 @@ export default function DashboardTab() {
         })}
       </div>
 
+      {/* Sales Chart */}
+      <Card className="p-6">
+        <h3 className="text-lg font-semibold mb-4">
+          {language === 'en' ? 'Sales Overview (Last 7 Days)' : 'Visão de Vendas (Últimos 7 Dias)'}
+        </h3>
+        <div className="space-y-4">
+          {orders && orders.length > 0 ? (
+            (() => {
+              // Calculate sales per day for last 7 days
+              const last7Days = Array.from({ length: 7 }, (_, i) => {
+                const date = new Date();
+                date.setDate(date.getDate() - (6 - i));
+                return date.toISOString().split('T')[0];
+              });
+              
+              const salesByDay = last7Days.map(day => {
+                const dayOrders = orders.filter(o => 
+                  new Date(o.createdAt).toISOString().split('T')[0] === day
+                );
+                const total = dayOrders.reduce((sum, o) => sum + o.total, 0);
+                return {
+                  date: new Date(day).toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric' }),
+                  total: total / 100,
+                  count: dayOrders.length
+                };
+              });
+              
+              const maxTotal = Math.max(...salesByDay.map(d => d.total), 1);
+              
+              return (
+                <div className="space-y-2">
+                  {salesByDay.map((day, i) => (
+                    <div key={i} className="flex items-center gap-3">
+                      <div className="w-24 text-sm text-muted-foreground">{day.date}</div>
+                      <div className="flex-1 h-8 bg-sage-100 rounded-lg overflow-hidden">
+                        <div 
+                          className="h-full bg-sage-600 transition-all duration-500 flex items-center justify-end pr-2"
+                          style={{ width: `${(day.total / maxTotal) * 100}%` }}
+                        >
+                          {day.total > 0 && (
+                            <span className="text-xs text-white font-semibold">
+                              {day.total.toFixed(2)} AED
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="w-16 text-sm text-right text-muted-foreground">
+                        {day.count} {language === 'en' ? 'orders' : 'pedidos'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()
+          ) : (
+            <p className="text-center text-muted-foreground py-8">
+              {language === 'en' ? 'No sales data yet' : 'Nenhum dado de vendas ainda'}
+            </p>
+          )}
+        </div>
+      </Card>
+
+      {/* Top Products */}
+      <Card className="p-6">
+        <h3 className="text-lg font-semibold mb-4">
+          {language === 'en' ? 'Best Selling Products' : 'Produtos Mais Vendidos'}
+        </h3>
+        {orders && orders.length > 0 ? (
+          (() => {
+            // Calculate product sales from orders
+            const productSales: Record<number, { name: string, count: number, revenue: number }> = {};
+            
+            orders.forEach(order => {
+              if (order.items) {
+                order.items.forEach((item: any) => {
+                  if (!productSales[item.productId]) {
+                    const product = products?.find(p => p.id === item.productId);
+                    productSales[item.productId] = {
+                      name: product?.nameEN || 'Unknown',
+                      count: 0,
+                      revenue: 0
+                    };
+                  }
+                  productSales[item.productId].count += item.quantity;
+                  productSales[item.productId].revenue += item.priceAtPurchase * item.quantity;
+                });
+              }
+            });
+            
+            const topProducts = Object.entries(productSales)
+              .sort((a, b) => b[1].count - a[1].count)
+              .slice(0, 5);
+            
+            return topProducts.length > 0 ? (
+              <div className="space-y-3">
+                {topProducts.map(([id, data], i) => (
+                  <div key={id} className="flex justify-between items-center pb-3 border-b last:border-0">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-sage-100 flex items-center justify-center text-sage-700 font-bold">
+                        {i + 1}
+                      </div>
+                      <div>
+                        <p className="font-medium">{data.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {data.count} {language === 'en' ? 'sold' : 'vendidos'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold">{(data.revenue / 100).toFixed(2)} AED</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-center text-muted-foreground py-8">
+                {language === 'en' ? 'No sales yet' : 'Nenhuma venda ainda'}
+              </p>
+            );
+          })()
+        ) : (
+          <p className="text-center text-muted-foreground py-8">
+            {language === 'en' ? 'No orders yet' : 'Nenhum pedido ainda'}
+          </p>
+        )}
+      </Card>
+
       {/* Recent Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Orders */}

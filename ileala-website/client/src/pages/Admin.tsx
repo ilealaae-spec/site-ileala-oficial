@@ -4,7 +4,7 @@ import { useLocation } from 'wouter';
 import { 
   Loader2, Mail, Shield, Lock, Eye, EyeOff,
   LayoutDashboard, Users, Package, ShoppingCart, Palette, FileText, Image,
-  LogOut, Search, Bell, User
+  LogOut, Search, Bell, User, FolderOpen, Ticket, Settings
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
@@ -31,16 +31,22 @@ import OrdersTab from '@/components/admin/OrdersTab';
 import ArtisansTab from '@/components/admin/ArtisansTab';
 import ContentTab from '@/components/admin/ContentTab';
 import MediaTab from '@/components/admin/MediaTab';
+import CategoriesTab from '@/components/admin/CategoriesTab';
+import CouponsTab from '@/components/admin/CouponsTab';
+import SettingsTab from '@/components/admin/SettingsTab';
 
 const tabs = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { id: "newsletter", label: "Newsletter", icon: Mail },
   { id: "users", label: "Users", icon: Users },
   { id: "products", label: "Products", icon: Package },
+  { id: "categories", label: "Categories", icon: FolderOpen },
+  { id: "coupons", label: "Coupons", icon: Ticket },
   { id: "orders", label: "Orders", icon: ShoppingCart },
   { id: "artisans", label: "Artisans", icon: Palette },
   { id: "content", label: "Content", icon: FileText },
   { id: "media", label: "Media", icon: Image },
+  { id: "settings", label: "Settings", icon: Settings },
 ];
 
 export default function Admin() {
@@ -293,6 +299,18 @@ export default function Admin() {
             <ProductsTab />
           </ErrorBoundary>
         );
+      case 'categories':
+        return (
+          <ErrorBoundary>
+            <CategoriesTab />
+          </ErrorBoundary>
+        );
+      case 'coupons':
+        return (
+          <ErrorBoundary>
+            <CouponsTab />
+          </ErrorBoundary>
+        );
       case 'orders':
         return (
           <ErrorBoundary>
@@ -315,6 +333,12 @@ export default function Admin() {
         return (
           <ErrorBoundary>
             <MediaTab />
+          </ErrorBoundary>
+        );
+      case 'settings':
+        return (
+          <ErrorBoundary>
+            <SettingsTab />
           </ErrorBoundary>
         );
       default:
