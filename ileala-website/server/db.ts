@@ -726,7 +726,17 @@ export async function getCategoryById(id: number) {
 export async function createCategory(data: InsertCategory) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  const result = await db.insert(categories).values(data).returning();
+  
+  // Filter out undefined values to let database defaults work
+  const cleanData: any = {};
+  Object.keys(data).forEach(key => {
+    const value = (data as any)[key];
+    if (value !== undefined) {
+      cleanData[key] = value;
+    }
+  });
+  
+  const result = await db.insert(categories).values(cleanData).returning();
   return result[0];
 }
 
