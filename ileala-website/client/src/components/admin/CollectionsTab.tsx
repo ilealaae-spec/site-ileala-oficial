@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { trpc } from '@/lib/trpc';
-import { Loader2, Plus, Edit, Trash2, FolderOpen } from 'lucide-react';
+import { Loader2, Plus, Edit, Trash2, FolderOpen, X, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { useState } from 'react';
 import {
@@ -63,6 +63,15 @@ export default function CollectionsTab() {
     onSuccess: () => {
       toast.success(language === 'en' ? 'Collection deleted!' : 'Coleção excluída!');
       utils.collections.list.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const uploadImageMutation = trpc.admin.uploadImage.useMutation({
+    onSuccess: (data) => {
+      toast.success(language === 'en' ? 'Image uploaded!' : 'Imagem enviada!');
     },
     onError: (error) => {
       toast.error(error.message);
@@ -135,21 +144,22 @@ export default function CollectionsTab() {
 
     setUploading(true);
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const response = await fetch('/api/admin/upload', {
-        method: 'POST',
-        body: formData,
-        credentials: 'include',
-      });
-
-      if (!response.ok) throw new Error('Upload failed');
-
-      const data = await response.json();
-      setFormData(prev => ({ ...prev, imageUrl: data.url }));
-      toast.success(language === 'en' ? 'Image uploaded!' : 'Imagem enviada!');
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const base64 = event.target?.result as string;
+        const base64Data = base64.split(',')[1];
+        
+        const result = await uploadImageMutation.mutateAsync({
+          fileName: file.name,
+          fileData: base64Data,
+          contentType: file.type,
+        });
+        
+        setFormData(prev => ({ ...prev, imageUrl: result.url }));
+      };
+      reader.readAsDataURL(file);
     } catch (error) {
+      console.error('Upload error:', error);
       toast.error(language === 'en' ? 'Upload failed' : 'Falha no upload');
     } finally {
       setUploading(false);
@@ -319,22 +329,41 @@ export default function CollectionsTab() {
 
             <div>
               <Label>{language === 'en' ? 'Collection Image' : 'Imagem da Coleção'}</Label>
-              <div className="flex gap-2 items-center">
-                <Input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  disabled={uploading}
-                  className="flex-1"
-                />
-                {uploading && <Loader2 className="w-4 h-4 animate-spin" />}
-              </div>
-              {formData.imageUrl && (
-                <img 
-                  src={formData.imageUrl} 
-                  alt="Preview" 
-                  className="mt-2 w-32 h-32 object-cover rounded-lg"
-                />
+              {formData.imageUrl ? (
+                <div className="relative mt-2 inline-block">
+                  <img 
+                    src={formData.imageUrl} 
+                    alt="Preview" 
+                    className="w-48 h-48 object-cover rounded-lg border-2 border-sage-200"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, imageUrl: '' })}
+                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <label className="mt-2 flex flex-col items-center justify-center w-48 h-48 border-2 border-dashed border-sage-300 rounded-lg cursor-pointer hover:border-sage-500 transition-colors">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    disabled={uploading}
+                    className="hidden"
+                  />
+                  {uploading ? (
+                    <Loader2 className="w-8 h-8 animate-spin text-sage-600" />
+                  ) : (
+                    <>
+                      <Upload className="w-8 h-8 text-sage-400" />
+                      <span className="mt-2 text-sm text-sage-600">
+                        {language === 'en' ? 'Upload Image' : 'Enviar Imagem'}
+                      </span>
+                    </>
+                  )}
+                </label>
               )}
             </div>
 
