@@ -5,8 +5,12 @@
  * This ensures environment variables are properly injected even if Vite fails to process them
  */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Load environment variables from .env file
 const envPath = path.resolve(__dirname, '../.env');
