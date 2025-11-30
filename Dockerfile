@@ -25,6 +25,9 @@ RUN rm -rf dist
 # Build with VITE environment variables
 RUN pnpm run build
 
+# Run post-build script to replace VITE_* placeholders
+RUN node scripts/post-build.js
+
 # Start (permanece em ileala-website)
 # Garantir que estamos no diretório correto
 WORKDIR /app/ileala-website

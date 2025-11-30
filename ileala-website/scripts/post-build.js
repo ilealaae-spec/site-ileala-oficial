@@ -2,7 +2,7 @@
 
 /**
  * Post-build script to replace VITE_* placeholders in index.html
- * This ensures environment variables are properly injected even if Vite fails to process them
+ * Uses hardcoded values to ensure reliability
  */
 
 import fs from 'fs';
@@ -12,65 +12,56 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load environment variables from .env file
-const envPath = path.resolve(__dirname, '../.env');
-const env = {};
-
-if (fs.existsSync(envPath)) {
-  const envContent = fs.readFileSync(envPath, 'utf-8');
-  envContent.split('\n').forEach(line => {
-    const match = line.match(/^([^=:#]+)=(.*)$/);
-    if (match) {
-      const key = match[1].trim();
-      const value = match[2].trim().replace(/^["']|["']$/g, '');
-      env[key] = value;
-    }
-  });
-}
-
-// Default values
-const defaults = {
-  VITE_APP_TITLE: 'ILE ALA - Luxury Home & Table Linens',
-  VITE_APP_URL: 'https://admin.ileala.ae',
-  VITE_APP_ID: 'ileala-admin',
-  VITE_SITE_URL: 'https://admin.ileala.ae',
-  VITE_FRONTEND_FORGE_API_URL: 'https://www.ileala.ae',
-  VITE_GOOGLE_CLIENT_ID: '',
-  VITE_OAUTH_PORTAL_URL: '',
-  VITE_LEGACY_BUILD: 'true',
-  VITE_STRIPE_PUBLISHABLE_KEY: '',
+// Hardcoded values (no dependency on .env file)
+const replacements = {
+  '%VITE_APP_TITLE%': 'ILE ALA - Luxury Home & Table Linens',
+  '%VITE_APP_URL%': 'https://admin.ileala.ae',
+  '%VITE_APP_ID%': 'ileala-admin',
+  '%VITE_SITE_URL%': 'https://admin.ileala.ae',
+  '%VITE_FRONTEND_FORGE_API_URL%': 'https://www.ileala.ae',
+  '%VITE_GOOGLE_CLIENT_ID%': '',
+  '%VITE_OAUTH_PORTAL_URL%': '',
+  '%VITE_LEGACY_BUILD%': 'true',
+  '%VITE_STRIPE_PUBLISHABLE_KEY%': '',
 };
-
-// Merge with defaults
-Object.keys(defaults).forEach(key => {
-  if (!env[key]) {
-    env[key] = defaults[key];
-  }
-});
 
 // Path to index.html
 const indexPath = path.resolve(__dirname, '../dist/public/index.html');
 
+console.log('🔍 Looking for index.html at:', indexPath);
+
 if (!fs.existsSync(indexPath)) {
-  console.error('❌ index.html not found at:', indexPath);
+  console.error('❌ index.html not found!');
+  console.error('📂 Checking dist directory structure...');
+  
+  const distPath = path.resolve(__dirname, '../dist');
+  if (fs.existsSync(distPath)) {
+    console.log('✅ dist/ exists');
+    const distContents = fs.readdirSync(distPath);
+    console.log('📁 Contents:', distContents);
+  } else {
+    console.error('❌ dist/ does not exist!');
+  }
+  
   process.exit(1);
 }
 
 // Read index.html
 let html = fs.readFileSync(indexPath, 'utf-8');
 
-// Replace all %VITE_*% placeholders
-Object.keys(env).forEach(key => {
-  const placeholder = `%${key}%`;
-  const value = env[key];
-  html = html.replace(new RegExp(placeholder, 'g'), value);
+console.log('📝 Original title:', html.match(/<title>([^<]+)<\/title>/)?.[1]);
+
+// Replace all placeholders
+Object.entries(replacements).forEach(([placeholder, value]) => {
+  const count = (html.match(new RegExp(placeholder, 'g')) || []).length;
+  if (count > 0) {
+    html = html.replace(new RegExp(placeholder, 'g'), value);
+    console.log(`✅ Replaced ${count}x: ${placeholder} → ${value}`);
+  }
 });
 
 // Write back
 fs.writeFileSync(indexPath, html, 'utf-8');
 
+console.log('📝 New title:', html.match(/<title>([^<]+)<\/title>/)?.[1]);
 console.log('✅ Post-build processing completed!');
-console.log('📝 Replaced variables:');
-Object.keys(env).forEach(key => {
-  console.log(`   ${key}: ${env[key]}`);
-});
