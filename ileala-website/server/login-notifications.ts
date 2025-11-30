@@ -3,7 +3,7 @@
  * Tracks login attempts and sends notifications for suspicious activity
  */
 
-import UAParser from 'ua-parser-js';
+import { UAParser } from 'ua-parser-js';
 import * as db from './db';
 import { sendEmail } from './email';
 
