@@ -9,6 +9,7 @@ import { storagePut } from './storage';
 import { checkRateLimit, recordFailedAttempt, clearRateLimit, getClientIp } from './rate-limiter';
 import { createAuditLogger } from './audit-logger';
 import { validateUpload, validateImageBuffer, sanitizeFilename, generateSafeFilename } from './upload-validator';
+import { generate2FASecret, generate2FAQRCode, verify2FAToken, generateBackupCodes, verifyBackupCode, is2FAEnabled } from './two-factor';
 import { sdk } from "./_core/sdk";
 import {
   emailSchema,
@@ -369,6 +370,150 @@ export const appRouter = router({
         success: true,
       } as const;
     }),
+    
+    // 2FA endpoints
+    setup2FA: protectedProcedure.mutation(async ({ ctx }) => {
+      if (!ctx.user) throw new Error('Not authenticated');
+      
+      // Generate new secret
+      const secret = generate2FASecret();
+      
+      // Generate QR code
+      const qrCode = await generate2FAQRCode(ctx.user.email, secret);
+      
+      // Return secret and QR code (don't save yet - wait for verification)
+      return {
+        secret,
+        qrCode,
+      };
+    }),
+    
+    enable2FA: protectedProcedure
+      .input(z.object({
+        secret: z.string(),
+        token: z.string().length(6),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        if (!ctx.user) throw new Error('Not authenticated');
+        
+        // Verify the token before enabling
+        const valid = verify2FAToken(input.token, input.secret);
+        if (!valid) {
+          throw new Error('Invalid verification code');
+        }
+        
+        // Generate backup codes
+        const backupCodes = generateBackupCodes();
+        
+        // Save to database
+        await db.enable2FA(ctx.user.id, input.secret, JSON.stringify(backupCodes));
+        
+        // Audit log
+        const audit = createAuditLogger(ctx);
+        await audit.log({
+          action: 'update',
+          entity: 'user_security',
+          entityId: ctx.user.id,
+          metadata: { action: '2fa_enabled' },
+        });
+        
+        return {
+          success: true,
+          backupCodes,
+        };
+      }),
+    
+    disable2FA: protectedProcedure
+      .input(z.object({
+        password: z.string(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        if (!ctx.user) throw new Error('Not authenticated');
+        
+        // Verify password before disabling
+        const user = await db.getUserById(ctx.user.id);
+        if (!user || !user.password) {
+          throw new Error('User not found');
+        }
+        
+        const bcrypt = await import('bcryptjs');
+        const valid = await bcrypt.compare(input.password, user.password);
+        if (!valid) {
+          throw new Error('Invalid password');
+        }
+        
+        // Disable 2FA
+        await db.disable2FA(ctx.user.id);
+        
+        // Audit log
+        const audit = createAuditLogger(ctx);
+        await audit.log({
+          action: 'update',
+          entity: 'user_security',
+          entityId: ctx.user.id,
+          metadata: { action: '2fa_disabled' },
+        });
+        
+        return { success: true };
+      }),
+    
+    verify2FA: publicProcedure
+      .input(z.object({
+        email: z.string().email(),
+        token: z.string(),
+        isBackupCode: z.boolean().default(false),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const user = await db.getUserByEmail(input.email);
+        if (!user) {
+          throw new Error('User not found');
+        }
+        
+        if (!is2FAEnabled(user)) {
+          throw new Error('2FA is not enabled for this user');
+        }
+        
+        let valid = false;
+        
+        if (input.isBackupCode) {
+          // Verify backup code
+          const result = verifyBackupCode(input.token, user.twoFactorBackupCodes);
+          valid = result.valid;
+          
+          if (valid && result.remainingCodes) {
+            // Update backup codes (remove used one)
+            await db.updateBackupCodes(user.id, JSON.stringify(result.remainingCodes));
+          }
+        } else {
+          // Verify TOTP token
+          valid = verify2FAToken(input.token, user.twoFactorSecret!);
+        }
+        
+        if (!valid) {
+          throw new Error('Invalid verification code');
+        }
+        
+        // Create session
+        const sessionData = {
+          user: {
+            id: user.id,
+            email: user.email,
+            name: user.name || null,
+            role: user.role || 'user',
+          }
+        };
+        
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(COOKIE_NAME, sessionData, cookieOptions);
+        
+        // Update last signed in
+        await db.updateLastSignedIn(user.id);
+        
+        return {
+          success: true,
+          user: sessionData.user,
+        };
+      }),
   }),
 
   // Newsletter router

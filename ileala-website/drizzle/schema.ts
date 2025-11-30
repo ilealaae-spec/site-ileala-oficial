@@ -32,6 +32,10 @@ export const users = pgTable("users", {
   passwordResetExpires: timestamp("passwordResetExpires"),
   loginMethod: varchar("loginMethod", { length: 64 }),
   role: varchar("role", { length: 20 }).default("user").notNull(),
+  // Two-Factor Authentication
+  twoFactorEnabled: integer("twoFactorEnabled").default(0).notNull(), // 0 = disabled, 1 = enabled
+  twoFactorSecret: varchar("twoFactorSecret", { length: 255 }), // TOTP secret
+  twoFactorBackupCodes: text("twoFactorBackupCodes"), // JSON array of backup codes
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),

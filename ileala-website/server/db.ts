@@ -1166,3 +1166,79 @@ export async function deleteMedia(id: number) {
     throw error;
   }
 }
+
+// ============================================
+// Two-Factor Authentication Functions
+// ============================================
+
+export async function enable2FA(userId: number, secret: string, backupCodes: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  try {
+    const { users } = await import("../drizzle/schema");
+    const { eq } = await import("drizzle-orm");
+    
+    await db.update(users)
+      .set({
+        twoFactorEnabled: 1,
+        twoFactorSecret: secret,
+        twoFactorBackupCodes: backupCodes,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId));
+    
+    logger.info(`[2FA] Enabled for user ${userId}`);
+    return { success: true };
+  } catch (error) {
+    logger.error("[2FA] Failed to enable:", error);
+    throw error;
+  }
+}
+
+export async function disable2FA(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  try {
+    const { users } = await import("../drizzle/schema");
+    const { eq } = await import("drizzle-orm");
+    
+    await db.update(users)
+      .set({
+        twoFactorEnabled: 0,
+        twoFactorSecret: null,
+        twoFactorBackupCodes: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId));
+    
+    logger.info(`[2FA] Disabled for user ${userId}`);
+    return { success: true };
+  } catch (error) {
+    logger.error("[2FA] Failed to disable:", error);
+    throw error;
+  }
+}
+
+export async function updateBackupCodes(userId: number, backupCodes: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  try {
+    const { users } = await import("../drizzle/schema");
+    const { eq } = await import("drizzle-orm");
+    
+    await db.update(users)
+      .set({
+        twoFactorBackupCodes: backupCodes,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId));
+    
+    return { success: true };
+  } catch (error) {
+    logger.error("[2FA] Failed to update backup codes:", error);
+    throw error;
+  }
+}
