@@ -34,6 +34,7 @@ export default function CategoriesTab() {
 
   const utils = trpc.useUtils();
   const { data: categories, isLoading } = trpc.categories.list.useQuery();
+  const uploadImageMutation = trpc.admin.uploadImage.useMutation();
   
   const createMutation = trpc.categories.create.useMutation({
     onSuccess: () => {
@@ -135,23 +136,26 @@ export default function CategoriesTab() {
 
     setUploading(true);
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const response = await fetch('/api/admin/upload', {
-        method: 'POST',
-        body: formData,
-        credentials: 'include',
-      });
-
-      if (!response.ok) throw new Error('Upload failed');
-
-      const data = await response.json();
-      setFormData(prev => ({ ...prev, imageUrl: data.url }));
-      toast.success(language === 'en' ? 'Image uploaded!' : 'Imagem enviada!');
+      // Read file as base64
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64 = reader.result as string;
+        const result = await uploadImageMutation.mutateAsync({
+          filename: file.name,
+          contentType: file.type,
+          data: base64,
+        });
+        setFormData(prev => ({ ...prev, imageUrl: result.url }));
+        toast.success(language === 'en' ? 'Image uploaded!' : 'Imagem enviada!');
+        setUploading(false);
+      };
+      reader.onerror = () => {
+        toast.error(language === 'en' ? 'Upload failed' : 'Falha no upload');
+        setUploading(false);
+      };
+      reader.readAsDataURL(file);
     } catch (error) {
       toast.error(language === 'en' ? 'Upload failed' : 'Falha no upload');
-    } finally {
       setUploading(false);
     }
   };
@@ -319,22 +323,45 @@ export default function CategoriesTab() {
 
             <div>
               <Label>{language === 'en' ? 'Category Image' : 'Imagem da Categoria'}</Label>
-              <div className="flex gap-2 items-center">
-                <Input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  disabled={uploading}
-                  className="flex-1"
-                />
-                {uploading && <Loader2 className="w-4 h-4 animate-spin" />}
-              </div>
-              {formData.imageUrl && (
-                <img 
-                  src={formData.imageUrl} 
-                  alt="Preview" 
-                  className="mt-2 w-32 h-32 object-cover rounded-lg"
-                />
+              {formData.imageUrl ? (
+                <div className="relative w-48 h-48 border-2 border-dashed border-gray-300 rounded-lg overflow-hidden">
+                  <img 
+                    src={formData.imageUrl} 
+                    alt="Preview" 
+                    className="w-full h-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, imageUrl: '' }))}
+                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                </div>
+              ) : (
+                <div className="relative w-48 h-48 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer hover:border-gray-400 transition-colors">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    disabled={uploading}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                  {uploading ? (
+                    <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+                  ) : (
+                    <div className="text-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                      </svg>
+                      <p className="mt-2 text-sm text-gray-500">
+                        {language === 'en' ? 'Upload Image' : 'Enviar Imagem'}
+                      </p>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
 
