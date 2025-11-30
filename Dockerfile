@@ -19,8 +19,11 @@ RUN pnpm install --no-frozen-lockfile
 # Copiar código do ileala-website
 COPY ileala-website/ .
 
-# Build - Use build:production which checks for pre-built assets
-RUN pnpm run build:production
+# Delete dist/ to force clean rebuild
+RUN rm -rf dist
+
+# Build with VITE environment variables
+RUN pnpm run build
 
 # Start (permanece em ileala-website)
 # Garantir que estamos no diretório correto
