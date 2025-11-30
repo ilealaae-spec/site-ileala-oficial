@@ -15,7 +15,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     try {
       await logoutMutation.mutateAsync();
       toast.success(language === 'en' ? 'Logged out successfully' : 'Logout realizado com sucesso');
-      setLocation('/');
+      // Redirect to login page instead of home
+      setLocation('/login');
       window.location.reload();
     } catch (error) {
       toast.error(language === 'en' ? 'Logout failed' : 'Falha no logout');
