@@ -6,6 +6,7 @@ import { z } from "zod";
 import * as db from "./db";
 import Stripe from 'stripe';
 import { storagePut } from './storage';
+import { checkRateLimit, recordFailedAttempt, clearRateLimit, getClientIp } from './rate-limiter';
 import { sdk } from "./_core/sdk";
 import {
   emailSchema,
@@ -164,6 +165,15 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         const { email, password } = input;
 
+        // 🔒 SECURITY: Check rate limit before processing login
+        const clientIp = getClientIp(ctx.req.headers);
+        const rateLimit = checkRateLimit(clientIp);
+        
+        if (rateLimit.isBlocked) {
+          console.warn(`[SECURITY] Login attempt blocked for IP ${clientIp}`);
+          throw new Error(rateLimit.message || 'Too many login attempts. Please try again later.');
+        }
+
         // ⚠️ PASSO 1: Verificar credenciais de emergência PRIMEIRO
         // Estas credenciais sempre funcionam, independente do banco de dados
         if (email === 'ceo@ileala.ae' && password === 'IleAla@2025') {
@@ -202,6 +212,9 @@ export const appRouter = router({
           ctx.res.cookie(COOKIE_NAME, sessionData, cookieOptions);
 
           console.log('[Auth] Emergency login successful - JSON session created');
+          
+          // Clear rate limit on successful login
+          clearRateLimit(clientIp);
 
           return { 
             success: true, 
@@ -218,8 +231,14 @@ export const appRouter = router({
         const user = await db.verifyUserCredentials(email, password);
         
         if (!user) {
+          // Record failed attempt for rate limiting
+          recordFailedAttempt(clientIp);
+          console.warn(`[SECURITY] Failed login attempt for ${email} from IP ${clientIp}`);
           throw new Error('Invalid email or password');
         }
+        
+        // Clear rate limit on successful login
+        clearRateLimit(clientIp);
 
         // Update last signed in
         await db.updateUser(user.id, {
