@@ -217,6 +217,24 @@ export const categories = pgTable("categories", {
 export type Category = typeof categories.$inferSelect;
 export type InsertCategory = typeof categories.$inferInsert;
 
+// Collections table - for product collections (La Mer, Anima, Botanica, etc.)
+export const collections = pgTable("collections", {
+  id: serial("id").primaryKey(),
+  slug: varchar("slug", { length: 255 }).notNull().unique(),
+  nameEN: varchar("nameEN", { length: 255 }).notNull(),
+  namePT: varchar("namePT", { length: 255 }).notNull(),
+  descriptionEN: text("descriptionEN"),
+  descriptionPT: text("descriptionPT"),
+  imageUrl: varchar("imageUrl", { length: 512 }),
+  displayOrder: integer("displayOrder").default(0).notNull(),
+  active: integer("active").default(1).notNull(), // 0 = inactive, 1 = active
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+
+export type Collection = typeof collections.$inferSelect;
+export type InsertCollection = typeof collections.$inferInsert;
+
 // Site settings table - for global site configuration
 export const siteSettings = pgTable("siteSettings", {
   id: serial("id").primaryKey(),

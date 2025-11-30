@@ -1086,6 +1086,51 @@ export const appRouter = router({
         return { success: true };
       }),
   }),
+  collections: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+      return await db.getAllCollections();
+    }),
+    create: protectedProcedure
+      .input(z.object({
+        slug: z.string(),
+        nameEN: z.string(),
+        namePT: z.string(),
+        descriptionEN: z.string().optional(),
+        descriptionPT: z.string().optional(),
+        imageUrl: z.string().optional(),
+        displayOrder: z.number().default(0),
+        active: z.number().default(1),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+        return await db.createCollection(input);
+      }),
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        slug: z.string().optional(),
+        nameEN: z.string().optional(),
+        namePT: z.string().optional(),
+        descriptionEN: z.string().optional(),
+        descriptionPT: z.string().optional(),
+        imageUrl: z.string().optional(),
+        displayOrder: z.number().optional(),
+        active: z.number().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+        const { id, ...data } = input;
+        return await db.updateCollection(id, data);
+      }),
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+        await db.deleteCollection(input.id);
+        return { success: true };
+      }),
+  }),
   settings: router({
     list: protectedProcedure.query(async ({ ctx }) => {
       if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');

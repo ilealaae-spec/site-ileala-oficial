@@ -2,7 +2,7 @@ import { eq, sql } from "drizzle-orm";
 // Newsletter fix: omit name field if undefined - Build v2
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import { InsertUser, users, products, Product, InsertProduct, orders, Order, InsertOrder, orderItems, OrderItem, InsertOrderItem, cartItems, CartItem, InsertCartItem, coupons, Coupon, InsertCoupon, newsletter, Newsletter, InsertNewsletter, categories, Category, InsertCategory, siteSettings, SiteSetting, InsertSiteSetting } from "../drizzle/schema";
+import { InsertUser, users, products, Product, InsertProduct, orders, Order, InsertOrder, orderItems, OrderItem, InsertOrderItem, cartItems, CartItem, InsertCartItem, coupons, Coupon, InsertCoupon, newsletter, Newsletter, InsertNewsletter, categories, Category, InsertCategory, collections, Collection, InsertCollection, siteSettings, SiteSetting, InsertSiteSetting } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { logger } from './_core/logger';
 
@@ -730,6 +730,46 @@ export async function deleteCategory(id: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.delete(categories).where(eq(categories.id, id));
+  return { success: true };
+}
+
+
+// ===== COLLECTIONS =====
+
+export async function getAllCollections() {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.select().from(collections).orderBy(collections.displayOrder);
+}
+
+export async function getCollectionById(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.select().from(collections).where(eq(collections.id, id));
+  return result[0] || null;
+}
+
+export async function createCollection(data: InsertCollection) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(collections).values(data).returning();
+  return result[0];
+}
+
+export async function updateCollection(id: number, data: Partial<InsertCollection>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.update(collections)
+    .set({ ...data, updatedAt: new Date() })
+    .where(eq(collections.id, id))
+    .returning();
+  return result[0];
+}
+
+export async function deleteCollection(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(collections).where(eq(collections.id, id));
   return { success: true };
 }
 

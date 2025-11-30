@@ -32,6 +32,7 @@ import ArtisansTab from '@/components/admin/ArtisansTab';
 import ContentTab from '@/components/admin/ContentTab';
 import MediaTab from '@/components/admin/MediaTab';
 import CategoriesTab from '@/components/admin/CategoriesTab';
+import CollectionsTab from '@/components/admin/CollectionsTab';
 import CouponsTab from '@/components/admin/CouponsTab';
 import SettingsTab from '@/components/admin/SettingsTab';
 
@@ -41,6 +42,7 @@ const tabs = [
   { id: "users", label: "Users", icon: Users },
   { id: "products", label: "Products", icon: Package },
   { id: "categories", label: "Categories", icon: FolderOpen },
+  { id: "collections", label: "Collections", icon: Palette },
   { id: "coupons", label: "Coupons", icon: Ticket },
   { id: "orders", label: "Orders", icon: ShoppingCart },
   { id: "artisans", label: "Artisans", icon: Palette },
@@ -303,6 +305,12 @@ export default function Admin() {
         return (
           <ErrorBoundary>
             <CategoriesTab />
+          </ErrorBoundary>
+        );
+      case 'collections':
+        return (
+          <ErrorBoundary>
+            <CollectionsTab />
           </ErrorBoundary>
         );
       case 'coupons':
