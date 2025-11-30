@@ -723,20 +723,10 @@ export async function getCategoryById(id: number) {
   return result[0] || null;
 }
 
-export async function createCategory(data: InsertCategory) {
+export async function createCategory(data: Omit<InsertCategory, 'parentId' | 'id' | 'createdAt' | 'updatedAt'>) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
-  // Filter out undefined values to let database defaults work
-  const cleanData: any = {};
-  Object.keys(data).forEach(key => {
-    const value = (data as any)[key];
-    if (value !== undefined) {
-      cleanData[key] = value;
-    }
-  });
-  
-  const result = await db.insert(categories).values(cleanData).returning();
+  const result = await db.insert(categories).values(data).returning();
   return result[0];
 }
 
