@@ -141,10 +141,12 @@ export default function CategoriesTab() {
       reader.onloadend = async () => {
         try {
           const base64 = reader.result as string;
+          const base64Data = base64.split(',')[1]; // Remove data:image/xxx;base64, prefix
+          
           const result = await uploadImageMutation.mutateAsync({
-            filename: file.name,
+            fileName: file.name,
             contentType: file.type,
-            data: base64,
+            fileData: base64Data,
           });
           setFormData(prev => ({ ...prev, imageUrl: result.url }));
           toast.success(language === 'en' ? 'Image uploaded!' : 'Imagem enviada!');
