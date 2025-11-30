@@ -7,21 +7,30 @@ import { ENV } from './_core/env';
 import { logger } from './_core/logger';
 
 let _db: ReturnType<typeof drizzle> | null = null;
+let _sql: ReturnType<typeof postgres> | null = null;
 
 // Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
-      const client = postgres(process.env.DATABASE_URL, {
+      _sql = postgres(process.env.DATABASE_URL, {
         ssl: 'require'
       });
-      _db = drizzle(client);
+      _db = drizzle(_sql);
     } catch (error) {
       logger.warn("[Database] Failed to connect:", error);
       _db = null;
+      _sql = null;
     }
   }
   return _db;
+}
+
+export async function getSql() {
+  if (!_sql && !_db) {
+    await getDb();
+  }
+  return _sql;
 }
 
 export async function upsertUser(user: InsertUser): Promise<void> {
@@ -724,27 +733,26 @@ export async function getCategoryById(id: number) {
 }
 
 export async function createCategory(data: Omit<InsertCategory, 'parentId' | 'id' | 'createdAt' | 'updatedAt'>) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
+  const sql = await getSql();
+  if (!sql) throw new Error("Database not available");
   
   // Use SQL raw to avoid Drizzle including all schema fields
-  const result = await db.execute(
-    `INSERT INTO categories (slug, "nameEN", "namePT", "descriptionEN", "descriptionPT", "imageUrl", "displayOrder", active)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-     RETURNING *`,
-    [
-      data.slug,
-      data.nameEN,
-      data.namePT,
-      data.descriptionEN || null,
-      data.descriptionPT || null,
-      data.imageUrl || null,
-      data.displayOrder || 0,
-      data.active ?? 1
-    ]
-  );
+  const result = await sql`
+    INSERT INTO categories (slug, "nameEN", "namePT", "descriptionEN", "descriptionPT", "imageUrl", "displayOrder", active)
+    VALUES (
+      ${data.slug},
+      ${data.nameEN},
+      ${data.namePT},
+      ${data.descriptionEN || null},
+      ${data.descriptionPT || null},
+      ${data.imageUrl || null},
+      ${data.displayOrder || 0},
+      ${data.active ?? 1}
+    )
+    RETURNING *
+  `;
   
-  return result.rows[0] as Category;
+  return result[0] as Category;
 }
 
 export async function updateCategory(id: number, data: Partial<InsertCategory>) {
