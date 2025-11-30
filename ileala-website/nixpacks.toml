@@ -5,7 +5,7 @@ nixPkgs = ["nodejs-20_x", "pnpm"]
 cmds = ["pnpm install --no-frozen-lockfile"]
 
 [phases.build]
-cmds = ["pnpm run build:production"]
+cmds = ["echo '[BUILD] Cleaning cache...' && rm -rf dist node_modules/.vite .vite client/.vite && echo '[BUILD] Cache cleaned!' && vite build && node scripts/post-build.js"]
 
 [start]
 cmd = "NODE_ENV=production tsx server/_core/index.ts"
