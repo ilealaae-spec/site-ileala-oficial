@@ -33,7 +33,7 @@ export async function storagePut(
     Key: key,
     Body: buffer,
     ContentType: contentType,
-    ACL: 'public-read', // Make file publicly accessible
+    // ACL removed - bucket should be configured with public access policy instead
   });
   
   try {
