@@ -1687,6 +1687,36 @@ export const appRouter = router({
         return { success: true };
       }),
   }),
+  
+  // DEBUG: Temporary endpoint to investigate 2FA issue
+  debug: router({
+    user2FAStatus: publicProcedure
+      .input(z.object({ email: z.string().email() }))
+      .query(async ({ input }) => {        const user = await db.getUserByEmail(input.email);
+        if (!user) {
+          return { error: 'User not found' };
+        }
+        
+        return {
+          userId: user.id,
+          email: user.email,
+          twoFactorEnabled: user.twoFactorEnabled,
+          twoFactorEnabledType: typeof user.twoFactorEnabled,
+          twoFactorEnabledValue: JSON.stringify(user.twoFactorEnabled),
+          twoFactorSecret: user.twoFactorSecret ? 'EXISTS' : 'NULL',
+          twoFactorSecretLength: user.twoFactorSecret?.length || 0,
+          allFields: Object.keys(user),
+          checks: {
+            strictEqual1: user.twoFactorEnabled === 1,
+            looseEqual1: user.twoFactorEnabled == 1,
+            strictEqualTrue: user.twoFactorEnabled === true,
+            looseEqualTrue: user.twoFactorEnabled == true,
+            strictEqualString1: user.twoFactorEnabled === '1',
+            numberConversion: Number(user.twoFactorEnabled) === 1,
+          },
+        };
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;
