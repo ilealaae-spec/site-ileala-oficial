@@ -24,6 +24,7 @@ export default function SecurityTab() {
   const utils = trpc.useUtils();
   
   // Fetch data
+  const { data: currentUser } = trpc.auth.me.useQuery();
   const { data: auditLogs, isLoading: auditLoading } = trpc.auth.getAuditLogs.useQuery({ limit: 50, offset: 0 });
   const { data: loginHistory, isLoading: loginLoading } = trpc.auth.getLoginHistory.useQuery({ days: 30 });
   const { data: activeSessions, isLoading: sessionsLoading } = trpc.auth.getActiveSessions.useQuery();
@@ -161,8 +162,14 @@ export default function SecurityTab() {
               <p className="text-sm text-muted-foreground">
                 {language === 'en' ? '2FA Status' : 'Status 2FA'}
               </p>
-              <p className="text-sm font-semibold text-orange-600">
-                {language === 'en' ? 'Not Enabled' : 'Não Ativado'}
+              <p className={`text-sm font-semibold ${
+                currentUser?.twoFactorEnabled 
+                  ? 'text-green-600' 
+                  : 'text-orange-600'
+              }`}>
+                {currentUser?.twoFactorEnabled
+                  ? (language === 'en' ? 'Enabled' : 'Ativado')
+                  : (language === 'en' ? 'Not Enabled' : 'Não Ativado')}
               </p>
             </div>
           </div>

@@ -126,7 +126,17 @@ export const appRouter = router({
       }),
   }),
   auth: router({
-    me: publicProcedure.query(opts => opts.ctx.user),
+    me: publicProcedure.query(async ({ ctx }) => {
+      if (!ctx.user) return null;
+      
+      // Fetch full user data including 2FA status
+      const userData = await db.getUserById(ctx.user.id);
+      
+      return {
+        ...ctx.user,
+        twoFactorEnabled: userData?.twoFactorEnabled === 1,
+      };
+    }),
     
     /**
      * ROTA PRINCIPAL DE LOGIN
