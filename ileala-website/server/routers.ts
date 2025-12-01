@@ -278,6 +278,26 @@ export const appRouter = router({
         // Clear rate limit on successful login
         clearRateLimit(clientIp);
 
+        // Check if 2FA is enabled for this user
+        if (user.twoFactorEnabled === 1) {
+          // Don't create session yet - require 2FA verification first
+          console.log('[Auth] 2FA required for user:', user.email);
+          
+          // Create a temporary token to identify this login attempt
+          const tempToken = Buffer.from(JSON.stringify({
+            userId: user.id,
+            email: user.email,
+            timestamp: Date.now(),
+          })).toString('base64');
+          
+          return {
+            success: false,
+            requires2FA: true,
+            tempToken,
+            message: '2FA verification required',
+          };
+        }
+
         // Update last signed in
         await db.updateUser(user.id, {
           lastSignedIn: new Date(),
@@ -410,10 +430,90 @@ export const appRouter = router({
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+      console.log('[Auth] User logged out');
       return {
         success: true,
       } as const;
     }),
+    
+    // Verify 2FA during login
+    verify2FALogin: publicProcedure
+      .input(z.object({
+        tempToken: z.string(),
+        code: z.string().length(6),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        // Decode temp token
+        let tokenData;
+        try {
+          tokenData = JSON.parse(Buffer.from(input.tempToken, 'base64').toString());
+        } catch (error) {
+          throw new Error('Invalid token');
+        }
+        
+        // Check if token is expired (5 minutes)
+        if (Date.now() - tokenData.timestamp > 5 * 60 * 1000) {
+          throw new Error('Token expired. Please login again.');
+        }
+        
+        // Get user data
+        const user = await db.getUserById(tokenData.userId);
+        if (!user || !user.twoFactorSecret) {
+          throw new Error('Invalid user or 2FA not configured');
+        }
+        
+        // Verify 2FA code
+        const isValid = verify2FAToken(input.code, user.twoFactorSecret);
+        if (!isValid) {
+          // Try backup codes
+          const isBackupValid = await verifyBackupCode(user.id, input.code);
+          if (!isBackupValid) {
+            throw new Error('Invalid verification code');
+          }
+        }
+        
+        // Update last signed in
+        await db.updateUser(user.id, {
+          lastSignedIn: new Date(),
+        });
+        
+        // Create session
+        const sessionData = {
+          id: user.id,
+          email: user.email,
+          name: user.name || null,
+          role: user.role || 'user',
+          loginMethod: 'email',
+        };
+        
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        const finalCookieOptions = {
+          ...cookieOptions,
+          maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year
+        };
+        
+        ctx.res.cookie(COOKIE_NAME, JSON.stringify(sessionData), finalCookieOptions);
+        
+        // Record successful login
+        const clientIp = getClientIp(ctx.req.headers);
+        recordLoginAttempt({
+          userId: user.id,
+          email: user.email,
+          ip: clientIp,
+          userAgent: ctx.req.headers['user-agent'],
+          success: true,
+        }).catch(err => console.error('[Login] Failed to record login attempt:', err));
+        
+        return {
+          success: true,
+          user: {
+            id: user.id,
+            email: user.email,
+            name: user.name || null,
+            role: user.role || 'user',
+          },
+        };
+      }),
     
     // 2FA endpoints
     setup2FA: protectedProcedure.mutation(async ({ ctx }) => {

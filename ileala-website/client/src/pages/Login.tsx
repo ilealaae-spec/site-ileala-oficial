@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { Loader2, Mail, Lock, LogIn, Eye, EyeOff } from 'lucide-react';
 import { getGoogleLoginUrl, isGoogleOAuthAvailable } from '@/const';
 import { useAuth } from '@/_core/hooks/useAuth';
+import TwoFactorVerification from '@/components/TwoFactorVerification';
 
 export default function Login() {
   const { language } = useLanguage();
@@ -16,6 +17,8 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [requires2FA, setRequires2FA] = useState(false);
+  const [tempToken, setTempToken] = useState('');
   const { user, isAuthenticated, refresh } = useAuth();
 
   const utils = trpc.useUtils();
@@ -59,8 +62,17 @@ export default function Login() {
   }, [utils, refresh, isAuthenticated, user, setLocation]);
   
   const loginMutation = trpc.auth.login.useMutation({
-    onSuccess: async (data) => {
-      console.log('[Login] Login successful!', data);
+    onSuccess: async (data: any) => {
+      console.log('[Login] Login response:', data);
+      
+      // Check if 2FA is required
+      if (data.requires2FA) {
+        console.log('[Login] 2FA required, showing verification screen');
+        setRequires2FA(true);
+        setTempToken(data.tempToken);
+        return;
+      }
+      
       toast.success(language === 'en' ? 'Login successful!' : 'Login realizado com sucesso!');
       
       // Check if we're on admin domain FIRST (before any async operations)
@@ -133,6 +145,51 @@ export default function Login() {
     }
   };
 
+  // Handle 2FA verification success
+  const handle2FASuccess = () => {
+    // Check if we're on admin domain
+    const isAdminDomain = window.location.hostname === 'admin.ileala.ae' || 
+                         window.location.hostname.includes('admin');
+    
+    // Get redirect path from URL params
+    const params = new URLSearchParams(window.location.search);
+    let redirect = params.get('redirect');
+    
+    if (redirect) {
+      // Use explicit redirect parameter
+      console.log('[Login] Using explicit redirect:', redirect);
+    } else if (isAdminDomain) {
+      // If on admin domain, go to /admin
+      redirect = `${window.location.protocol}//${window.location.hostname}/admin`;
+      console.log('[Login] Admin domain detected, redirecting to /admin');
+    } else {
+      // Default to home
+      redirect = '/';
+      console.log('[Login] Default redirect to home');
+    }
+    
+    // Redirect
+    window.location.href = redirect;
+  };
+  
+  // Handle back from 2FA screen
+  const handleBackFrom2FA = () => {
+    setRequires2FA(false);
+    setTempToken('');
+    setPassword('');
+  };
+  
+  // Show 2FA verification screen if required
+  if (requires2FA && tempToken) {
+    return (
+      <TwoFactorVerification 
+        tempToken={tempToken} 
+        onSuccess={handle2FASuccess}
+        onBack={handleBackFrom2FA}
+      />
+    );
+  }
+  
   return (
     <div className="min-h-screen flex items-center justify-center bg-sage-50 px-4 py-8">
       <Card className="w-full max-w-md p-6">
