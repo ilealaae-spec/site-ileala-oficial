@@ -553,23 +553,35 @@ export const appRouter = router({
     getActiveSessions: protectedProcedure.query(async ({ ctx }) => {
       if (!ctx.user) throw new Error('Not authenticated');
       
-      const sessions = await getActiveSessions(ctx.user.id);
-      
-      // Ensure sessions is always an array
-      const safeSessions = Array.isArray(sessions) ? sessions : [];
-      
-      return {
-        sessions: safeSessions.map(session => ({
-          id: session.id,
-          sessionToken: session.sessionToken,
-          ip: session.ip || 'Unknown',
-          deviceType: session.deviceType || 'Unknown',
-          browser: session.browser || 'Unknown',
-          os: session.os || 'Unknown',
-          lastActivityAt: session.lastActivityAt || session.lastActivity || new Date(),
-          createdAt: session.createdAt,
-        })),
-      };
+      try {
+        console.log('[getActiveSessions] Fetching sessions for user:', ctx.user.id);
+        const sessions = await getActiveSessions(ctx.user.id);
+        console.log('[getActiveSessions] Raw sessions:', sessions);
+        
+        // Ensure sessions is always an array
+        const safeSessions = Array.isArray(sessions) ? sessions : [];
+        console.log('[getActiveSessions] Safe sessions count:', safeSessions.length);
+        
+        const result = {
+          sessions: safeSessions.map(session => ({
+            id: session.id,
+            sessionToken: session.sessionToken,
+            ip: session.ip || 'Unknown',
+            deviceType: session.deviceType || 'Unknown',
+            browser: session.browser || 'Unknown',
+            os: session.os || 'Unknown',
+            lastActivityAt: session.lastActivityAt || session.lastActivity || new Date(),
+            createdAt: session.createdAt,
+          })),
+        };
+        
+        console.log('[getActiveSessions] Returning result:', JSON.stringify(result));
+        return result;
+      } catch (error) {
+        console.error('[getActiveSessions] Error:', error);
+        // Return empty sessions instead of throwing
+        return { sessions: [] };
+      }
     }),
     
     terminateSession: protectedProcedure
