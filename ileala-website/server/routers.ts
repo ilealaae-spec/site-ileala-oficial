@@ -192,31 +192,43 @@ export const appRouter = router({
         // ⚠️ PASSO 1: Verificar credenciais de emergência PRIMEIRO
         // Estas credenciais sempre funcionam, independente do banco de dados
         if (email === 'ceo@ileala.ae' && password === 'IleAla@2025') {
-          // REMOVED: Database upsert to avoid constraint conflicts
-          // Emergency login works purely with session cookie, no DB required
-          // This prevents "users_email_key" constraint errors
-          /*
-          const openId = 'emergency-admin-001';
+          console.log('[Auth] Emergency credentials detected, checking 2FA status...');
           
-          // Try to upsert user, but don't fail if it errors
-          try {
-            await db.upsertUser({
-              openId,
-              email: 'ceo@ileala.ae',
-              name: 'Emergency Admin',
-              role: 'admin',
-              loginMethod: 'emergency',
-              lastSignedIn: new Date(),
-            });
-          } catch (error) {
-            console.warn('[Auth] Could not upsert emergency admin user:', error);
-            // Continue anyway - emergency login should work even if DB fails
+          // Check if user exists in database and has 2FA enabled
+          const emergencyUser = await db.getUserByEmail('ceo@ileala.ae');
+          
+          if (emergencyUser) {
+            // Check if 2FA is enabled (handle both number and string from database)
+            const is2FAEnabled = emergencyUser.twoFactorEnabled == 1 || emergencyUser.twoFactorEnabled === true;
+            console.log('[Auth] Emergency user 2FA check - twoFactorEnabled:', emergencyUser.twoFactorEnabled, 'is2FAEnabled:', is2FAEnabled);
+            
+            if (is2FAEnabled) {
+              // Don't create session yet - require 2FA verification first
+              console.log('[Auth] 2FA required for emergency user:', emergencyUser.email);
+              
+              // Create a temporary token to identify this login attempt
+              const tempToken = Buffer.from(JSON.stringify({
+                userId: emergencyUser.id,
+                email: emergencyUser.email,
+                timestamp: Date.now(),
+                isEmergency: true,
+              })).toString('base64');
+              
+              return {
+                success: false,
+                requires2FA: true,
+                tempToken,
+                message: '2FA verification required',
+              };
+            }
           }
-          */
 
+          // No 2FA required or user not in DB - proceed with emergency login
+          console.log('[Auth] Emergency login - no 2FA required, creating session...');
+          
           // Create simple JSON session instead of JWT to bypass validation issues
           const sessionData = JSON.stringify({
-            id: 'emergency-admin-001',
+            id: emergencyUser?.id || 'emergency-admin-001',
             email: 'ceo@ileala.ae',
             name: 'Emergency Admin',
             role: 'admin',
@@ -233,7 +245,7 @@ export const appRouter = router({
           
           // Record successful login
           recordLoginAttempt({
-            userId: 1, // Emergency admin
+            userId: emergencyUser?.id || 1,
             email: 'ceo@ileala.ae',
             ip: clientIp,
             userAgent: ctx.req.headers['user-agent'],
@@ -243,7 +255,7 @@ export const appRouter = router({
           return { 
             success: true, 
             user: {
-              id: 'emergency-admin-001',
+              id: emergencyUser?.id || 'emergency-admin-001',
               email: 'ceo@ileala.ae',
               name: 'Emergency Admin',
               role: 'admin',
