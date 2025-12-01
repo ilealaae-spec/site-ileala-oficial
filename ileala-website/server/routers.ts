@@ -279,6 +279,10 @@ export const appRouter = router({
         clearRateLimit(clientIp);
 
         // Check if 2FA is enabled for this user
+        console.log('[Auth] DEBUG - user.twoFactorEnabled:', user.twoFactorEnabled, 'type:', typeof user.twoFactorEnabled);
+        console.log('[Auth] DEBUG - user.twoFactorSecret:', user.twoFactorSecret ? 'EXISTS' : 'NULL');
+        console.log('[Auth] DEBUG - Checking if twoFactorEnabled === 1:', user.twoFactorEnabled === 1);
+        
         if (user.twoFactorEnabled === 1) {
           // Don't create session yet - require 2FA verification first
           console.log('[Auth] 2FA required for user:', user.email);
