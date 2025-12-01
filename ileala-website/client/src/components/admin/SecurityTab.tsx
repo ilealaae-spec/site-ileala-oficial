@@ -414,7 +414,7 @@ export default function SecurityTab() {
                 <Button
                   onClick={() => {
                     if (verificationCode.length === 6) {
-                      enable2FAMutation.mutate({ token: verificationCode });
+                      enable2FAMutation.mutate({ token: verificationCode, secret: secret });
                     } else {
                       toast.error(language === 'en' ? 'Please enter a 6-digit code' : 'Por favor, digite um código de 6 dígitos');
                     }
