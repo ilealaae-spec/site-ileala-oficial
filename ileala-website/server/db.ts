@@ -408,6 +408,10 @@ export async function getUserByEmail(email: string) {
     logger.debug('[getUserByEmail] Email to search:', email);
     const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
     logger.debug('[getUserByEmail] Query successful, result count:', result.length);
+    if (result.length > 0) {
+      logger.debug('[getUserByEmail] User fields:', Object.keys(result[0]));
+      logger.debug('[getUserByEmail] twoFactorEnabled value:', result[0].twoFactorEnabled);
+    }
     return result.length > 0 ? result[0] : undefined;
   } catch (error) {
     logger.error('[getUserByEmail] Query failed!', error);
