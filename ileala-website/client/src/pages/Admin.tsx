@@ -268,12 +268,12 @@ export default function Admin() {
       // Logout via API
       await utils.auth.logout.mutate();
       
-      // Redirect to home
-      window.location.href = '/';
+      // Redirect to admin login
+      window.location.href = '/admin/login';
     } catch (error) {
       console.error('[Admin] Logout error:', error);
       // Force redirect even if logout fails
-      window.location.href = '/';
+      window.location.href = '/admin/login';
     }
   };
 
