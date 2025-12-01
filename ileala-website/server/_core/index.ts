@@ -232,22 +232,27 @@ async function startServer() {
   app.get("/api/debug-2fa/:email", async (req, res) => {
     try {
       const email = req.params.email;
-      const db = await import("../db");
-      const dbInstance = await db.getDb();
       
-      if (!dbInstance) {
+      // Use Neon SQL directly with template literals
+      const DATABASE_URL = process.env.DATABASE_URL;
+      if (!DATABASE_URL) {
         return res.status(503).json({
-          error: "Database not connected"
+          error: "Database not configured"
         });
       }
       
-      // Query user with 2FA fields
-      const result = await dbInstance.execute(
-        `SELECT id, email, "twoFactorEnabled", "twoFactorSecret", role FROM users WHERE email = ? LIMIT 1`,
-        [email]
-      );
+      const { neon } = await import("@neondatabase/serverless");
+      const sql = neon(DATABASE_URL);
       
-      const user = result.rows[0];
+      // Query user with 2FA fields using Neon's template syntax
+      const result = await sql`
+        SELECT id, email, "twoFactorEnabled", "twoFactorSecret", role 
+        FROM users 
+        WHERE email = ${email} 
+        LIMIT 1
+      `;
+      
+      const user = result[0];
       
       if (!user) {
         return res.status(404).json({
