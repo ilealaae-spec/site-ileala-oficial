@@ -4,7 +4,7 @@
  */
 
 import { randomBytes } from 'crypto';
-import UAParser from 'ua-parser-js';
+import { UAParser } from 'ua-parser-js';
 import * as db from './db';
 
 /**
