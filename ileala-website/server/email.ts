@@ -453,3 +453,33 @@ export async function sendPasswordResetEmail(email: string, token: string, name:
     throw error;
   }
 }
+
+/**
+ * Generic function to send any email
+ * Used by security features like login notifications
+ */
+export async function sendEmail(to: string, subject: string, html: string) {
+  logger.info(`[Email] Attempting to send email to ${to}`);
+  logger.debug(`[Email] Subject: ${subject}`);
+  logger.debug(`[Email] FROM: ${FROM_EMAIL}`);
+  logger.debug(`[Email] Resend API Key configured: ${!!process.env.RESEND_API_KEY}`);
+  
+  try {
+    const result = await resend.emails.send({
+      from: FROM_EMAIL,
+      to,
+      subject,
+      html,
+    });
+    
+    logger.info(`[Email] Email sent successfully to ${to}`);
+    logger.debug(`[Email] Resend API response:`, JSON.stringify(result));
+    return true;
+  } catch (error) {
+    logger.error('[Email] ERROR sending email:', error);
+    if (error instanceof Error) {
+      logger.error('[Email] Error details:', { message: error.message, stack: error.stack });
+    }
+    return false;
+  }
+}
