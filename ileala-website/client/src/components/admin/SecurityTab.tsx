@@ -19,6 +19,7 @@ export default function SecurityTab() {
   const [qrCode, setQrCode] = useState('');
   const [secret, setSecret] = useState('');
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
+  const [verificationCode, setVerificationCode] = useState('');
 
   const utils = trpc.useUtils();
   
@@ -390,6 +391,40 @@ export default function SecurityTab() {
                   {language === 'en' ? 'Manual entry code:' : 'Código de entrada manual:'}
                 </p>
                 <code className="text-sm font-mono">{secret}</code>
+              </div>
+            )}
+
+            {/* Verification Code Input */}
+            {qrCode && backupCodes.length === 0 && (
+              <div className="space-y-3">
+                <div>
+                  <label htmlFor="verification-code" className="block text-sm font-medium mb-2">
+                    {language === 'en' ? 'Enter the 6-digit code from your authenticator app:' : 'Digite o código de 6 dígitos do seu aplicativo autenticador:'}
+                  </label>
+                  <input
+                    id="verification-code"
+                    type="text"
+                    maxLength={6}
+                    value={verificationCode}
+                    onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
+                    placeholder="000000"
+                    className="w-full px-4 py-2 border rounded-lg text-center text-2xl font-mono tracking-widest"
+                  />
+                </div>
+                <Button
+                  onClick={() => {
+                    if (verificationCode.length === 6) {
+                      enable2FAMutation.mutate({ token: verificationCode });
+                    } else {
+                      toast.error(language === 'en' ? 'Please enter a 6-digit code' : 'Por favor, digite um código de 6 dígitos');
+                    }
+                  }}
+                  disabled={enable2FAMutation.isPending || verificationCode.length !== 6}
+                  className="w-full"
+                >
+                  {enable2FAMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  {language === 'en' ? 'Verify & Enable 2FA' : 'Verificar e Ativar 2FA'}
+                </Button>
               </div>
             )}
 
