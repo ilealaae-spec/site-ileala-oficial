@@ -228,6 +228,63 @@ async function startServer() {
       });
     }
   });
+  // Simple debug endpoint for 2FA status (REST, not tRPC)
+  app.get("/api/debug-2fa/:email", async (req, res) => {
+    try {
+      const email = req.params.email;
+      const db = await import("../db");
+      const dbInstance = await db.getDb();
+      
+      if (!dbInstance) {
+        return res.status(503).json({
+          error: "Database not connected"
+        });
+      }
+      
+      // Query user with 2FA fields
+      const result = await dbInstance.execute(
+        `SELECT id, email, "twoFactorEnabled", "twoFactorSecret", role FROM users WHERE email = ? LIMIT 1`,
+        [email]
+      );
+      
+      const user = result.rows[0];
+      
+      if (!user) {
+        return res.status(404).json({
+          error: "User not found",
+          email: email
+        });
+      }
+      
+      // Return detailed debug info
+      return res.status(200).json({
+        success: true,
+        email: user.email,
+        twoFactorEnabled: {
+          value: user.twoFactorEnabled,
+          type: typeof user.twoFactorEnabled,
+          isTrue: user.twoFactorEnabled === true,
+          isOne: user.twoFactorEnabled === 1,
+          isTruthy: !!user.twoFactorEnabled,
+          rawValue: JSON.stringify(user.twoFactorEnabled)
+        },
+        twoFactorSecret: {
+          exists: !!user.twoFactorSecret,
+          length: user.twoFactorSecret ? user.twoFactorSecret.length : 0,
+          preview: user.twoFactorSecret ? user.twoFactorSecret.substring(0, 4) + "..." : null
+        },
+        role: user.role,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      logger.error("[Debug 2FA] Error:", error);
+      return res.status(500).json({
+        error: "Internal server error",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   // Redirect admin.ileala.ae root to /admin
   app.use((req, res, next) => {
     const hostname = req.hostname || req.get('host');
