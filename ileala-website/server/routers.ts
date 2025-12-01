@@ -555,14 +555,18 @@ export const appRouter = router({
       
       const sessions = await getActiveSessions(ctx.user.id);
       
+      // Ensure sessions is always an array
+      const safeSessions = Array.isArray(sessions) ? sessions : [];
+      
       return {
-        sessions: sessions.map(session => ({
+        sessions: safeSessions.map(session => ({
           id: session.id,
-          ip: session.ip,
-          deviceType: session.deviceType,
-          browser: session.browser,
-          os: session.os,
-          lastActivity: session.lastActivity,
+          sessionToken: session.sessionToken,
+          ip: session.ip || 'Unknown',
+          deviceType: session.deviceType || 'Unknown',
+          browser: session.browser || 'Unknown',
+          os: session.os || 'Unknown',
+          lastActivityAt: session.lastActivityAt || session.lastActivity || new Date(),
           createdAt: session.createdAt,
         })),
       };
