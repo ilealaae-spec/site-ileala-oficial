@@ -28,12 +28,24 @@ export default function SecurityTab() {
   const { data: activeSessions, isLoading: sessionsLoading } = trpc.auth.getActiveSessions.useQuery();
 
   // Mutations
-  const enable2FAMutation = trpc.auth.enable2FA.useMutation({
+  const setup2FAMutation = trpc.auth.setup2FA.useMutation({
     onSuccess: (data) => {
       setQrCode(data.qrCode);
       setSecret(data.secret);
       setShow2FADialog(true);
-      toast.success(language === 'en' ? '2FA enabled!' : '2FA ativado!');
+      toast.success(language === 'en' ? '2FA setup initiated!' : 'Configuração 2FA iniciada!');
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const enable2FAMutation = trpc.auth.enable2FA.useMutation({
+    onSuccess: (data) => {
+      setBackupCodes(data.backupCodes || []);
+      setShow2FADialog(false);
+      toast.success(language === 'en' ? '2FA enabled successfully!' : '2FA ativado com sucesso!');
+      utils.auth.getActiveSessions.invalidate();
     },
     onError: (error) => {
       toast.error(error.message);
@@ -166,10 +178,10 @@ export default function SecurityTab() {
             </h3>
           </div>
           <Button
-            onClick={() => enable2FAMutation.mutate()}
-            disabled={enable2FAMutation.isPending}
+            onClick={() => setup2FAMutation.mutate()}
+            disabled={setup2FAMutation.isPending}
           >
-            {enable2FAMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+            {setup2FAMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
             {language === 'en' ? 'Enable 2FA' : 'Ativar 2FA'}
           </Button>
         </div>
