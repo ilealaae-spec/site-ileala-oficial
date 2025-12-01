@@ -278,17 +278,11 @@ export const appRouter = router({
         clearRateLimit(clientIp);
 
         // Check if 2FA is enabled for this user
-        console.log('[Auth] ===== 2FA CHECK =====');
-        console.log('[Auth] user.id:', user.id);
-        console.log('[Auth] user.email:', user.email);
-        console.log('[Auth] user.twoFactorEnabled:', user.twoFactorEnabled);
-        console.log('[Auth] typeof twoFactorEnabled:', typeof user.twoFactorEnabled);
-        console.log('[Auth] user.twoFactorSecret:', user.twoFactorSecret ? 'EXISTS' : 'NULL');
-        console.log('[Auth] Checking (twoFactorEnabled === 1):', user.twoFactorEnabled === 1);
-        console.log('[Auth] Checking (twoFactorEnabled == 1):', user.twoFactorEnabled == 1);
-        console.log('[Auth] ========================');
+        // Check if 2FA is enabled (handle both number and string from database)
+        const is2FAEnabled = user.twoFactorEnabled == 1 || user.twoFactorEnabled === true;
+        console.log('[Auth] 2FA check - twoFactorEnabled:', user.twoFactorEnabled, 'is2FAEnabled:', is2FAEnabled);
         
-        if (user.twoFactorEnabled === 1) {
+        if (is2FAEnabled) {
           // Don't create session yet - require 2FA verification first
           console.log('[Auth] 2FA required for user:', user.email);
           
