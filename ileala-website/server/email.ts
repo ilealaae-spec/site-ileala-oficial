@@ -1,7 +1,24 @@
 import { Resend } from 'resend';
 import { logger } from './_core/logger';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Lazy initialization to avoid crash on startup
+let resendInstance: Resend | null = null;
+
+function getResend(): Resend {
+  if (!resendInstance) {
+    const apiKey = process.env.RESEND_API_KEY;
+    
+    if (!apiKey) {
+      logger.error('[Email] RESEND_API_KEY is not set in environment variables!');
+      throw new Error('RESEND_API_KEY is not configured');
+    }
+    
+    logger.info('[Email] Initializing Resend with API key:', apiKey.substring(0, 8) + '...');
+    resendInstance = new Resend(apiKey);
+  }
+  
+  return resendInstance;
+}
 
 const FROM_EMAIL = 'ILE ALA <noreply@ileala.ae>';
 // Sempre usar www.ileala.ae como URL canônica
@@ -24,7 +41,7 @@ export async function sendVerificationEmail(email: string, token: string, name: 
   logger.debug(`[Email] Verification URL: ${verificationUrl}`);
   
   try {
-    const result = await resend.emails.send({
+    const result = await getResend().emails.send({
       from: FROM_EMAIL,
       to: email,
       subject: 'Verify your email - ILE ALA',
@@ -104,7 +121,7 @@ export async function sendVerificationEmail(email: string, token: string, name: 
 export async function sendWelcomeEmail(email: string, name: string) {
   const siteUrl = getSiteUrl();
   try {
-    await resend.emails.send({
+    await getResend().emails.send({
       from: FROM_EMAIL,
       to: email,
       subject: 'Welcome to ILE ALA!',
@@ -198,7 +215,7 @@ export async function sendOrderConfirmationEmail(
   const siteUrl = getSiteUrl();
 
   try {
-    const result = await resend.emails.send({
+    const result = await getResend().emails.send({
       from: FROM_EMAIL,
       to: email,
       subject: `Order Confirmation #${orderId} - ILE ALA`,
@@ -294,7 +311,7 @@ export async function sendNewsletterConfirmationEmail(email: string, name?: stri
   logger.debug(`[Email] Resend API Key configured: ${!!process.env.RESEND_API_KEY}`);
   
   try {
-    const result = await resend.emails.send({
+    const result = await getResend().emails.send({
       from: FROM_EMAIL,
       to: email,
       subject: 'Welcome to ILE ALA Newsletter!',
@@ -379,7 +396,7 @@ export async function sendPasswordResetEmail(email: string, token: string, name:
   logger.debug('[sendPasswordResetEmail] Reset URL:', resetUrl);
   
   try {
-    await resend.emails.send({
+    await getResend().emails.send({
       from: FROM_EMAIL,
       to: email,
       subject: 'Reset your password - ILE ALA',
@@ -465,7 +482,7 @@ export async function sendEmail(to: string, subject: string, html: string) {
   logger.debug(`[Email] Resend API Key configured: ${!!process.env.RESEND_API_KEY}`);
   
   try {
-    const result = await resend.emails.send({
+    const result = await getResend().emails.send({
       from: FROM_EMAIL,
       to,
       subject,
