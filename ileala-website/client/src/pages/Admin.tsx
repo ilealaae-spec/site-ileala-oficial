@@ -35,6 +35,7 @@ import CategoriesTab from '@/components/admin/CategoriesTab';
 import CollectionsTab from '@/components/admin/CollectionsTab';
 import CouponsTab from '@/components/admin/CouponsTab';
 import SettingsTab from '@/components/admin/SettingsTab';
+import SecurityTab from '@/components/admin/SecurityTab';
 
 const tabs = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -48,6 +49,7 @@ const tabs = [
   { id: "artisans", label: "Artisans", icon: Palette },
   { id: "content", label: "Content", icon: FileText },
   { id: "media", label: "Media", icon: Image },
+  { id: "security", label: "Security", icon: Shield },
   { id: "settings", label: "Settings", icon: Settings },
 ];
 
@@ -347,6 +349,12 @@ export default function Admin() {
         return (
           <ErrorBoundary>
             <SettingsTab />
+          </ErrorBoundary>
+        );
+      case 'security':
+        return (
+          <ErrorBoundary>
+            <SecurityTab />
           </ErrorBoundary>
         );
       default:

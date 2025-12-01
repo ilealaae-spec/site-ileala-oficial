@@ -617,6 +617,34 @@ export const appRouter = router({
       
       return { success: true };
     }),
+    
+    // Get audit logs (admin only)
+    getAuditLogs: protectedProcedure
+      .input(z.object({
+        limit: z.number().optional().default(100),
+        offset: z.number().optional().default(0),
+      }))
+      .query(async ({ ctx, input }) => {
+        if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+        return await db.getAuditLogs(input.limit, input.offset);
+      }),
+    
+    // Get login history (admin only)
+    getLoginHistory: protectedProcedure
+      .input(z.object({
+        userId: z.number().optional(),
+        days: z.number().optional().default(30),
+      }))
+      .query(async ({ ctx, input }) => {
+        if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+        
+        if (input.userId) {
+          return await db.getRecentLoginHistory(input.userId, input.days);
+        }
+        
+        // Get all login history (last N days)
+        return await db.getAllLoginHistory(input.days);
+      }),
   }),
 
   // Newsletter router

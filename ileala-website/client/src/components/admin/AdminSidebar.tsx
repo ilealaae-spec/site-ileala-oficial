@@ -7,6 +7,7 @@ import {
   Palette, 
   FileText, 
   Image,
+  Shield,
   LogOut
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ const tabs = [
   { id: "artisans", label: "Artisans", icon: Palette },
   { id: "content", label: "Content", icon: FileText },
   { id: "media", label: "Media", icon: Image },
+  { id: "security", label: "Security", icon: Shield },
 ];
 
 export default function AdminSidebar({ activeTab, onTabChange, onLogout }: AdminSidebarProps) {

@@ -1554,3 +1554,54 @@ export async function deleteExpiredSessions(): Promise<number> {
     return 0;
   }
 }
+
+/**
+ * Get audit logs with pagination
+ */
+export async function getAuditLogs(limit: number = 100, offset: number = 0) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  try {
+    const { auditLogs } = await import("../drizzle/schema");
+    const { sql } = await import("drizzle-orm");
+    
+    const result = await db.select()
+      .from(auditLogs)
+      .orderBy(sql`${auditLogs.createdAt} DESC`)
+      .limit(limit)
+      .offset(offset);
+    
+    return result;
+  } catch (error) {
+    logger.error("[Database] Failed to get audit logs:", error);
+    return [];
+  }
+}
+
+/**
+ * Get all login history for all users (last N days)
+ */
+export async function getAllLoginHistory(days: number = 30) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  try {
+    const { loginHistory } = await import("../drizzle/schema");
+    const { gte, sql } = await import("drizzle-orm");
+    
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+    
+    const result = await db.select()
+      .from(loginHistory)
+      .where(gte(loginHistory.createdAt, cutoffDate))
+      .orderBy(sql`${loginHistory.createdAt} DESC`)
+      .limit(200);
+    
+    return result;
+  } catch (error) {
+    logger.error("[Database] Failed to get all login history:", error);
+    return [];
+  }
+}
