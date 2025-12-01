@@ -63,7 +63,12 @@ export default function Login() {
   
   const loginMutation = trpc.auth.login.useMutation({
     onSuccess: async (data: any) => {
-      console.log('[Login] Login response:', data);
+      console.log('[Login] ===== LOGIN RESPONSE =====');
+      console.log('[Login] Full response:', JSON.stringify(data, null, 2));
+      console.log('[Login] data.requires2FA:', data.requires2FA);
+      console.log('[Login] data.success:', data.success);
+      console.log('[Login] data.tempToken:', data.tempToken ? 'EXISTS' : 'NULL');
+      console.log('[Login] ==============================');
       
       // Check if 2FA is required
       if (data.requires2FA) {

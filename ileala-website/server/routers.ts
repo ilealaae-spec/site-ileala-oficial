@@ -274,14 +274,19 @@ export const appRouter = router({
           
           throw new Error('Invalid email or password');
         }
-        
-        // Clear rate limit on successful login
+                // Clear rate limit on successful login
         clearRateLimit(clientIp);
 
         // Check if 2FA is enabled for this user
-        console.log('[Auth] DEBUG - user.twoFactorEnabled:', user.twoFactorEnabled, 'type:', typeof user.twoFactorEnabled);
-        console.log('[Auth] DEBUG - user.twoFactorSecret:', user.twoFactorSecret ? 'EXISTS' : 'NULL');
-        console.log('[Auth] DEBUG - Checking if twoFactorEnabled === 1:', user.twoFactorEnabled === 1);
+        console.log('[Auth] ===== 2FA CHECK =====');
+        console.log('[Auth] user.id:', user.id);
+        console.log('[Auth] user.email:', user.email);
+        console.log('[Auth] user.twoFactorEnabled:', user.twoFactorEnabled);
+        console.log('[Auth] typeof twoFactorEnabled:', typeof user.twoFactorEnabled);
+        console.log('[Auth] user.twoFactorSecret:', user.twoFactorSecret ? 'EXISTS' : 'NULL');
+        console.log('[Auth] Checking (twoFactorEnabled === 1):', user.twoFactorEnabled === 1);
+        console.log('[Auth] Checking (twoFactorEnabled == 1):', user.twoFactorEnabled == 1);
+        console.log('[Auth] ========================');
         
         if (user.twoFactorEnabled === 1) {
           // Don't create session yet - require 2FA verification first
