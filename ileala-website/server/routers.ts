@@ -214,12 +214,15 @@ export const appRouter = router({
                 isEmergency: true,
               })).toString('base64');
               
-              return {
+              const response = {
                 success: false,
                 requires2FA: true,
                 tempToken,
                 message: '2FA verification required',
               };
+              
+              console.log('[Auth] Returning 2FA response:', JSON.stringify(response));
+              return response;
             }
           }
 
