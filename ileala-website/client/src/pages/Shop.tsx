@@ -29,7 +29,7 @@ export default function Shop() {
   
   const { data: profileValidation } = trpc.auth.validateProfile.useQuery(undefined, {
     enabled: isAuthenticated,
-  );
+  });
 
   const createCheckoutMutation = trpc.payment.createCheckout.useMutation({
     onSuccess: (data) => {
@@ -42,7 +42,7 @@ export default function Shop() {
       console.error('Checkout error:', error);
       setBuyingProductId(null);
     },
-  );
+  });
 
 // Products now fetched via tRPC useQuery hook above
 
@@ -96,7 +96,7 @@ export default function Shop() {
       productPrice: displayPrice,
       productImage: product.mainImage || undefined,
       quantity: 1,
-    );
+    });
   };
 
   // Filter products based on search query
@@ -271,7 +271,7 @@ export default function Shop() {
                                 price: displayPrice,
                                 image: product.mainImage || undefined,
                                 slug: product.slug || product.id.toString(),
-                              );
+                            }, 1);
                             }}
                             disabled={product.stock === 0}
                           >
