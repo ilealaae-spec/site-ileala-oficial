@@ -12,7 +12,7 @@ import Header from "./components/Header";
 import Footer from "./components/Footer";
 import SchemaOrg from "./components/SchemaOrg";
 import { Loader2 } from "lucide-react";
-import { useServiceWorker } from "./hooks/useServiceWorker";
+// import { useServiceWorker } from "./hooks/useServiceWorker";
 import { errorTracker } from "./lib/errorTracking";
 import { useAuth } from "@/_core/hooks/useAuth";
 
@@ -172,7 +172,8 @@ function App() {
   const { user } = useAuth();
   
   // Register Service Worker for PWA
-  useServiceWorker();
+  // DISABLED: Service worker causing cache issues
+  // useServiceWorker();
 
   // Set user context for error tracking
   useEffect(() => {
