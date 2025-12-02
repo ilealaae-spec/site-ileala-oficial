@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 
 /**
  * Hook to register and manage Service Worker for PWA functionality
+ * DISABLED: Service worker causes caching issues preventing updates
  */
 export function useServiceWorker() {
   const [isSupported, setIsSupported] = useState(false);
@@ -9,43 +10,27 @@ export function useServiceWorker() {
   const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
 
   useEffect(() => {
-    // Check if Service Workers are supported
+    // DISABLED: Service worker registration disabled to fix caching issues
+    console.log('[SW] Service Worker registration DISABLED');
+    
+    // Unregister any existing service workers
     if ('serviceWorker' in navigator) {
-      setIsSupported(true);
-
-      // Register Service Worker
-      navigator.serviceWorker
-        .register('/sw.js', { scope: '/' })
-        .then((reg) => {
-          setIsRegistered(true);
-          setRegistration(reg);
-
-          // Check for updates every hour
-          setInterval(() => {
-            reg.update();
-          }, 60 * 60 * 1000);
-
-          // Listen for updates
-          reg.addEventListener('updatefound', () => {
-            const newWorker = reg.installing;
-            if (newWorker) {
-              newWorker.addEventListener('statechange', () => {
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  // New service worker available, prompt user to reload
-                  if (confirm('A new version is available. Reload to update?')) {
-                    window.location.reload();
-                  }
-                }
-              });
-            }
-          });
-        })
-        .catch((error) => {
-          console.error('[SW] Registration failed:', error);
-          setIsRegistered(false);
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        registrations.forEach((reg) => {
+          console.log('[SW] Unregistering existing service worker');
+          reg.unregister();
         });
-    } else {
-      setIsSupported(false);
+      });
+      
+      // Clear all caches
+      if ('caches' in window) {
+        caches.keys().then((cacheNames) => {
+          cacheNames.forEach((cacheName) => {
+            console.log('[SW] Deleting cache:', cacheName);
+            caches.delete(cacheName);
+          });
+        });
+      }
     }
   }, []);
 
@@ -55,4 +40,3 @@ export function useServiceWorker() {
     registration,
   };
 }
-
