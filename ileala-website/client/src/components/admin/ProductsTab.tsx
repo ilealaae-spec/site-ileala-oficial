@@ -280,7 +280,7 @@ export default function ProductsTab() {
             <Card key={product.id} className="p-6">
               <div className="flex gap-6">
                 <div className="w-24 h-24 flex-shrink-0 overflow-hidden rounded-md bg-muted">
-                  {product.imageUrl || product.mainImage ? (
+                  {(product.mainImage || product.imageUrl) ? (
                     <img
                       src={product.mainImage || product.imageUrl}
                       alt={product.mainImageAlt || product.nameEN}
