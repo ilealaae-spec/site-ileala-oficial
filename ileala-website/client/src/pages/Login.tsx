@@ -12,6 +12,7 @@ import { useAuth } from '@/_core/hooks/useAuth';
 import TwoFactorVerification from '@/components/TwoFactorVerification';
 
 export default function Login() {
+  // Force rebuild - Chrome compatibility fix v2
   const { language } = useLanguage();
   const [, setLocation] = useLocation();
   const [email, setEmail] = useState('');
