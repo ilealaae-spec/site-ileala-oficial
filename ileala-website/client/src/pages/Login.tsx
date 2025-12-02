@@ -181,7 +181,13 @@ export default function Login() {
   };
 
   // Handle 2FA verification success
-  const handle2FASuccess = () => {
+  const handle2FASuccess = async () => {
+    console.log('[Login] 2FA verification successful!');
+    
+    // Refresh auth data to get the new session
+    await utils.auth.me.invalidate();
+    await refresh();
+    
     // Check if we're on admin domain
     const isAdminDomain = window.location.hostname === 'admin.ileala.ae' || 
                          window.location.hostname.includes('admin');
@@ -194,8 +200,8 @@ export default function Login() {
       // Use explicit redirect parameter
       console.log('[Login] Using explicit redirect:', redirect);
     } else if (isAdminDomain) {
-      // If on admin domain, go to /admin
-      redirect = `${window.location.protocol}//${window.location.hostname}/admin`;
+      // If on admin domain, go to /admin (use relative path!)
+      redirect = '/admin';
       console.log('[Login] Admin domain detected, redirecting to /admin');
     } else {
       // Default to home
@@ -203,8 +209,9 @@ export default function Login() {
       console.log('[Login] Default redirect to home');
     }
     
-    // Redirect
-    window.location.href = redirect;
+    // Use setLocation for SPA navigation instead of full page reload
+    console.log('[Login] Navigating to:', redirect);
+    setLocation(redirect);
   };
   
   // Handle back from 2FA screen
