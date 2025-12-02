@@ -6,12 +6,15 @@ import { toast } from "sonner";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useCart } from "@/contexts/CartContext";
 import LazyImage from "@/components/LazyImage";
-import { sanityClient, urlFor } from "@/lib/sanity";
+import { trpc } from "@/lib/trpc";
+// Migrated from Sanity to tRPC database
 
+// Using database Product type from tRPC
 interface SanityProduct {
-  _id: string;
+  id: number;
   name: string;
-  slug: { current: string };
+  nameEN?: string;
+  slug: string;
   price: number;
   salePrice?: number;
   shortDescription?: string;
@@ -36,82 +39,37 @@ export default function CollectionPage() {
   const { language } = useLanguage();
   const { addItem } = useCart();
   
-  const [products, setProducts] = useState<SanityProduct[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [collectionName, setCollectionName] = useState("");
 
-  useEffect(() => {
-    async function fetchProducts() {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        // Buscar todos os produtos do Sanity
-        const query = `*[_type == "product" && inStock == true] | order(_createdAt desc) {
-          _id,
-          name,
-          slug,
-          price,
-          salePrice,
-          shortDescription,
-          description,
-          mainImage {
-            asset,
-            alt
-          },
-          category,
-          collection,
-          inStock,
-          featured,
-          isNew,
-          onSale
-        }`;
-        
-        const allProducts = await sanityClient.fetch(query);
-        
-        // Filtrar produtos pela coleção (slug)
-        // Converter nome da coleção para slug: "La Mer" -> "la-mer"
-        const filteredProducts = allProducts.filter((product: SanityProduct) => {
-          if (!product.collection) return false;
-          const productSlug = product.collection.toLowerCase().replace(/\s+/g, "-");
-          return productSlug === slug;
-        });
-        
-        if (filteredProducts.length > 0) {
-          setProducts(filteredProducts);
-          setCollectionName(filteredProducts[0].collection || "");
-        } else {
-          setError("No products found in this collection");
-        }
-      } catch (err: any) {
-        console.error('Error fetching products from Sanity:', err);
-        setError(err?.message || 'Failed to load products');
-      } finally {
-        setLoading(false);
-      }
-    }
+  // Fetch products from database via tRPC
+  const { data: products, isLoading, error } = trpc.products.byCollection.useQuery(
+    { collection: slug || '' },
+    { enabled: !!slug }
+  );
 
-    fetchProducts();
-  }, [slug]);
+  useEffect(() => {
+    if (products && products.length > 0) {
+      setCollectionName(products[0].collection || "");
+    }
+  }, [products]);
 
   const handleAddToCart = (product: SanityProduct) => {
     addItem({
-      id: product._id,
+      id: product.id.toString(),
       name: product.name,
       price: product.salePrice || product.price,
       quantity: 1,
-      imageUrl: product.mainImage ? urlFor(product.mainImage).width(200).url() : undefined,
+      imageUrl: product.mainImage || undefined,
     });
     
     toast.success(
       language === "en"
-        ? `${product.name} added to cart!`
-        : `${product.name} adicionado ao carrinho!`
+        ? `${product.nameEN || product.name} added to cart!`
+        : `${product.nameEN || product.name} adicionado ao carrinho!`
     );
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -119,7 +77,7 @@ export default function CollectionPage() {
     );
   }
 
-  if (error || products.length === 0) {
+  if (error || !products || products.length === 0) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4">
         <h1 className="text-3xl font-bold mb-4">
@@ -167,18 +125,18 @@ export default function CollectionPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {products.map((product) => (
             <div
-              key={product._id}
+              key={product.id}
               className="group bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-300"
             >
               {/* Product Image */}
               <div
                 className="relative h-80 bg-gray-100 cursor-pointer overflow-hidden"
-                onClick={() => setLocation(`/sanity-products/${product.slug.current}`)}
+                onClick={() => setLocation(`/products/${product.slug || product.id}`)}
               >
                 {product.mainImage ? (
                   <LazyImage
-                    src={urlFor(product.mainImage).width(600).url()}
-                    alt={product.mainImage.alt || product.name}
+                    src={product.mainImage}
+                    alt={product.mainImageAlt || product.nameEN || product.name}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                 ) : (
@@ -186,7 +144,7 @@ export default function CollectionPage() {
                     {language === "en" ? "No Image" : "Sem Imagem"}
                   </div>
                 )}
-                {!product.inStock && (
+                {(!product.stock || product.stock === 0) && (
                   <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                     <span className="text-white font-semibold text-lg">
                       {language === "en" ? "Out of Stock" : "Fora de Estoque"}
@@ -199,18 +157,18 @@ export default function CollectionPage() {
               <div className="p-6">
                 <h3
                   className="text-xl font-semibold text-gray-900 mb-2 cursor-pointer hover:text-primary transition-colors"
-                  onClick={() => setLocation(`/sanity-products/${product.slug.current}`)}
+                  onClick={() => setLocation(`/products/${product.slug || product.id}`)}
                 >
-                  {product.name}
+                  {product.nameEN || product.name}
                 </h3>
-                {product.shortDescription && (
+                {(product.descriptionEN || product.description) && (
                   <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-                    {product.shortDescription}
+                    {product.descriptionEN || product.description}
                   </p>
                 )}
                 <div className="flex items-center justify-between">
                   <div className="flex flex-col">
-                    {product.salePrice ? (
+                    {(product.salePrice && product.salePrice < product.price) ? (
                       <>
                         <span className="text-2xl font-bold text-primary">
                           {product.salePrice.toFixed(2)} AED
@@ -227,7 +185,7 @@ export default function CollectionPage() {
                   </div>
                   <Button
                     onClick={() => handleAddToCart(product)}
-                    disabled={!product.inStock}
+                    disabled={!product.stock || product.stock === 0}
                     size="sm"
                   >
                     <ShoppingCart className="mr-2 h-4 w-4" />

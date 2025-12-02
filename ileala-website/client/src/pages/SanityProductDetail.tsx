@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRoute, Link, useLocation } from 'wouter';
-import { sanityClient, urlFor } from '@/lib/sanity';
+// Migrated from Sanity to tRPC database
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/_core/hooks/useAuth';
@@ -9,10 +9,12 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { trpc } from '@/lib/trpc';
 
+// Using database Product type from tRPC
 interface SanityProductDetail {
-  _id: string;
+  id: number;
   name: string;
-  slug: { current: string };
+  nameEN?: string;
+  slug: string;
   price: number;
   salePrice?: number;
   shortDescription?: string;
@@ -45,7 +47,7 @@ export default function SanityProductDetail() {
   const { t, language } = useLanguage();
   const { addItem } = useCart();
   const { isAuthenticated } = useAuth();
-  const [, params] = useRoute('/sanity-products/:slug');
+  const [, params] = useRoute('/products/:slug');
   const [, setLocation] = useLocation();
   const [product, setProduct] = useState<SanityProductDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -56,7 +58,7 @@ export default function SanityProductDetail() {
     enabled: isAuthenticated,
   });
 
-  const createCheckoutMutation = trpc.payment.createSanityCheckout.useMutation({
+  const createCheckoutMutation = trpc.payment.createCheckout.useMutation({
     onSuccess: (data) => {
       if (data.url) {
         window.location.href = data.url;
@@ -68,49 +70,20 @@ export default function SanityProductDetail() {
     },
   });
 
-  useEffect(() => {
-    if (params?.slug) {
-      fetchProduct(params.slug);
-    }
-  }, [params?.slug]);
+  // Fetch product from database via tRPC
+  const { data: productData, isLoading: productLoading } = trpc.products.bySlug.useQuery(
+    { slug: params?.slug || '' },
+    { enabled: !!params?.slug }
+  );
 
-  const fetchProduct = async (slug: string) => {
-    try {
-      setLoading(true);
-      const query = `*[_type == "product" && slug.current == $slug][0] {
-        _id,
-        name,
-        slug,
-        price,
-        salePrice,
-        shortDescription,
-        description,
-        mainImage,
-        images,
-        category,
-        inStock,
-        stockQuantity,
-        featured,
-        isNew,
-        onSale,
-        material,
-        dimensions,
-        colors,
-        careInstructions,
-        sku,
-        weight,
-        stripeProductId,
-        stripePriceId
-      }`;
-      
-      const data = await sanityClient.fetch(query, { slug });
-      setProduct(data);
-    } catch (error) {
-      console.error('Error fetching product:', error);
-    } finally {
+  useEffect(() => {
+    if (productData) {
+      setProduct(productData as any);
+      setLoading(false);
+    } else if (!productLoading && params?.slug) {
       setLoading(false);
     }
-  };
+  }, [productData, productLoading, params?.slug]);
 
   const handleBuyNow = () => {
     if (!product) return;
@@ -118,7 +91,7 @@ export default function SanityProductDetail() {
     // Check if user is authenticated
     if (!isAuthenticated) {
       toast.error(language === 'en' ? 'Please sign in to continue' : 'Por favor, faça login para continuar');
-      setLocation(`/login?redirect=/sanity-products/${params?.slug}`);
+      setLocation(`/login?redirect=/products/${params?.slug}`);
       return;
     }
 
@@ -147,27 +120,18 @@ export default function SanityProductDetail() {
       return;
     }
     
-    const imageUrl = getImageUrl(product.mainImage);
-    const displayPrice = product.onSale && product.salePrice ? product.salePrice : product.price;
+    const displayPrice = product.salePrice && product.salePrice < product.price ? product.salePrice : product.price;
     
     createCheckoutMutation.mutate({
-      productId: product._id,
-      productName: product.name,
+      productId: product.id,
+      productName: product.nameEN || product.name,
       productPrice: displayPrice,
-      productImage: imageUrl || undefined,
+      productImage: product.mainImage || undefined,
       quantity: quantity,
     });
   };
 
-  const getImageUrl = (mainImage: SanityProductDetail['mainImage']) => {
-    if (!mainImage?.asset) return null;
-    try {
-      return urlFor(mainImage.asset).width(800).height(800).url();
-    } catch (err) {
-      console.error('Error generating image URL:', err);
-      return null;
-    }
-  };
+  // Image URLs now come directly from database (mainImage field)
 
   if (loading) {
     return (
@@ -191,12 +155,14 @@ export default function SanityProductDetail() {
     );
   }
 
+  // Parse images array from JSON if it's a string
+  const imagesArray = typeof product.images === 'string' ? JSON.parse(product.images) : (product.images || []);
   const allImages = [
     ...(product.mainImage ? [product.mainImage] : []),
-    ...(product.images || [])
+    ...imagesArray
   ];
 
-  const displayPrice = product.onSale && product.salePrice ? product.salePrice : product.price;
+  const displayPrice = product.salePrice && product.salePrice < product.price ? product.salePrice : product.price;
 
   return (
     <div className="min-h-screen bg-white">
@@ -217,8 +183,8 @@ export default function SanityProductDetail() {
             <div className="aspect-square rounded-lg overflow-hidden bg-sage-50">
               {allImages[selectedImage] ? (
                 <img
-                  src={urlFor(allImages[selectedImage]).width(800).height(800).url()}
-                  alt={allImages[selectedImage].alt || product.name}
+                  src={typeof allImages[selectedImage] === 'string' ? allImages[selectedImage] : allImages[selectedImage]}
+                  alt={product.mainImageAlt || product.nameEN || product.name}
                   className="w-full h-full object-cover"
                 />
               ) : (
@@ -240,8 +206,8 @@ export default function SanityProductDetail() {
                     }`}
                   >
                     <img
-                      src={urlFor(image).width(200).height(200).url()}
-                      alt={image.alt || `${product.name} ${index + 1}`}
+                      src={typeof image === 'string' ? image : image}
+                      alt={`${product.nameEN || product.name} ${index + 1}`}
                       className="w-full h-full object-cover"
                     />
                   </button>
@@ -254,47 +220,42 @@ export default function SanityProductDetail() {
           <div className="space-y-6">
             {/* Badges */}
             <div className="flex gap-2">
-              {product.featured && (
+              {product.featured === 1 && (
                 <span className="bg-gold-500 text-white px-3 py-1 rounded-full text-sm font-medium">
                   {language === 'en' ? 'Featured' : 'Destaque'}
                 </span>
               )}
-              {product.isNew && (
+              {/* New badge removed - using featured instead */}
+              {false && (
                 <span className="bg-sage-600 text-white px-3 py-1 rounded-full text-sm font-medium">
                   {language === 'en' ? 'New' : 'Novo'}
                 </span>
               )}
-              {product.onSale && (
+              {(product.salePrice && product.salePrice < product.price) && (
                 <span className="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-medium">
                   {language === 'en' ? 'Sale' : 'Promoção'}
                 </span>
               )}
             </div>
 
-            <h1 className="font-display text-4xl text-sage-900">{product.name}</h1>
+            <h1 className="font-display text-4xl text-sage-900">{product.nameEN || product.name}</h1>
             
             <div className="flex items-center gap-4">
               <div className="flex flex-col">
                 <span className="font-display text-3xl text-sage-900">AED {displayPrice.toFixed(2)}</span>
-                {product.onSale && product.salePrice && (
+                {(product.salePrice && product.salePrice < product.price) && (
                   <span className="text-lg text-sage-500 line-through">AED {product.price.toFixed(2)}</span>
                 )}
               </div>
-              {product.inStock ? (
+              {product.stock && product.stock > 0 ? (
                 <span className="text-green-600 font-medium">{language === 'en' ? 'In Stock' : 'Em Estoque'}</span>
               ) : (
                 <span className="text-red-600 font-medium">{language === 'en' ? 'Out of Stock' : 'Fora de Estoque'}</span>
               )}
             </div>
 
-            {product.shortDescription && (
-              <p className="text-lg text-sage-700">{product.shortDescription}</p>
-            )}
-
-            {product.description && (
-              <div className="prose prose-sage">
-                <p className="text-sage-600">{product.description}</p>
-              </div>
+            {(product.descriptionEN || product.description) && (
+              <p className="text-lg text-sage-700">{product.descriptionEN || product.description}</p>
             )}
 
             {/* Product Details */}
@@ -340,7 +301,7 @@ export default function SanityProductDetail() {
             )}
 
             {/* Quantity Selector */}
-            {product.inStock && (
+            {product.stock && product.stock > 0 && (
               <div className="flex items-center gap-4">
                 <span className="text-sage-600">{language === 'en' ? 'Quantity' : 'Quantidade'}:</span>
                 <div className="flex items-center border border-sage-300 rounded-md">
@@ -352,7 +313,7 @@ export default function SanityProductDetail() {
                   </button>
                   <span className="px-6 py-2 border-x border-sage-300">{quantity}</span>
                   <button
-                    onClick={() => setQuantity(Math.min(product.stockQuantity || 99, quantity + 1))}
+                    onClick={() => setQuantity(Math.min(product.stock || 99, quantity + 1))}
                     className="px-4 py-2 hover:bg-sage-50 transition-colors"
                   >
                     +
@@ -368,15 +329,14 @@ export default function SanityProductDetail() {
                   size="lg"
                   variant="outline"
                   className="flex-1"
-                  disabled={!product.inStock}
+                  disabled={!product.stock || product.stock === 0}
                   onClick={() => {
-                    const imageUrl = getImageUrl(product.mainImage);
                     addItem({
-                      id: product._id,
-                      name: product.name,
+                      id: product.id.toString(),
+                      name: product.nameEN || product.name,
                       price: displayPrice,
-                      image: imageUrl || undefined,
-                      slug: product.slug.current,
+                      image: product.mainImage || undefined,
+                      slug: product.slug,
                     }, quantity);
                   }}
                 >
@@ -393,7 +353,7 @@ export default function SanityProductDetail() {
               <Button
                 size="lg"
                 className="w-full bg-sage-600 hover:bg-sage-700"
-                disabled={!product.inStock || createCheckoutMutation.isLoading}
+                disabled={!product.stock || product.stock === 0 || createCheckoutMutation.isLoading}
                 onClick={handleBuyNow}
               >
                 {createCheckoutMutation.isLoading ? (

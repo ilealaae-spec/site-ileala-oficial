@@ -1,46 +1,28 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/_core/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { sanityClient, urlFor } from '@/lib/sanity';
+// Migrated from Sanity to tRPC database
 import { Link, useLocation } from 'wouter';
 import { ShoppingCart, Loader2, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { trpc } from '@/lib/trpc';
 import LazyImage from '@/components/LazyImage';
 
-interface SanityProduct {
-  _id: string;
-  name: string;
-  slug: { current: string };
-  price: number;
-  salePrice?: number;
-  shortDescription?: string;
-  description?: string;
-  mainImage?: {
-    asset: {
-      _ref: string;
-    };
-    alt?: string;
-  };
-  category?: string;
-  collection?: string;
-  inStock?: boolean;
-  featured?: boolean;
-  isNew?: boolean;
-  onSale?: boolean;
-}
+// Using database Product type from tRPC
 
 export default function PetCollection() {
   const { t, language } = useLanguage();
   const { addItem } = useCart();
   const [searchQuery, setSearchQuery] = useState('');
-  const [products, setProducts] = useState<SanityProduct[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [buyingProductId, setBuyingProductId] = useState<string | null>(null);
+  const [buyingProductId, setBuyingProductId] = useState<number | null>(null);
+
+  // Fetch products from database via tRPC
+  const { data: products, isLoading, error } = trpc.products.byCollection.useQuery({
+    collection: 'pet-picnic'
+  });
 
   const { isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
@@ -49,7 +31,7 @@ export default function PetCollection() {
     enabled: isAuthenticated,
   });
 
-  const createCheckoutMutation = trpc.payment.createSanityCheckout.useMutation({
+  const createCheckoutMutation = trpc.payment.createCheckout.useMutation({
     onSuccess: (data) => {
       if (data.url) {
         window.location.href = data.url;
@@ -62,76 +44,16 @@ export default function PetCollection() {
     },
   });
 
-  useEffect(() => {
-    async function fetchProducts() {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        // Filter only Pet Collection products
-        const query = `*[_type == "product" && category == "pet-collection" && inStock == true] | order(_createdAt desc) {
-          _id,
-          name,
-          slug,
-          price,
-          salePrice,
-          shortDescription,
-          description,
-          mainImage {
-            asset,
-            alt
-          },
-          category,
-          collection,
-          inStock,
-          featured,
-          isNew,
-          onSale
-        }`;
-        
-        const data = await sanityClient.fetch(query);
-        console.log('Pet Collection products fetched from Sanity:', data);
-        console.log('Number of pet products:', data?.length || 0);
-        
-        if (!data || data.length === 0) {
-          console.warn('No pet collection products found in Sanity');
-          setError('No pet collection products available. Please add products in Sanity CMS.');
-        } else {
-          setProducts(data);
-        }
-      } catch (err: any) {
-        console.error('Error fetching pet collection products from Sanity:', err);
-        console.error('Error details:', {
-          message: err?.message,
-          statusCode: err?.statusCode,
-          response: err?.response,
-        });
-        setError(err?.message || 'Failed to load products. Please check console for details.');
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchProducts();
-  }, []);
+// Products now fetched via tRPC useQuery hook above
 
   const formatPrice = (price: number) => {
     return `${price.toFixed(2)} AED`;
   };
 
-  // Get image URL from Sanity
-  const getImageUrl = (mainImage: SanityProduct['mainImage']) => {
-    if (!mainImage?.asset) return null;
-    try {
-      return urlFor(mainImage.asset).width(800).height(800).url();
-    } catch (err) {
-      console.error('Error generating image URL:', err);
-      return null;
-    }
-  };
+// Image URLs now come directly from database (mainImage field)
 
   // Handle Buy Now button click
-  const handleBuyNow = (product: SanityProduct) => {
+  const handleBuyNow = (product: any) => {
     // Check if user is authenticated
     if (!isAuthenticated) {
       toast.error(language === 'en' ? 'Please sign in to continue' : 'Por favor, faça login para continuar');
@@ -164,16 +86,15 @@ export default function PetCollection() {
       return;
     }
 
-    const imageUrl = getImageUrl(product.mainImage);
-    const displayPrice = product.onSale && product.salePrice ? product.salePrice : product.price;
+    const displayPrice = product.salePrice && product.salePrice < product.price ? product.salePrice : product.price;
     
-    setBuyingProductId(product._id);
+    setBuyingProductId(product.id);
     
     createCheckoutMutation.mutate({
-      productId: product._id,
-      productName: product.name,
+      productId: product.id,
+      productName: product.nameEN || product.name,
       productPrice: displayPrice,
-      productImage: imageUrl || undefined,
+      productImage: product.mainImage || undefined,
       quantity: 1,
     });
   };
@@ -181,9 +102,9 @@ export default function PetCollection() {
   // Filter products based on search query
   const filteredProducts = products?.filter((product) => {
     const query = searchQuery.toLowerCase();
-    const name = product.name.toLowerCase();
-    const description = product.shortDescription?.toLowerCase() || product.description?.toLowerCase() || '';
-    const collection = product.collection?.toLowerCase() || '';
+    const name = (product.nameEN || product.name || '').toLowerCase();
+    const description = (product.descriptionEN || product.description || '').toLowerCase();
+    const collection = (product.collection || '').toLowerCase();
     
     return (
       name.includes(query) ||
@@ -192,7 +113,7 @@ export default function PetCollection() {
     );
   }) || [];
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -204,7 +125,21 @@ export default function PetCollection() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <p className="text-red-600">{error}</p>
+          <p className="text-red-600">Error loading products: {error.message}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!products || products.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600">
+            {language === 'en' 
+              ? 'No pet collection products available. Please add products in Admin Panel.' 
+              : 'Nenhum produto da coleção pet disponível. Por favor, adicione produtos no Painel Admin.'}
+          </p>
         </div>
       </div>
     );
@@ -267,18 +202,18 @@ export default function PetCollection() {
           {filteredProducts && filteredProducts.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
               {filteredProducts.map((product) => {
-                const imageUrl = getImageUrl(product.mainImage);
-                const displayPrice = product.onSale && product.salePrice ? product.salePrice : product.price;
-                const isBuying = buyingProductId === product._id;
+                const displayPrice = product.salePrice && product.salePrice < product.price ? product.salePrice : product.price;
+                const isBuying = buyingProductId === product.id;
+                const isOnSale = product.salePrice && product.salePrice < product.price;
                 
                 return (
-                  <Card key={product._id} className="overflow-hidden group">
-                    <Link href={`/sanity-products/${product.slug.current}`}>
+                  <Card key={product.id} className="overflow-hidden group">
+                    <Link href={`/products/${product.slug || product.id}`}>
                       <div className="aspect-square overflow-hidden bg-muted cursor-pointer relative">
-                        {imageUrl ? (
+                        {product.mainImage ? (
                           <LazyImage
-                            src={imageUrl}
-                            alt={product.mainImage?.alt || product.name}
+                            src={product.mainImage}
+                            alt={product.mainImageAlt || product.nameEN || product.name}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           />
                         ) : (
@@ -286,27 +221,27 @@ export default function PetCollection() {
                             No image
                           </div>
                         )}
-                        {product.onSale && (
+                        {isOnSale && (
                           <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 text-xs font-semibold rounded">
                             SALE
                           </div>
                         )}
-                        {product.isNew && (
+                        {product.featured === 1 && (
                           <div className="absolute top-2 left-2 bg-green-500 text-white px-2 py-1 text-xs font-semibold rounded">
-                            NEW
+                            FEATURED
                           </div>
                         )}
                       </div>
                     </Link>
                     <div className="p-4">
-                      <Link href={`/sanity-products/${product.slug.current}`}>
+                      <Link href={`/products/${product.slug || product.id}`}>
                         <h3 className="text-lg font-semibold mb-2 hover:text-primary cursor-pointer">
-                          {product.name}
+                          {product.nameEN || product.name}
                         </h3>
                       </Link>
-                      {product.shortDescription && (
+                      {(product.descriptionEN || product.description) && (
                         <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
-                          {product.shortDescription}
+                          {product.descriptionEN || product.description}
                         </p>
                       )}
                       {product.collection && (
@@ -319,7 +254,7 @@ export default function PetCollection() {
                           <span className="text-lg font-semibold">
                             {formatPrice(displayPrice)}
                           </span>
-                          {product.onSale && product.salePrice && (
+                          {isOnSale && (
                             <span className="text-sm text-muted-foreground line-through">
                               {formatPrice(product.price)}
                             </span>
@@ -331,18 +266,19 @@ export default function PetCollection() {
                             variant="outline"
                             onClick={() => {
                               addItem({
-                                id: product._id,
-                                name: product.name,
+                                id: product.id.toString(),
+                                name: product.nameEN || product.name,
                                 price: displayPrice,
-                                image: imageUrl || undefined,
-                                slug: product.slug.current,
+                                image: product.mainImage || undefined,
+                                slug: product.slug || product.id.toString(),
                               });
                             }}
+                            disabled={product.stock === 0}
                           >
                             <ShoppingCart className="w-4 h-4 mr-2" />
                             {language === 'en' ? 'Add' : 'Adicionar'}
                           </Button>
-                          <Link href={`/sanity-products/${product.slug.current}`}>
+                          <Link href={`/products/${product.slug || product.id}`}>
                             <Button size="sm">
                               {language === 'en' ? 'View' : 'Ver'}
                             </Button>
