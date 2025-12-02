@@ -64,6 +64,10 @@ export default function Login() {
   
   const loginMutation = trpc.auth.login.useMutation({
     onSuccess: async (data: any) => {
+      console.log('[Login] ===== ON SUCCESS CALLED =====');
+      console.log('[Login] typeof data:', typeof data);
+      console.log('[Login] data is null?', data === null);
+      console.log('[Login] data is undefined?', data === undefined);
       console.log('[Login] ===== LOGIN RESPONSE =====');
       console.log('[Login] Full response:', JSON.stringify(data, null, 2));
       console.log('[Login] data.requires2FA:', data.requires2FA);
@@ -125,7 +129,11 @@ export default function Login() {
       window.location.href = redirect;
     },
     onError: (error) => {
-      console.error('[Login] Login error:', error);
+      console.error('[Login] ===== ON ERROR CALLED =====');
+      console.error('[Login] Error object:', error);
+      console.error('[Login] Error message:', error.message);
+      console.error('[Login] Error stack:', error.stack);
+      console.error('[Login] ==============================');
       toast.error(error.message || (language === 'en' ? 'Invalid email or password' : 'Email ou senha inválidos'));
     },
   });
