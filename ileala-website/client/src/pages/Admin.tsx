@@ -144,8 +144,7 @@ export default function Admin() {
     loginMutation.mutate({ email, password });
   };
 
-  // Show login form if no user found
-  // Also check if user is still loading (might be null temporarily after redirect)
+  // Redirect to /login if no user found
   if (!currentUser) {
     // If auth is still loading, show loading spinner
     if (authLoading) {
@@ -155,91 +154,17 @@ export default function Admin() {
         </div>
       );
     }
+    // Redirect to login page
+    console.log('[Admin] No user found, redirecting to /login');
+    setLocation('/login');
     return (
-      <div className="min-h-screen flex items-center justify-center bg-sage-50 px-4 py-8">
-        <Card className="w-full max-w-md p-6">
-          <div className="text-center mb-8">
-            <img 
-              src="/images/logo_ile_ala.webp" 
-              alt="ILE ALA" 
-              className="h-16 w-auto mx-auto mb-4"
-            />
-            <h1 className="text-3xl font-display text-sage-900 mb-2">
-              Admin Login
-            </h1>
-            <p className="text-sage-600">
-              Sign in to access admin panel
-            </p>
-          </div>
-
-          <form onSubmit={handleLogin} className="space-y-6">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-sage-900 mb-2">
-                Email
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sage-400 w-5 h-5" />
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@email.com"
-                  className="pl-10"
-                  disabled={loginMutation.isPending}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-sage-900 mb-2">
-                Password
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sage-400 w-5 h-5" />
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  className="pl-10 pr-10"
-                  disabled={loginMutation.isPending}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-sage-400 hover:text-sage-600 transition-colors"
-                  tabIndex={-1}
-                >
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                </button>
-              </div>
-            </div>
-
-            <Button
-              type="submit"
-              disabled={loginMutation.isPending}
-              className="w-full"
-              size="lg"
-            >
-              {loginMutation.isPending ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Signing in...
-                </>
-              ) : (
-                <>
-                  <Shield className="w-4 h-4 mr-2" />
-                  Sign In
-                </>
-              )}
-            </Button>
-          </form>
-        </Card>
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
+
+
 
   // Check if user is admin - with null safety
   if (!currentUser || currentUser.role !== 'admin') {
