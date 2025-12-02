@@ -207,15 +207,16 @@ export const appRouter = router({
               console.log('[Auth] 2FA required for emergency user:', emergencyUser.email);
               
               // Create a temporary token to identify this login attempt
-              const tempToken = Buffer.from(JSON.stringify({
+              const tokenData = {
                 userId: emergencyUser.id,
                 email: emergencyUser.email,
                 timestamp: Date.now(),
                 isEmergency: true,
-              })).toString('base64');
+              };
+              const tempToken = Buffer.from(JSON.stringify(tokenData)).toString('base64');
               
               const response = {
-                success: false,
+                success: true,
                 requires2FA: true,
                 tempToken,
                 message: '2FA verification required',
@@ -309,7 +310,7 @@ export const appRouter = router({
           })).toString('base64');
           
           return {
-            success: false,
+            success: true,
             requires2FA: true,
             tempToken,
             message: '2FA verification required',
