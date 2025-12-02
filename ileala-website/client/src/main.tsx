@@ -54,10 +54,17 @@ const trpcClient = trpc.createClient({
       url: "/api/trpc",
       transformer: superjson,
       fetch(input, init) {
+        console.log('[tRPC Client] ===== FETCH CALLED =====');
+        console.log('[tRPC Client] URL:', input);
+        console.log('[tRPC Client] Init:', init);
         return globalThis.fetch(input, {
           ...(init ?? {}),
           credentials: "include",
         }).then(async (response) => {
+          console.log('[tRPC Client] ===== RESPONSE RECEIVED =====');
+          console.log('[tRPC Client] Status:', response.status);
+          console.log('[tRPC Client] Status text:', response.statusText);
+          console.log('[tRPC Client] Content-Type:', response.headers.get('content-type'));
           // Check if response is JSON, if not, convert to JSON error
           const contentType = response.headers.get('content-type') || '';
           const isErrorStatus = response.status >= 400;
@@ -95,8 +102,10 @@ const trpcClient = trpc.createClient({
             );
           }
           
+          console.log('[tRPC Client] Returning response (no error conversion)');
           return response;
         }).catch((error) => {
+          console.error('[tRPC Client] ===== FETCH CATCH =====');
           console.error('[Client] Fetch error:', error);
           // Return a JSON error response for network errors in tRPC format
           return new Response(
