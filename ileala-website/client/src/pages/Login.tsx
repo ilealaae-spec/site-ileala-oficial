@@ -131,18 +131,39 @@ export default function Login() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     
-    console.log('[Login] handleSubmit called', { email, hasPassword: !!password });
+    console.log('[Login] ===== FORM SUBMIT =====');
+    console.log('[Login] Browser:', navigator.userAgent);
+    console.log('[Login] Email:', email);
+    console.log('[Login] Has password:', !!password);
+    console.log('[Login] Form valid:', e.currentTarget.checkValidity?.() ?? 'N/A');
+    console.log('[Login] ==============================');
     
-    if (!email || !password) {
-      console.log('[Login] Missing email or password');
-      toast.error(language === 'en' ? 'Please fill in all fields' : 'Por favor, preencha todos os campos');
+    // Manual validation
+    if (!email || email.trim() === '') {
+      console.log('[Login] Email is empty');
+      toast.error(language === 'en' ? 'Please enter your email' : 'Por favor, digite seu e-mail');
+      return;
+    }
+    
+    if (!password || password.trim() === '') {
+      console.log('[Login] Password is empty');
+      toast.error(language === 'en' ? 'Please enter your password' : 'Por favor, digite sua senha');
+      return;
+    }
+    
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      console.log('[Login] Invalid email format');
+      toast.error(language === 'en' ? 'Please enter a valid email' : 'Por favor, digite um e-mail válido');
       return;
     }
 
-    console.log('[Login] Calling loginMutation.mutate');
+    console.log('[Login] Validation passed, calling loginMutation.mutate');
     try {
-      loginMutation.mutate({ email, password });
+      loginMutation.mutate({ email: email.trim(), password });
       console.log('[Login] loginMutation.mutate called successfully');
     } catch (error) {
       console.error('[Login] Error calling loginMutation.mutate:', error);
@@ -214,7 +235,7 @@ export default function Login() {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} noValidate className="space-y-6">
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-sage-900 mb-2">
               {language === 'en' ? 'Email' : 'E-mail'}
