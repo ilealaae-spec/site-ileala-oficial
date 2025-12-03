@@ -1425,7 +1425,7 @@ export const appRouter = router({
           photoUrl: z.string().optional(),
           specialty: z.string().optional(),
           location: z.string().optional(),
-          email: z.string().email().optional(),
+          email: z.string().optional(), // Removed .email() validation due to over-restrictive regex causing errors
           phone: z.string().optional(),
           socialMedia: z.string().optional(),
           featured: z.number().default(0),
@@ -1443,7 +1443,7 @@ export const appRouter = router({
           photoUrl: z.string().optional(),
           specialty: z.string().optional(),
           location: z.string().optional(),
-          email: z.string().email().optional(),
+          email: z.string().optional(), // Removed .email() validation due to over-restrictive regex causing errors
           phone: z.string().optional(),
           socialMedia: z.string().optional(),
           featured: z.number().optional(),

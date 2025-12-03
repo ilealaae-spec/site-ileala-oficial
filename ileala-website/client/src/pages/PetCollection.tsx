@@ -20,8 +20,9 @@ export default function PetCollection() {
   const [buyingProductId, setBuyingProductId] = useState<number | null>(null);
 
   // Fetch products from database via tRPC
-  const { data: products, isLoading, error } = trpc.products.byCollection.useQuery({
-    collection: 'pet-picnic'
+  // Changed from byCollection to byCategory because Pet Collection products are categorized as 'pet-collection'
+  const { data: products, isLoading, error } = trpc.products.byCategory.useQuery({
+    category: 'pet-collection'
   });
 
   const { isAuthenticated } = useAuth();
