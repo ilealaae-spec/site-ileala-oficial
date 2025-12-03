@@ -41,7 +41,7 @@ export function setupSecurityHeaders(app: Express) {
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com data:",
       "img-src 'self' data: https: blob:",
-      "connect-src 'self' https://api.stripe.com https://*.sanity.io https://*.sanity.studio",
+      "connect-src 'self' https://api.stripe.com",
       "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
       "object-src 'none'",
       "base-uri 'self'",
