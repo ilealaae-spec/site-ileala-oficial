@@ -17,8 +17,7 @@ const FRONTEND_ENV_VARS = [
   'VITE_APP_TITLE',
   'VITE_APP_ID',
   'VITE_APP_URL',
-  'VITE_SANITY_PROJECT_ID',
-  'VITE_SANITY_DATASET',
+
 ] as const;
 
 /**
