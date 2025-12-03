@@ -12,6 +12,7 @@ export const registerLimiter = rateLimit({
   message: 'Too many accounts created from this IP. Please try again in 15 minutes.',
   standardHeaders: true, // Return rate limit info in `RateLimit-*` headers
   legacyHeaders: false, // Disable `X-RateLimit-*` headers
+  trust: true, // Trust X-Forwarded-For header from Railway proxy
   skipSuccessfulRequests: false, // Count all requests
   handler: (req, res) => {
     console.log(`[RateLimit] Registration blocked for IP: ${req.ip}`);
@@ -31,6 +32,7 @@ export const verifyEmailLimiter = rateLimit({
   message: 'Too many verification attempts. Please try again in 5 minutes.',
   standardHeaders: true,
   legacyHeaders: false,
+  trust: true, // Trust X-Forwarded-For header from Railway proxy
   skipSuccessfulRequests: true, // Don't count successful verifications
   handler: (req, res) => {
     console.log(`[RateLimit] Email verification blocked for IP: ${req.ip}`);
@@ -50,6 +52,7 @@ export const resendEmailLimiter = rateLimit({
   message: 'Too many email resend requests. Please try again in 1 hour.',
   standardHeaders: true,
   legacyHeaders: false,
+  trust: true, // Trust X-Forwarded-For header from Railway proxy
   skipSuccessfulRequests: false,
   handler: (req, res) => {
     console.log(`[RateLimit] Email resend blocked for IP: ${req.ip}`);
@@ -69,6 +72,7 @@ export const loginLimiter = rateLimit({
   message: 'Too many login attempts. Please try again in 15 minutes.',
   standardHeaders: true,
   legacyHeaders: false,
+  trust: true, // Trust X-Forwarded-For header from Railway proxy
   skipSuccessfulRequests: true, // Don't count successful logins
   handler: (req, res) => {
     console.log(`[RateLimit] Login blocked for IP: ${req.ip}`);
@@ -88,6 +92,7 @@ export const passwordResetLimiter = rateLimit({
   message: 'Too many password reset requests. Please try again in 1 hour.',
   standardHeaders: true,
   legacyHeaders: false,
+  trust: true, // Trust X-Forwarded-For header from Railway proxy
   skipSuccessfulRequests: false,
   handler: (req, res) => {
     console.log(`[RateLimit] Password reset blocked for IP: ${req.ip}`);
@@ -107,6 +112,7 @@ export const apiLimiter = rateLimit({
   message: 'Too many requests from this IP. Please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
+  trust: true, // Trust X-Forwarded-For header from Railway proxy
   // Skip rate limiting for authenticated admin users
   skip: (req) => {
     // Check if user is authenticated and is admin
