@@ -1,6 +1,6 @@
-# Dockerfile para Railway - Força Node.js 20.12.0
+# Dockerfile para Railway - Otimizado para build rápido
 # Este arquivo deve estar na RAIZ do repositório (site-ileala-oficial/)
-FROM node:20.12.0-alpine
+FROM node:20-alpine
 
 WORKDIR /app
 
@@ -10,22 +10,18 @@ RUN npm install -g pnpm@10.4.1
 # Copiar arquivos de configuração do ileala-website
 COPY ileala-website/package.json ileala-website/pnpm-lock.yaml ./ileala-website/
 COPY ileala-website/.pnpmrc ./ileala-website/
-COPY ileala-website/.nvmrc ./ileala-website/
 
 # Instalar dependências
 WORKDIR /app/ileala-website
-RUN pnpm install --no-frozen-lockfile
+RUN pnpm install --frozen-lockfile --prefer-offline
 
 # Copiar código do ileala-website
 COPY ileala-website/ .
 
-# Build the application from source
+# Build the application from source with optimizations
+ENV NODE_ENV=production
 RUN pnpm run build
 
-# Start (permanece em ileala-website)
-# Garantir que estamos no diretório correto
+# Start
 WORKDIR /app/ileala-website
-
-# Usar ENTRYPOINT para garantir que o comando seja executado corretamente
 ENTRYPOINT ["pnpm", "run", "start"]
-
