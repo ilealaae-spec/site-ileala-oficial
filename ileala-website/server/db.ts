@@ -1,4 +1,4 @@
-import { eq, sql } from 'drizzle-orm';orm";
+import { eq, sql, and } from 'drizzle-orm';
 // Newsletter fix: omit name field if undefined - Build v2
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
