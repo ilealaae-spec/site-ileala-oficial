@@ -46,9 +46,7 @@
     "@radix-ui/react-toggle": "^1.1.10",
     "@radix-ui/react-toggle-group": "^1.1.11",
     "@radix-ui/react-tooltip": "^1.2.8",
-    "@sanity/client": "^7.12.1",
-    "@sanity/image-url": "^1.2.0",
-    "@sanity/visual-editing": "^4.0.0",
+
     "@stripe/stripe-js": "^8.2.0",
     "@tanstack/react-query": "^5.90.2",
     "@trpc/client": "^11.6.0",
@@ -56,6 +54,7 @@
     "@trpc/server": "^11.6.0",
     "axios": "^1.12.0",
     "bcryptjs": "^3.0.3",
+    "cloudinary": "^2.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",

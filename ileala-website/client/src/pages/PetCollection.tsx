@@ -20,9 +20,13 @@ export default function PetCollection() {
   const [buyingProductId, setBuyingProductId] = useState<number | null>(null);
 
   // Fetch products from database via tRPC
-  // Changed from byCollection to byCategory because Pet Collection products are categorized as 'pet-collection'
-  const { data: products, isLoading, error } = trpc.products.byCategory.useQuery({
-    category: 'pet-collection'
+  // Fetch all products and filter by category (handles both 'pet-collection' and 'pet collection')
+  const { data: allProducts, isLoading, error } = trpc.products.list.useQuery();
+  
+  // Filter products by pet collection category (normalize spaces and hyphens)
+  const products = allProducts?.filter(p => {
+    const category = (p.category || '').toLowerCase().replace(/[\s-]+/g, '');
+    return category === 'petcollection';
   });
 
   const { isAuthenticated } = useAuth();
