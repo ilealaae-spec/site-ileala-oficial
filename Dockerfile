@@ -19,9 +19,8 @@ RUN pnpm install --no-frozen-lockfile
 # Copiar código do ileala-website
 COPY ileala-website/ .
 
-# Use pre-built dist/ from repository (skip rebuild)
-# The dist/ directory is committed with correct build from local environment
-RUN echo "Using pre-built dist/ from repository"
+# Build the application from source
+RUN pnpm run build
 
 # Start (permanece em ileala-website)
 # Garantir que estamos no diretório correto
