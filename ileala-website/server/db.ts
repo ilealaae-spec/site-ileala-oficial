@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm";
+import { eq, sql } from 'drizzle-orm';orm";
 // Newsletter fix: omit name field if undefined - Build v2
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
@@ -136,13 +136,13 @@ export async function getProductBySlug(slug: string) {
 export async function getProductsByCollection(collection: string) {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(products).where(eq(products.collection, collection));
+  return db.select().from(products).where(sql`lower(${products.collection}) = lower(${collection})`);
 }
 
 export async function getProductsByCategory(category: string) {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(products).where(eq(products.category, category));
+  return db.select().from(products).where(sql`lower(${products.category}) = lower(${category})`);
 }
 
 export async function createProduct(product: InsertProduct) {
