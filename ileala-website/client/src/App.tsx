@@ -19,9 +19,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 // Lazy load pages for code splitting
 const Home = lazy(() => import("./pages/Home"));
 const ProductDetail = lazy(() => import("./pages/ProductDetail"));
-const SanityProducts = lazy(() => import("./pages/SanityProducts"));
-const SanityProductDetail = lazy(() => import("./pages/SanityProductDetail"));
-const SanityCart = lazy(() => import("./pages/SanityCart"));
+// Removed Sanity pages - migrated to independent backend
 const PaymentSuccess = lazy(() => import("./pages/PaymentSuccess"));
 const Checkout = lazy(() => import("./pages/Checkout"));
 const Login = lazy(() => import("./pages/Login"));
@@ -89,12 +87,10 @@ function Router() {
             <Route path={"/"} component={Home} />
             <Route path="/shop" component={Collections} />
             <Route path="/shop/:slug" component={ProductDetail} />
-            <Route path="/products" component={SanityProducts} />
-            <Route path="/products/:slug" component={SanityProductDetail} />
-            <Route path="/sanity-products/:slug" component={SanityProductDetail} />
+            {/* Removed Sanity routes - migrated to independent backend */}
             <Route path="/payment-success" component={PaymentSuccess} />
             <Route path="/product/:id" component={ProductDetail} />
-            <Route path="/cart" component={SanityCart} />
+            {/* Cart route removed - using new cart system */}
             <Route path="/checkout" component={Checkout} />
             <Route path="/login" component={Login} />
             <Route path="/register" component={Register} />
