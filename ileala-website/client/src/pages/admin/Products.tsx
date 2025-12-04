@@ -164,7 +164,17 @@ export default function AdminProducts() {
       );
     }
 
+    // Generate slug from nameEN (only for new products)
+    const generateSlug = (name: string) => {
+      return name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '') + '-' + Date.now();
+    };
+
     const productData = {
+      name: formData.nameEN, // Use nameEN as the main name
+      slug: editingProduct ? editingProduct.slug : generateSlug(formData.nameEN), // Generate slug for new products
       nameEN: formData.nameEN,
       namePT: formData.namePT,
       descriptionEN: formData.descriptionEN,
