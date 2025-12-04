@@ -968,6 +968,7 @@ export const appRouter = router({
           inStock: z.boolean().optional(),
           stockQuantity: z.number().optional(),
           featured: z.number().optional(),
+          active: z.number().optional(), // Allow updating active status
           isNew: z.boolean().optional(),
           onSale: z.boolean().optional(),
           seoTitle: z.string().optional(),
