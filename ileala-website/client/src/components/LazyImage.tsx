@@ -30,8 +30,15 @@ export default function LazyImage({
     setIsLoaded(true);
   };
 
-  const handleError = () => {
-    console.error('[LazyImage] Failed to load image:', src);
+  const handleError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    const img = e.currentTarget;
+    console.error('[LazyImage] Failed to load image:', {
+      src,
+      naturalWidth: img.naturalWidth,
+      naturalHeight: img.naturalHeight,
+      complete: img.complete,
+      error: img.error
+    });
     setHasError(true);
   };
 
@@ -57,8 +64,11 @@ export default function LazyImage({
       />
 
       {hasError && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-100 text-gray-400">
-          <span className="text-sm">Failed to load image</span>
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-100 text-gray-400 p-4">
+          <span className="text-sm mb-2">Failed to load image</span>
+          <span className="text-xs text-gray-500 break-all text-center max-w-full">
+            {src.substring(0, 50)}...
+          </span>
         </div>
       )}
     </div>

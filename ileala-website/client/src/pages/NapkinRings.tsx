@@ -17,10 +17,12 @@ export default function NapkinRings() {
   // Fetch all products and filter by collection
   const { data: allProducts = [], isLoading: loading, error: queryError } = trpc.products.list.useQuery();
   
-  // Filter products by collection "Napkin Rings"
-  const products = allProducts.filter(p => 
-    p.collection?.toLowerCase().includes('napkin ring') && p.active === 1
-  );
+  // Filter products by collection "Napkin Rings" - more flexible matching
+  const products = allProducts.filter(p => {
+    if (p.active !== 1) return false;
+    const collection = (p.collection || '').toLowerCase();
+    return collection.includes('napkin') || collection.includes('napkin ring');
+  });
 
   // Format price: database stores price in fils (1 AED = 100 fils)
   const formatPrice = (priceInFils: number) => {
