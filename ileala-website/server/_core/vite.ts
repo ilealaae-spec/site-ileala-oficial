@@ -83,26 +83,28 @@ export function serveStatic(app: Express) {
     }
   }));
 
-  // fall through to index.html if the file doesn't exist
-  // This middleware only runs if no previous middleware has sent a response
-  app.use((req, res, next) => {
-    // Skip if response was already sent (e.g., by tRPC)
-    if (res.headersSent) {
-      return next();
-    }
-    
-    // Skip API routes
+  // Serve index.html for SPA routing - must be last middleware
+  // This catches all non-API routes and serves the built index.html
+  app.get('*', (req, res, next) => {
+    // Skip API routes - they should be handled by tRPC middleware above
     if (req.path.startsWith('/api/')) {
       return next();
     }
     
-    // Serve index.html for SPA routing
+    // Skip if response was already sent
+    if (res.headersSent) {
+      return next();
+    }
+    
+    // Serve the built index.html (Vite transforms it during build)
     const indexPath = path.resolve(distPath, "index.html");
     if (fs.existsSync(indexPath)) {
       res.sendFile(indexPath);
     } else {
       console.error(`[serveStatic] index.html not found at: ${indexPath}`);
-      res.status(404).send('Not found');
+      console.error(`[serveStatic] distPath: ${distPath}`);
+      console.error(`[serveStatic] Files in distPath:`, fs.existsSync(distPath) ? fs.readdirSync(distPath) : 'distPath does not exist');
+      res.status(404).send('Build files not found. Please rebuild the application.');
     }
   });
 }

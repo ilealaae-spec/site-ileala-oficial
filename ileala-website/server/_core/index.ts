@@ -312,6 +312,11 @@ async function startServer() {
     })
   );
   
+  // Health check endpoint
+  app.get("/health", (_req, res) => {
+    res.json({ status: "ok", timestamp: new Date().toISOString() });
+  });
+  
   // development mode uses Vite, production mode uses static files
   const isDevelopment = process.env.NODE_ENV !== "production";
   logger.info(`[Server] NODE_ENV: ${process.env.NODE_ENV}, isDevelopment: ${isDevelopment}`);
