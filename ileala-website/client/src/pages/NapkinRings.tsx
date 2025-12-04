@@ -15,7 +15,10 @@ export default function NapkinRings() {
   const [searchQuery, setSearchQuery] = useState('');
   
   // Fetch all products and filter by collection
-  const { data: allProducts = [], isLoading: loading, error: queryError } = trpc.products.list.useQuery();
+  const { data: allProducts = [], isLoading: loading, error: queryError } = trpc.products.list.useQuery(undefined, {
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
+  });
   
   // Filter products by collection "Napkin Rings" - more flexible matching
   const products = allProducts.filter(p => {

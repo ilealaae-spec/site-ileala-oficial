@@ -15,7 +15,10 @@ export default function TableEssentials() {
   const [searchQuery, setSearchQuery] = useState('');
   
   // Fetch all products and filter by collections
-  const { data: allProducts = [], isLoading: loading, error: queryError } = trpc.products.list.useQuery();
+  const { data: allProducts = [], isLoading: loading, error: queryError } = trpc.products.list.useQuery(undefined, {
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
+  });
   
   // Filter products by collections: Tablecloth, Table Runner, Cocktail Napkin, Coaster
   const products = allProducts.filter(p => {

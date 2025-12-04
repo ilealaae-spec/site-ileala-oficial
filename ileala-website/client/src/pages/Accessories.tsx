@@ -15,7 +15,10 @@ export default function Accessories() {
   const [searchQuery, setSearchQuery] = useState('');
   
   // Fetch all products and filter by category
-  const { data: allProducts = [], isLoading: loading, error: queryError } = trpc.products.list.useQuery();
+  const { data: allProducts = [], isLoading: loading, error: queryError } = trpc.products.list.useQuery(undefined, {
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
+  });
   
   // Filter products by category "bags-accessories"
   const products = allProducts.filter(p => p.category === 'bags-accessories' && p.active === 1);

@@ -24,7 +24,11 @@ export default function CollectionPage() {
   // Fetch products by collection from PostgreSQL via tRPC
   const { data: products = [], isLoading: loading, error: queryError } = trpc.products.byCollection.useQuery(
     { collection: collectionName },
-    { enabled: !!slug && !!collectionName }
+    { 
+      enabled: !!slug && !!collectionName,
+      staleTime: 5 * 60 * 1000, // 5 minutes - prevent constant refetching
+      refetchOnWindowFocus: false, // Prevent refetch on window focus
+    }
   );
 
   // Format price: database stores price in fils (1 AED = 100 fils)

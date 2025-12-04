@@ -15,7 +15,10 @@ export default function PetCollection() {
   const [searchQuery, setSearchQuery] = useState('');
   
   // Fetch all products and filter by category
-  const { data: allProducts = [], isLoading: loading, error: queryError } = trpc.products.list.useQuery();
+  const { data: allProducts = [], isLoading: loading, error: queryError } = trpc.products.list.useQuery(undefined, {
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
+  });
   
   // Filter products by category "pet-collection"
   const products = allProducts.filter(p => p.category === 'pet-collection' && p.active === 1);

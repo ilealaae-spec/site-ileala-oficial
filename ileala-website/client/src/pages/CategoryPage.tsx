@@ -14,11 +14,18 @@ export default function CategoryPage() {
   // Load products by category slug
   const { data: products = [], isLoading } = trpc.products.byCategory.useQuery(
     { category: slug || '' },
-    { enabled: !!slug }
+    { 
+      enabled: !!slug,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      refetchOnWindowFocus: false,
+    }
   );
 
   // Load all categories to find the current one
-  const { data: categories = [] } = trpc.categories.list.useQuery();
+  const { data: categories = [] } = trpc.categories.list.useQuery(undefined, {
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    refetchOnWindowFocus: false,
+  });
   const currentCategory = categories.find((cat: any) => cat.slug === slug);
 
   if (isLoading) {

@@ -19,7 +19,10 @@ export default function Header() {
   const { language, setLanguage, t } = useLanguage();
   const { totalItems } = useCart();
   const { user, isAuthenticated, logout } = useAuth();
-  const { data: categories = [] } = trpc.categories.listActive.useQuery();
+  const { data: categories = [] } = trpc.categories.listActive.useQuery(undefined, {
+    staleTime: 10 * 60 * 1000, // 10 minutes - categories don't change often
+    refetchOnWindowFocus: false, // Prevent refetch on window focus
+  });
 
   const handleLogout = async () => {
     await logout();

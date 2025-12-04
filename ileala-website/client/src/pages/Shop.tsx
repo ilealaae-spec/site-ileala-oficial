@@ -18,7 +18,10 @@ export default function Shop() {
   const [, setLocation] = useLocation();
   
   // Fetch products from PostgreSQL via tRPC
-  const { data: products = [], isLoading: loading, error: queryError } = trpc.products.list.useQuery();
+  const { data: products = [], isLoading: loading, error: queryError } = trpc.products.list.useQuery(undefined, {
+    staleTime: 5 * 60 * 1000, // 5 minutes - prevent constant refetching
+    refetchOnWindowFocus: false, // Prevent refetch on window focus
+  });
   
   const { data: profileValidation } = trpc.auth.validateProfile.useQuery(undefined, {
     enabled: isAuthenticated,

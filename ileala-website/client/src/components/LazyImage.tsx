@@ -43,9 +43,9 @@ export default function LazyImage({
   };
 
   return (
-    <div className={cn('relative overflow-hidden bg-gray-100', className)}>
+    <div className={cn('relative overflow-hidden bg-gray-100', className)} style={{ minHeight: '100%', minWidth: '100%' }}>
       {!isLoaded && !hasError && (
-        <div className="absolute inset-0 flex items-center justify-center">
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-100 z-10">
           <div className="w-8 h-8 border-4 border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
         </div>
       )}
@@ -54,17 +54,22 @@ export default function LazyImage({
         src={src}
         alt={alt}
         className={cn(
-          'w-full h-full object-cover transition-opacity duration-300',
-          isLoaded ? 'opacity-100' : 'opacity-0',
+          'w-full h-full object-cover',
+          isLoaded ? 'opacity-100' : 'opacity-0 absolute inset-0',
           className
         )}
+        style={{
+          transition: isLoaded ? 'opacity 0.2s ease-in' : 'none',
+          willChange: isLoaded ? 'auto' : 'opacity',
+        }}
         onLoad={handleLoad}
         onError={handleError}
+        loading="lazy"
         {...props}
       />
 
       {hasError && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-100 text-gray-400 p-4">
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-100 text-gray-400 p-4 z-20">
           <span className="text-sm mb-2">Failed to load image</span>
           <span className="text-xs text-gray-500 break-all text-center max-w-full">
             {src.substring(0, 50)}...
