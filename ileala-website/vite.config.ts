@@ -1,5 +1,5 @@
-// Force deployment: 2025-12-04 17:00:00
-// Build timestamp: 2025-12-04-17:00:00 - Force clean rebuild to remove all Sanity code from bundle
+// Force deployment: 2025-12-04 18:00:00
+// Build timestamp: 2025-12-04-18:00:00 - Force rebuild: garantir todas as páginas incluídas no bundle
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import fs from "node:fs";

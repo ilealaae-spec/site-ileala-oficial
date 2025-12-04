@@ -1,4 +1,4 @@
-// Build: 2025-12-04T16:30:00Z - Fix blank pages and Sanity messages
+// Build: 2025-12-04T18:00:00Z - Force rebuild: garantir todas as rotas incluídas (PetCollection, Accessories, TableEssentials, etc)
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Route, Switch } from "wouter";
