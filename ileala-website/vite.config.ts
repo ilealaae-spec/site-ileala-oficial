@@ -1,5 +1,5 @@
-// Force deployment: 2025-12-04 12:25:00
-// Build timestamp: 2025-12-04-11:50:00 - Force rebuild to remove Sanity code
+// Force deployment: 2025-12-04 16:00:00
+// Build timestamp: 2025-12-04-16:00:00 - Force rebuild to update Pet Collection message
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import fs from "node:fs";
