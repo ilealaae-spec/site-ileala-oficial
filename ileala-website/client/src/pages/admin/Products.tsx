@@ -406,7 +406,10 @@ export default function AdminProducts() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {products?.map((product) => (
+        {products?.filter((product, index, self) => 
+          // Remove duplicates based on ID
+          index === self.findIndex((p) => p.id === product.id)
+        ).map((product) => (
           <Card key={product.id} className="overflow-hidden">
             {product.imageUrl && (
               <img

@@ -181,8 +181,8 @@ export default function ProductDetail() {
               </p>
             )}
 
-            <div className="text-2xl font-semibold text-muted-foreground italic mb-8">
-              {language === 'en' ? 'Price coming soon...' : 'Preço em breve...'}
+            <div className="text-3xl font-bold text-primary mb-8">
+              {formatPrice(product.price)}
             </div>
 
             {(language === 'en' ? product.descriptionEN : product.descriptionPT) && (
