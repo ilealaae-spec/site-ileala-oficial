@@ -727,7 +727,7 @@ export async function getActiveCategories() {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   return await db.select().from(categories)
-    .where(eq(categories.active, true))
+    .where(eq(categories.active, 1)) // active is integer: 0 = inactive, 1 = active
     .orderBy(categories.displayOrder);
 }
 
