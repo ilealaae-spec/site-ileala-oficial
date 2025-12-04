@@ -916,13 +916,19 @@ export const appRouter = router({
         category: z.string().optional(),
         stock: z.number().default(0),
         featured: z.number().default(0),
+        active: z.number().default(1), // Default to active = 1
       }))
       .mutation(async ({ input, ctx }) => {
         // Only admin can create products
         if (ctx.user?.role !== 'admin') {
           throw new Error('Unauthorized');
         }
-        const product = await db.createProduct(input);
+        // Ensure active is always 1 for new products
+        const productData = {
+          ...input,
+          active: input.active ?? 1, // Default to 1 if not provided
+        };
+        const product = await db.createProduct(productData);
         // Invalidate product caches
         invalidateCache(CacheKeys.products());
         invalidateCache(CacheKeys.featuredProducts());

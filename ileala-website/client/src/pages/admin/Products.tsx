@@ -155,6 +155,15 @@ export default function AdminProducts() {
   };
 
   const submitProduct = (imageUrl: string) => {
+    // Warn if image URL is from Sanity
+    if (imageUrl && imageUrl.includes('cdn.sanity.io')) {
+      toast.warning(
+        language === 'en' 
+          ? 'Warning: Image URL is from Sanity. Please upload a new image to S3.' 
+          : 'Aviso: URL da imagem é do Sanity. Por favor, faça upload de uma nova imagem para S3.'
+      );
+    }
+
     const productData = {
       nameEN: formData.nameEN,
       namePT: formData.namePT,
@@ -166,15 +175,25 @@ export default function AdminProducts() {
       category: formData.category,
       stock: parseInt(formData.stock),
       featured: formData.featured,
+      active: 1, // Always set active = 1 when creating/updating products
     };
 
     if (editingProduct) {
+      // For updates, include active status from the checkbox
+      const activeCheckbox = document.getElementById('active') as HTMLInputElement;
       updateMutation.mutate({
         id: editingProduct.id,
-        ...productData,
+        data: {
+          ...productData,
+          active: activeCheckbox?.checked ? 1 : 0,
+        },
       });
     } else {
-      createMutation.mutate(productData);
+      // For new products, always set active = 1
+      createMutation.mutate({
+        ...productData,
+        active: 1,
+      });
     }
   };
 
