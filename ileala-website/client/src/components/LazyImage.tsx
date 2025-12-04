@@ -15,6 +15,12 @@ interface LazyImageProps extends ImgHTMLAttributes<HTMLImageElement> {
  * Simplified image component - renders directly without lazy loading
  * Temporary version to debug image loading issues
  */
+// Helper to check if URL is from Sanity
+const isSanityUrl = (url: string | null | undefined): boolean => {
+  if (!url) return false;
+  return url.includes('cdn.sanity.io') || url.includes('sanity.io');
+};
+
 export default function LazyImage({
   src,
   alt,
@@ -25,6 +31,24 @@ export default function LazyImage({
 }: LazyImageProps) {
   const [hasError, setHasError] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  const isSanity = isSanityUrl(src);
+
+  // Don't even try to load Sanity URLs
+  if (isSanity) {
+    return (
+      <div className={cn('relative overflow-hidden bg-gray-100', className)} style={{ minHeight: '100%', minWidth: '100%' }}>
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-100 text-gray-400 p-4 z-20">
+          <svg className="w-12 h-12 mb-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <span className="text-sm font-medium mb-1">Image from Sanity</span>
+          <span className="text-xs text-gray-500 text-center px-2">
+            Please upload a new image in admin panel
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   const handleLoad = () => {
     setIsLoaded(true);
@@ -70,9 +94,12 @@ export default function LazyImage({
 
       {hasError && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-100 text-gray-400 p-4 z-20">
-          <span className="text-sm mb-2">Failed to load image</span>
-          <span className="text-xs text-gray-500 break-all text-center max-w-full">
-            {src.substring(0, 50)}...
+          <svg className="w-12 h-12 mb-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <span className="text-sm font-medium mb-1">Failed to load image</span>
+          <span className="text-xs text-gray-500 break-all text-center max-w-full px-2">
+            {src && src.length > 0 ? src.substring(0, 50) + '...' : 'No image URL provided'}
           </span>
         </div>
       )}
