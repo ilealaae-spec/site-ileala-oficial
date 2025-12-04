@@ -10,7 +10,7 @@
     "dev": "NODE_ENV=development tsx watch server/_core/index.ts",
     "build": "echo '[BUILD] Cleaning cache...' && rm -rf dist node_modules/.vite .vite client/.vite && echo '[BUILD] Cache cleaned!' && vite build && node scripts/post-build.js",
     "build:production": "pnpm run build",
-    "start": "rm -rf dist && pnpm run build && NODE_ENV=production tsx server/_core/index.ts",
+    "start": "NODE_ENV=production tsx server/_core/index.ts",
     "migrate": "tsx server/migrate.ts",
     "check": "tsc --noEmit",
     "format": "prettier --write .",
