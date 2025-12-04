@@ -4,6 +4,7 @@ import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ShoppingCart } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
+import LazyImage from '@/components/LazyImage';
 
 export default function CategoryPage() {
   const { slug } = useParams();
@@ -109,7 +110,7 @@ export default function CategoryPage() {
             >
               <div className="aspect-square overflow-hidden bg-gray-100">
                 {product.imageUrl ? (
-                  <img
+                  <LazyImage
                     src={product.imageUrl}
                     alt={language === 'en' ? product.nameEN : product.namePT}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"

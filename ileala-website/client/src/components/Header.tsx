@@ -50,16 +50,26 @@ export default function Header() {
           <Link href="/collections" className="text-sm font-medium transition-colors hover:text-primary">
             {t.nav.collections}
           </Link>
-          {/* Categories from database - only show if they exist and are active */}
-          {categories && categories.length > 0 && categories.map((category: any) => (
-            <Link 
-              key={category.id} 
-              href={`/category/${category.slug}`} 
-              className="text-sm font-medium transition-colors hover:text-primary"
-            >
-              {language === 'en' ? category.nameEN : category.namePT}
-            </Link>
-          ))}
+          {/* Categories from database - filter out "Collections" to avoid duplication */}
+          {categories && categories.length > 0 && categories
+            .filter((category: any) => {
+              // Exclude "Collections" category to avoid duplication with fixed link
+              const nameEN = (category.nameEN || '').toLowerCase();
+              const namePT = (category.namePT || '').toLowerCase();
+              const slug = (category.slug || '').toLowerCase();
+              return !nameEN.includes('collection') && 
+                     !namePT.includes('coleção') && 
+                     !slug.includes('collection');
+            })
+            .map((category: any) => (
+              <Link 
+                key={category.id} 
+                href={`/category/${category.slug}`} 
+                className="text-sm font-medium transition-colors hover:text-primary"
+              >
+                {language === 'en' ? category.nameEN : category.namePT}
+              </Link>
+            ))}
         </nav>
 
         <div className="flex items-center gap-6">
