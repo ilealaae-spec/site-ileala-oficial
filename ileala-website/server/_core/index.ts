@@ -303,7 +303,7 @@ async function startServer() {
     next();
   });
 
-  // tRPC API
+  // tRPC API - must be before static file serving
   app.use(
     "/api/trpc",
     createExpressMiddleware({
@@ -311,6 +311,7 @@ async function startServer() {
       createContext,
     })
   );
+  
   // development mode uses Vite, production mode uses static files
   const isDevelopment = process.env.NODE_ENV !== "production";
   logger.info(`[Server] NODE_ENV: ${process.env.NODE_ENV}, isDevelopment: ${isDevelopment}`);

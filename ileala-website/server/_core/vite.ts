@@ -67,7 +67,21 @@ export function serveStatic(app: Express) {
     console.log(`✅ Serving static files from: ${distPath}`);
   }
 
-  app.use(express.static(distPath));
+  // Serve static files with proper MIME types
+  app.use(express.static(distPath, {
+    setHeaders: (res, filePath) => {
+      // Set correct MIME types for JavaScript modules
+      if (filePath.endsWith('.js')) {
+        res.setHeader('Content-Type', 'application/javascript');
+      } else if (filePath.endsWith('.mjs')) {
+        res.setHeader('Content-Type', 'application/javascript');
+      } else if (filePath.endsWith('.ts')) {
+        res.setHeader('Content-Type', 'application/typescript');
+      } else if (filePath.endsWith('.tsx')) {
+        res.setHeader('Content-Type', 'application/typescript');
+      }
+    }
+  }));
 
   // fall through to index.html if the file doesn't exist
   // This middleware only runs if no previous middleware has sent a response
@@ -76,7 +90,19 @@ export function serveStatic(app: Express) {
     if (res.headersSent) {
       return next();
     }
+    
+    // Skip API routes
+    if (req.path.startsWith('/api/')) {
+      return next();
+    }
+    
     // Serve index.html for SPA routing
-    res.sendFile(path.resolve(distPath, "index.html"));
+    const indexPath = path.resolve(distPath, "index.html");
+    if (fs.existsSync(indexPath)) {
+      res.sendFile(indexPath);
+    } else {
+      console.error(`[serveStatic] index.html not found at: ${indexPath}`);
+      res.status(404).send('Not found');
+    }
   });
 }
