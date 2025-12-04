@@ -50,16 +50,29 @@ export default function Header() {
           <Link href="/collections" className="text-sm font-medium transition-colors hover:text-primary">
             {t.nav.collections}
           </Link>
-          {/* Categories from database - filter out "Collections" to avoid duplication */}
+          {/* Fixed collection pages */}
+          <Link href="/napkin-rings" className="text-sm font-medium transition-colors hover:text-primary">
+            {language === 'en' ? 'Napkin Rings' : 'Anéis de Guardanapo'}
+          </Link>
+          <Link href="/table-essentials" className="text-sm font-medium transition-colors hover:text-primary">
+            {language === 'en' ? 'Table Essentials' : 'Essenciais de Mesa'}
+          </Link>
+          <Link href="/home-accents" className="text-sm font-medium transition-colors hover:text-primary">
+            {language === 'en' ? 'Home Accents' : 'Acentos para Casa'}
+          </Link>
+          <Link href="/accessories" className="text-sm font-medium transition-colors hover:text-primary">
+            {language === 'en' ? 'Accessories' : 'Acessórios'}
+          </Link>
+          <Link href="/pet-collection" className="text-sm font-medium transition-colors hover:text-primary">
+            {language === 'en' ? 'Pet Collection' : 'Coleção Pet'}
+          </Link>
+          {/* Additional categories from database - only show if they don't duplicate fixed links */}
           {categories && categories.length > 0 && categories
             .filter((category: any) => {
-              // Exclude "Collections" category to avoid duplication with fixed link
-              const nameEN = (category.nameEN || '').toLowerCase();
-              const namePT = (category.namePT || '').toLowerCase();
+              // Exclude categories that match fixed links
               const slug = (category.slug || '').toLowerCase();
-              return !nameEN.includes('collection') && 
-                     !namePT.includes('coleção') && 
-                     !slug.includes('collection');
+              const fixedSlugs = ['collections', 'napkin-rings', 'table-essentials', 'home-accents', 'accessories', 'pet-collection'];
+              return !fixedSlugs.includes(slug);
             })
             .map((category: any) => (
               <Link 
