@@ -91,6 +91,13 @@ export function serveStatic(app: Express) {
       return next();
     }
     
+    // Skip static asset requests (they should be served by express.static above)
+    // Check if request is for a file (has extension) and file exists
+    if (req.path.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|json|webp)$/)) {
+      // Let express.static handle it, or 404 if not found
+      return next();
+    }
+    
     // Skip if response was already sent
     if (res.headersSent) {
       return next();
@@ -99,6 +106,7 @@ export function serveStatic(app: Express) {
     // Serve the built index.html (Vite transforms it during build)
     const indexPath = path.resolve(distPath, "index.html");
     if (fs.existsSync(indexPath)) {
+      console.log(`[serveStatic] Serving index.html for: ${req.path}`);
       res.sendFile(indexPath);
     } else {
       console.error(`[serveStatic] index.html not found at: ${indexPath}`);
