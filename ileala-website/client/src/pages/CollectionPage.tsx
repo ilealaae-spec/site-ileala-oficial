@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ShoppingCart, Loader2 } from "lucide-react";
@@ -7,6 +6,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useCart } from "@/contexts/CartContext";
 import LazyImage from "@/components/LazyImage";
 import { trpc } from "@/lib/trpc";
+<<<<<<< HEAD
 // Migrated from Sanity to tRPC database
 
 // Using database Product type from tRPC
@@ -32,6 +32,8 @@ interface SanityProduct {
   isNew?: boolean;
   onSale?: boolean;
 }
+=======
+>>>>>>> 426dd4d43 (Migração completa: Sanity CMS → PostgreSQL via tRPC)
 
 export default function CollectionPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -39,6 +41,7 @@ export default function CollectionPage() {
   const { language } = useLanguage();
   const { addItem } = useCart();
   
+<<<<<<< HEAD
   const [collectionName, setCollectionName] = useState("");
 
   // Fetch products from database via tRPC
@@ -52,24 +55,81 @@ export default function CollectionPage() {
       setCollectionName(products[0].collection || "");
     }
   }, [products]);
+=======
+  // Convert slug to collection name: "la-mer" -> "La Mer"
+  const collectionName = slug
+    ? slug
+        .split('-')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ')
+    : '';
+  
+  // Fetch products by collection from PostgreSQL via tRPC
+  const { data: products = [], isLoading: loading, error: queryError } = trpc.products.byCollection.useQuery(
+    { collection: collectionName },
+    { enabled: !!slug && !!collectionName }
+  );
 
-  const handleAddToCart = (product: SanityProduct) => {
+  // Format price: database stores price in fils (1 AED = 100 fils)
+  const formatPrice = (priceInFils: number) => {
+    const priceInAED = priceInFils / 100;
+    return `${priceInAED.toFixed(2)} AED`;
+  };
+
+  // Get product name based on language
+  const getProductName = (product: typeof products[0]) => {
+    if (language === 'pt' && product.namePT) return product.namePT;
+    if (language === 'en' && product.nameEN) return product.nameEN;
+    return product.name;
+  };
+>>>>>>> 426dd4d43 (Migração completa: Sanity CMS → PostgreSQL via tRPC)
+
+  // Get product description based on language
+  const getProductDescription = (product: typeof products[0]) => {
+    if (language === 'pt' && product.descriptionPT) return product.descriptionPT;
+    if (language === 'en' && product.descriptionEN) return product.descriptionEN;
+    return '';
+  };
+
+  const handleAddToCart = (product: typeof products[0]) => {
+    const productName = getProductName(product);
+    const priceInAED = product.price / 100;
+    
     addItem({
+<<<<<<< HEAD
       id: product.id.toString(),
       name: product.name,
       price: product.salePrice || product.price,
       quantity: 1,
       imageUrl: product.mainImage || undefined,
+=======
+      id: String(product.id),
+      name: productName,
+      price: priceInAED,
+      image: product.imageUrl || undefined,
+      slug: product.slug,
+>>>>>>> 426dd4d43 (Migração completa: Sanity CMS → PostgreSQL via tRPC)
     });
     
     toast.success(
       language === "en"
+<<<<<<< HEAD
         ? `${product.nameEN || product.name} added to cart!`
         : `${product.nameEN || product.name} adicionado ao carrinho!`
     );
   };
 
   if (isLoading) {
+=======
+        ? `${productName} added to cart!`
+        : `${productName} adicionado ao carrinho!`
+    );
+  };
+
+  const error = queryError ? (queryError.message || 'Failed to load products') : null;
+
+  if (loading) {
+>>>>>>> 426dd4d43 (Migração completa: Sanity CMS → PostgreSQL via tRPC)
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -131,12 +191,21 @@ export default function CollectionPage() {
               {/* Product Image */}
               <div
                 className="relative h-80 bg-gray-100 cursor-pointer overflow-hidden"
+<<<<<<< HEAD
                 onClick={() => setLocation(`/products/${product.slug || product.id}`)}
+=======
+                onClick={() => setLocation(`/shop/${product.slug}`)}
+>>>>>>> 426dd4d43 (Migração completa: Sanity CMS → PostgreSQL via tRPC)
               >
-                {product.mainImage ? (
+                {product.imageUrl ? (
                   <LazyImage
+<<<<<<< HEAD
                     src={product.mainImage}
                     alt={product.mainImageAlt || product.nameEN || product.name}
+=======
+                    src={product.imageUrl}
+                    alt={getProductName(product)}
+>>>>>>> 426dd4d43 (Migração completa: Sanity CMS → PostgreSQL via tRPC)
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                 ) : (
@@ -144,7 +213,11 @@ export default function CollectionPage() {
                     {language === "en" ? "No Image" : "Sem Imagem"}
                   </div>
                 )}
+<<<<<<< HEAD
                 {(!product.stock || product.stock === 0) && (
+=======
+                {product.stock === 0 && (
+>>>>>>> 426dd4d43 (Migração completa: Sanity CMS → PostgreSQL via tRPC)
                   <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                     <span className="text-white font-semibold text-lg">
                       {language === "en" ? "Out of Stock" : "Fora de Estoque"}
@@ -157,6 +230,7 @@ export default function CollectionPage() {
               <div className="p-6">
                 <h3
                   className="text-xl font-semibold text-gray-900 mb-2 cursor-pointer hover:text-primary transition-colors"
+<<<<<<< HEAD
                   onClick={() => setLocation(`/products/${product.slug || product.id}`)}
                 >
                   {product.nameEN || product.name}
@@ -164,10 +238,20 @@ export default function CollectionPage() {
                 {(product.descriptionEN || product.description) && (
                   <p className="text-gray-600 text-sm mb-4 line-clamp-2">
                     {product.descriptionEN || product.description}
+=======
+                  onClick={() => setLocation(`/shop/${product.slug}`)}
+                >
+                  {getProductName(product)}
+                </h3>
+                {getProductDescription(product) && (
+                  <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+                    {getProductDescription(product)}
+>>>>>>> 426dd4d43 (Migração completa: Sanity CMS → PostgreSQL via tRPC)
                   </p>
                 )}
                 <div className="flex items-center justify-between">
                   <div className="flex flex-col">
+<<<<<<< HEAD
                     {(product.salePrice && product.salePrice < product.price) ? (
                       <>
                         <span className="text-2xl font-bold text-primary">
@@ -186,6 +270,15 @@ export default function CollectionPage() {
                   <Button
                     onClick={() => handleAddToCart(product)}
                     disabled={!product.stock || product.stock === 0}
+=======
+                    <span className="text-2xl font-bold text-primary">
+                      {formatPrice(product.price)}
+                    </span>
+                  </div>
+                  <Button
+                    onClick={() => handleAddToCart(product)}
+                    disabled={product.stock === 0}
+>>>>>>> 426dd4d43 (Migração completa: Sanity CMS → PostgreSQL via tRPC)
                     size="sm"
                   >
                     <ShoppingCart className="mr-2 h-4 w-4" />

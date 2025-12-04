@@ -4,19 +4,26 @@ import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/_core/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+<<<<<<< HEAD
 // Migrated from Sanity to tRPC database
+=======
+>>>>>>> 426dd4d43 (Migração completa: Sanity CMS → PostgreSQL via tRPC)
 import { Link, useLocation } from 'wouter';
 import { ShoppingCart, Loader2, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { trpc } from '@/lib/trpc';
 import LazyImage from '@/components/LazyImage';
 
+<<<<<<< HEAD
 // Using database Product type from tRPC
 
+=======
+>>>>>>> 426dd4d43 (Migração completa: Sanity CMS → PostgreSQL via tRPC)
 export default function Shop() {
-  const { t, language } = useLanguage();
+  const { language } = useLanguage();
   const { addItem } = useCart();
   const [searchQuery, setSearchQuery] = useState('');
+<<<<<<< HEAD
   const [buyingProductId, setBuyingProductId] = useState<number | null>(null);
 
   // Fetch products from database via tRPC
@@ -24,13 +31,19 @@ export default function Shop() {
     undefined
   );
 
+=======
+>>>>>>> 426dd4d43 (Migração completa: Sanity CMS → PostgreSQL via tRPC)
   const { isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
+  
+  // Fetch products from PostgreSQL via tRPC
+  const { data: products = [], isLoading: loading, error: queryError } = trpc.products.list.useQuery();
   
   const { data: profileValidation } = trpc.auth.validateProfile.useQuery(undefined, {
     enabled: isAuthenticated,
   });
 
+<<<<<<< HEAD
   const createCheckoutMutation = trpc.payment.createCheckout.useMutation({
     onSuccess: (data) => {
       if (data.url) {
@@ -97,14 +110,42 @@ export default function Shop() {
       productImage: product.mainImage || undefined,
       quantity: 1,
     });
+=======
+  // Format price: database stores price in fils (1 AED = 100 fils)
+  const formatPrice = (priceInFils: number) => {
+    const priceInAED = priceInFils / 100;
+    return `${priceInAED.toFixed(2)} AED`;
+  };
+
+  // Get product name based on language
+  const getProductName = (product: typeof products[0]) => {
+    if (language === 'pt' && product.namePT) return product.namePT;
+    if (language === 'en' && product.nameEN) return product.nameEN;
+    return product.name;
+  };
+
+  // Get product description based on language
+  const getProductDescription = (product: typeof products[0]) => {
+    if (language === 'pt' && product.descriptionPT) return product.descriptionPT;
+    if (language === 'en' && product.descriptionEN) return product.descriptionEN;
+    return '';
+>>>>>>> 426dd4d43 (Migração completa: Sanity CMS → PostgreSQL via tRPC)
   };
 
   // Filter products based on search query
   const filteredProducts = products?.filter((product) => {
+    if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
+<<<<<<< HEAD
     const name = (product.nameEN || product.name || '').toLowerCase();
     const description = (product.descriptionEN || product.description || '').toLowerCase();
     const collection = (product.collection || '').toLowerCase();
+=======
+    const name = getProductName(product).toLowerCase();
+    const description = getProductDescription(product).toLowerCase();
+    const collection = product.collection?.toLowerCase() || '';
+    const category = product.category?.toLowerCase() || '';
+>>>>>>> 426dd4d43 (Migração completa: Sanity CMS → PostgreSQL via tRPC)
     
     return (
       name.includes(query) ||
@@ -113,7 +154,13 @@ export default function Shop() {
     );
   }) || [];
 
+<<<<<<< HEAD
   if (isLoading) {
+=======
+  const error = queryError ? (queryError.message || 'Failed to load products') : null;
+
+  if (loading) {
+>>>>>>> 426dd4d43 (Migração completa: Sanity CMS → PostgreSQL via tRPC)
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -202,6 +249,7 @@ export default function Shop() {
           {filteredProducts && filteredProducts.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
               {filteredProducts.map((product) => {
+<<<<<<< HEAD
                 const displayPrice = product.salePrice && product.salePrice < product.price ? product.salePrice : product.price;
                 const isBuying = buyingProductId === product.id;
                 const isOnSale = product.salePrice && product.salePrice < product.price;
@@ -214,6 +262,20 @@ export default function Shop() {
                           <LazyImage
                             src={product.mainImage}
                             alt={product.mainImageAlt || product.nameEN || product.name}
+=======
+                const productName = getProductName(product);
+                const productDescription = getProductDescription(product);
+                const priceInAED = product.price / 100; // Convert from fils to AED
+                
+                return (
+                  <Card key={product.id} className="overflow-hidden group">
+                    <Link href={`/shop/${product.slug}`}>
+                      <div className="aspect-square overflow-hidden bg-muted cursor-pointer relative">
+                        {product.imageUrl ? (
+                          <LazyImage
+                            src={product.imageUrl}
+                            alt={productName}
+>>>>>>> 426dd4d43 (Migração completa: Sanity CMS → PostgreSQL via tRPC)
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           />
                         ) : (
@@ -221,11 +283,14 @@ export default function Shop() {
                             No image
                           </div>
                         )}
+<<<<<<< HEAD
                         {isOnSale && (
                           <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 text-xs font-semibold rounded">
                             SALE
                           </div>
                         )}
+=======
+>>>>>>> 426dd4d43 (Migração completa: Sanity CMS → PostgreSQL via tRPC)
                         {product.featured === 1 && (
                           <div className="absolute top-2 left-2 bg-green-500 text-white px-2 py-1 text-xs font-semibold rounded">
                             FEATURED
@@ -234,6 +299,7 @@ export default function Shop() {
                       </div>
                     </Link>
                     <div className="p-4">
+<<<<<<< HEAD
                       <Link href={`/products/${product.slug || product.id}`}>
                         <h3 className="text-lg font-semibold mb-2 hover:text-primary cursor-pointer">
                           {product.nameEN || product.name}
@@ -242,6 +308,16 @@ export default function Shop() {
                       {(product.descriptionEN || product.description) && (
                         <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
                           {product.descriptionEN || product.description}
+=======
+                      <Link href={`/shop/${product.slug}`}>
+                        <h3 className="text-lg font-semibold mb-2 hover:text-primary cursor-pointer">
+                          {productName}
+                        </h3>
+                      </Link>
+                      {productDescription && (
+                        <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
+                          {productDescription}
+>>>>>>> 426dd4d43 (Migração completa: Sanity CMS → PostgreSQL via tRPC)
                         </p>
                       )}
                       {product.collection && (
@@ -252,11 +328,17 @@ export default function Shop() {
                       <div className="flex items-center justify-between mt-4">
                         <div className="flex flex-col">
                           <span className="text-lg font-semibold">
-                            {formatPrice(displayPrice)}
+                            {formatPrice(product.price)}
                           </span>
+<<<<<<< HEAD
                           {isOnSale && (
                             <span className="text-sm text-muted-foreground line-through">
                               {formatPrice(product.price)}
+=======
+                          {product.stock === 0 && (
+                            <span className="text-xs text-red-500">
+                              {language === 'en' ? 'Out of stock' : 'Fora de estoque'}
+>>>>>>> 426dd4d43 (Migração completa: Sanity CMS → PostgreSQL via tRPC)
                             </span>
                           )}
                         </div>
@@ -264,21 +346,36 @@ export default function Shop() {
                           <Button 
                             size="sm" 
                             variant="outline"
+                            disabled={product.stock === 0}
                             onClick={() => {
                               addItem({
+<<<<<<< HEAD
                                 id: product.id.toString(),
                                 name: product.nameEN || product.name,
                                 price: displayPrice,
                                 image: product.mainImage || undefined,
                                 slug: product.slug || product.id.toString(),
                             }, 1);
+=======
+                                id: String(product.id),
+                                name: productName,
+                                price: priceInAED,
+                                image: product.imageUrl || undefined,
+                                slug: product.slug,
+                              });
+                              toast.success(language === 'en' ? 'Added to cart' : 'Adicionado ao carrinho');
+>>>>>>> 426dd4d43 (Migração completa: Sanity CMS → PostgreSQL via tRPC)
                             }}
                             disabled={product.stock === 0}
                           >
                             <ShoppingCart className="w-4 h-4 mr-2" />
                             {language === 'en' ? 'Add' : 'Adicionar'}
                           </Button>
+<<<<<<< HEAD
                           <Link href={`/products/${product.slug || product.id}`}>
+=======
+                          <Link href={`/shop/${product.slug}`}>
+>>>>>>> 426dd4d43 (Migração completa: Sanity CMS → PostgreSQL via tRPC)
                             <Button size="sm">
                               {language === 'en' ? 'View' : 'Ver'}
                             </Button>

@@ -1,22 +1,29 @@
 import { useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCart } from '@/contexts/CartContext';
-import { useAuth } from '@/_core/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+<<<<<<< HEAD
 // Migrated from Sanity to tRPC database
 import { Link, useLocation } from 'wouter';
+=======
+import { Link } from 'wouter';
+>>>>>>> 426dd4d43 (Migração completa: Sanity CMS → PostgreSQL via tRPC)
 import { ShoppingCart, Loader2, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { trpc } from '@/lib/trpc';
 import LazyImage from '@/components/LazyImage';
 
+<<<<<<< HEAD
 // Using database Product type from tRPC
 
+=======
+>>>>>>> 426dd4d43 (Migração completa: Sanity CMS → PostgreSQL via tRPC)
 export default function NapkinRings() {
-  const { t, language } = useLanguage();
+  const { language } = useLanguage();
   const { addItem } = useCart();
   const [searchQuery, setSearchQuery] = useState('');
+<<<<<<< HEAD
   const [buyingProductId, setBuyingProductId] = useState<number | null>(null);
 
   // Fetch products from database via tRPC
@@ -26,11 +33,18 @@ export default function NapkinRings() {
 
   const { isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
+=======
+>>>>>>> 426dd4d43 (Migração completa: Sanity CMS → PostgreSQL via tRPC)
   
-  const { data: profileValidation } = trpc.auth.validateProfile.useQuery(undefined, {
-    enabled: isAuthenticated,
-  });
+  // Fetch all products and filter by collection
+  const { data: allProducts = [], isLoading: loading, error: queryError } = trpc.products.list.useQuery();
+  
+  // Filter products by collection "Napkin Rings"
+  const products = allProducts.filter(p => 
+    p.collection?.toLowerCase().includes('napkin ring') && p.active === 1
+  );
 
+<<<<<<< HEAD
   const createCheckoutMutation = trpc.payment.createCheckout.useMutation({
     onSuccess: (data) => {
       if (data.url) {
@@ -97,14 +111,40 @@ export default function NapkinRings() {
       productImage: product.mainImage || undefined,
       quantity: 1,
     });
+=======
+  // Format price: database stores price in fils (1 AED = 100 fils)
+  const formatPrice = (priceInFils: number) => {
+    const priceInAED = priceInFils / 100;
+    return `${priceInAED.toFixed(2)} AED`;
+  };
+
+  // Get product name based on language
+  const getProductName = (product: typeof products[0]) => {
+    if (language === 'pt' && product.namePT) return product.namePT;
+    if (language === 'en' && product.nameEN) return product.nameEN;
+    return product.name;
+  };
+
+  // Get product description based on language
+  const getProductDescription = (product: typeof products[0]) => {
+    if (language === 'pt' && product.descriptionPT) return product.descriptionPT;
+    if (language === 'en' && product.descriptionEN) return product.descriptionEN;
+    return '';
+>>>>>>> 426dd4d43 (Migração completa: Sanity CMS → PostgreSQL via tRPC)
   };
 
   // Filter products based on search query
   const filteredProducts = products?.filter((product) => {
+    if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
+<<<<<<< HEAD
     const name = (product.nameEN || product.name || '').toLowerCase();
     const description = (product.descriptionEN || product.description || '').toLowerCase();
     const collection = (product.collection || '').toLowerCase();
+=======
+    const name = getProductName(product).toLowerCase();
+    const description = getProductDescription(product).toLowerCase();
+>>>>>>> 426dd4d43 (Migração completa: Sanity CMS → PostgreSQL via tRPC)
     
     return (
       name.includes(query) ||
@@ -113,7 +153,13 @@ export default function NapkinRings() {
     );
   }) || [];
 
+<<<<<<< HEAD
   if (isLoading) {
+=======
+  const error = queryError ? (queryError.message || 'Failed to load products') : null;
+
+  if (loading) {
+>>>>>>> 426dd4d43 (Migração completa: Sanity CMS → PostgreSQL via tRPC)
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -202,6 +248,7 @@ export default function NapkinRings() {
           {filteredProducts && filteredProducts.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
               {filteredProducts.map((product) => {
+<<<<<<< HEAD
                 const displayPrice = product.salePrice && product.salePrice < product.price ? product.salePrice : product.price;
                 const isBuying = buyingProductId === product.id;
                 const isOnSale = product.salePrice && product.salePrice < product.price;
@@ -214,6 +261,20 @@ export default function NapkinRings() {
                           <LazyImage
                             src={product.mainImage}
                             alt={product.mainImageAlt || product.nameEN || product.name}
+=======
+                const productName = getProductName(product);
+                const productDescription = getProductDescription(product);
+                const priceInAED = product.price / 100; // Convert from fils to AED
+                
+                return (
+                  <Card key={product.id} className="overflow-hidden group">
+                    <Link href={`/shop/${product.slug}`}>
+                      <div className="aspect-square overflow-hidden bg-muted cursor-pointer relative">
+                        {product.imageUrl ? (
+                          <LazyImage
+                            src={product.imageUrl}
+                            alt={productName}
+>>>>>>> 426dd4d43 (Migração completa: Sanity CMS → PostgreSQL via tRPC)
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           />
                         ) : (
@@ -221,11 +282,14 @@ export default function NapkinRings() {
                             No image
                           </div>
                         )}
+<<<<<<< HEAD
                         {isOnSale && (
                           <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 text-xs font-semibold rounded">
                             SALE
                           </div>
                         )}
+=======
+>>>>>>> 426dd4d43 (Migração completa: Sanity CMS → PostgreSQL via tRPC)
                         {product.featured === 1 && (
                           <div className="absolute top-2 left-2 bg-green-500 text-white px-2 py-1 text-xs font-semibold rounded">
                             FEATURED
@@ -234,6 +298,7 @@ export default function NapkinRings() {
                       </div>
                     </Link>
                     <div className="p-4">
+<<<<<<< HEAD
                       <Link href={`/products/${product.slug || product.id}`}>
                         <h3 className="text-lg font-semibold mb-2 hover:text-primary cursor-pointer">
                           {product.nameEN || product.name}
@@ -284,6 +349,53 @@ export default function NapkinRings() {
                             </Button>
                           </Link>
                         </div>
+=======
+                      <Link href={`/shop/${product.slug}`}>
+                        <h3 className="text-lg font-semibold mb-2 hover:text-primary cursor-pointer">
+                          {productName}
+                        </h3>
+                      </Link>
+                      {productDescription && (
+                        <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+                          {productDescription}
+                        </p>
+                      )}
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <span className="text-xl font-bold">
+                            {formatPrice(product.price)}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          className="flex-1"
+                          disabled={product.stock === 0}
+                          onClick={() => {
+                            addItem({
+                              id: String(product.id),
+                              name: productName,
+                              price: priceInAED,
+                              image: product.imageUrl || undefined,
+                              slug: product.slug,
+                            });
+                            toast.success(
+                              language === 'en'
+                                ? `${productName} added to cart!`
+                                : `${productName} adicionado ao carrinho!`
+                            );
+                          }}
+                        >
+                          <ShoppingCart className="w-4 h-4 mr-2" />
+                          {language === 'en' ? 'Add to Cart' : 'Adicionar'}
+                        </Button>
+                        <Link href={`/shop/${product.slug}`}>
+                          <Button className="flex-1">
+                            {language === 'en' ? 'View' : 'Ver'}
+                          </Button>
+                        </Link>
+>>>>>>> 426dd4d43 (Migração completa: Sanity CMS → PostgreSQL via tRPC)
                       </div>
                     </div>
                   </Card>
