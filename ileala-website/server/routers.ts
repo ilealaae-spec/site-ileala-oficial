@@ -1201,8 +1201,17 @@ export const appRouter = router({
   admin: router({
     // Products management
     products: router({
+      list: protectedProcedure.query(async ({ ctx }) => {
+        if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+        // Admin should see ALL products, including inactive ones
+        const db = await getDb();
+        if (!db) return [];
+        return db.select().from(products).orderBy(products.id);
+      }),
       create: protectedProcedure
         .input(z.object({
+          name: z.string().optional(), // Accept name if provided
+          slug: z.string().optional(), // Accept slug if provided
           nameEN: z.string(),
           namePT: z.string(),
           descriptionEN: z.string().optional(),
@@ -1213,22 +1222,50 @@ export const appRouter = router({
           category: z.string().optional(),
           stock: z.number().default(0),
           featured: z.number().default(0),
+          active: z.number().default(1), // Accept active status
         }))
         .mutation(async ({ input, ctx }) => {
           if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
           
-          // Generate slug from nameEN
-          const slug = input.nameEN.toLowerCase()
+          // Generate slug from nameEN if not provided
+          const slug = input.slug || input.nameEN.toLowerCase()
             .replace(/[^a-z0-9]+/g, '-')
             .replace(/^-|-$/g, '') + '-' + Date.now();
           
-          const productId = await db.createProduct({
-            ...input,
+          // Use provided name or default to nameEN
+          const name = input.name || input.nameEN;
+          
+          console.log('[Admin.Products.Create] Creating product:', {
+            name,
             slug,
-            name: input.nameEN, // Use English name as default
+            nameEN: input.nameEN,
+            active: input.active ?? 1,
+            collection: input.collection,
+            category: input.category,
           });
           
-          return { id: productId };
+          const productId = await db.createProduct({
+            ...input,
+            name,
+            slug,
+            active: input.active ?? 1, // Default to 1 if not provided
+          });
+          
+          console.log('[Admin.Products.Create] Product created with ID:', productId);
+          
+          // Invalidate all product caches
+          invalidateCache(CacheKeys.products());
+          invalidateCache(CacheKeys.featuredProducts());
+          if (input.collection) {
+            invalidateCache(CacheKeys.products(`collection:${input.collection}`));
+          }
+          if (input.category) {
+            invalidateCache(CacheKeys.products(`category:${input.category}`));
+          }
+          
+          // Return the created product
+          const createdProduct = await db.getProductById(productId);
+          return createdProduct || { id: productId };
         }),
       update: protectedProcedure
         .input(z.object({

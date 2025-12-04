@@ -23,7 +23,8 @@ export default function AdminProducts() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
   
-  const { data: products, isLoading, refetch } = trpc.products.list.useQuery();
+  // Admin should use admin.products.list to see ALL products (including inactive)
+  const { data: products, isLoading, refetch } = trpc.admin.products.list.useQuery();
   
   const createMutation = trpc.admin.products.create.useMutation({
     onSuccess: () => {
