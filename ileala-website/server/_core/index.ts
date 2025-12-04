@@ -318,19 +318,34 @@ async function startServer() {
   });
   
   // development mode uses Vite, production mode uses static files
-  // Force production mode if NODE_ENV is not explicitly set to development
-  const nodeEnv = process.env.NODE_ENV || "production";
-  const isDevelopment = nodeEnv === "development";
+  // CRITICAL: Force production mode in Railway/deployment environments
+  // Railway may set NODE_ENV=development, but we need production mode for static files
+  
+  // Detect if we're in Railway (Railway sets RAILWAY_ENVIRONMENT or RAILWAY_PROJECT_ID)
+  const isRailway = !!(process.env.RAILWAY_ENVIRONMENT || process.env.RAILWAY_PROJECT_ID);
+  
+  // Only use development mode if:
+  // 1. NODE_ENV is explicitly "development" AND
+  // 2. We're NOT in Railway (local development only)
+  const isDevelopment = process.env.NODE_ENV === "development" && !isRailway;
+  
+  // Force production mode if in Railway or if NODE_ENV is not explicitly "development"
+  if (!isDevelopment) {
+    process.env.NODE_ENV = "production";
+  }
   
   // Log detailed environment info
   logger.info(`[Server] Environment check:`);
-  logger.info(`  - process.env.NODE_ENV: ${process.env.NODE_ENV || "undefined"}`);
-  logger.info(`  - nodeEnv (resolved): ${nodeEnv}`);
+  logger.info(`  - process.env.NODE_ENV (original): ${process.env.NODE_ENV || "undefined"}`);
+  logger.info(`  - RAILWAY_ENVIRONMENT: ${process.env.RAILWAY_ENVIRONMENT || "not set"}`);
+  logger.info(`  - RAILWAY_PROJECT_ID: ${process.env.RAILWAY_PROJECT_ID || "not set"}`);
+  logger.info(`  - isRailway: ${isRailway}`);
   logger.info(`  - isDevelopment: ${isDevelopment}`);
+  logger.info(`  - process.env.NODE_ENV (final): ${process.env.NODE_ENV}`);
   logger.info(`  - process.cwd(): ${process.cwd()}`);
   
   if (isDevelopment) {
-    logger.info("[Server] Using Vite dev server");
+    logger.info("[Server] Using Vite dev server (local development)");
     await setupVite(app, server);
   } else {
     logger.info("[Server] Using static files (production mode)");
