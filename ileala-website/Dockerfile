@@ -1,6 +1,6 @@
-# Dockerfile para Railway - Força Node.js 20.12.0
+# Dockerfile para Railway - Node.js 20.19+ (requerido pelo Vite 7.2.6)
 # Railway está configurado com workingDir = "ileala-website", então o contexto já está dentro dessa pasta
-FROM node:20.12.0-alpine
+FROM node:20.19.0-alpine
 
 WORKDIR /app
 
