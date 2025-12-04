@@ -928,14 +928,40 @@ export const appRouter = router({
           ...input,
           active: input.active ?? 1, // Default to 1 if not provided
         };
-        const product = await db.createProduct(productData);
-        // Invalidate product caches
+        
+        console.log('[Admin] Creating product:', {
+          name: productData.name,
+          slug: productData.slug,
+          nameEN: productData.nameEN,
+          active: productData.active,
+          collection: productData.collection,
+          category: productData.category,
+        });
+        
+        const productId = await db.createProduct(productData);
+        
+        console.log('[Admin] Product created with ID:', productId);
+        
+        // Invalidate product caches to ensure new product appears immediately
         invalidateCache(CacheKeys.products());
         invalidateCache(CacheKeys.featuredProducts());
         if (input.collection) {
           invalidateCache(CacheKeys.products(`collection:${input.collection}`));
         }
-        return product;
+        if (input.category) {
+          invalidateCache(CacheKeys.products(`category:${input.category}`));
+        }
+        
+        // Return the created product for confirmation
+        const createdProduct = await db.getProductById(productId);
+        console.log('[Admin] Created product details:', createdProduct ? {
+          id: createdProduct.id,
+          name: createdProduct.name,
+          slug: createdProduct.slug,
+          active: createdProduct.active,
+        } : 'Product not found after creation');
+        
+        return createdProduct || { id: productId };
       }),
     update: protectedProcedure
       .input(z.object({
