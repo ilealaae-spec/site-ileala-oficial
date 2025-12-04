@@ -19,7 +19,14 @@ COPY . .
 # Build
 RUN pnpm run build
 
-# Start
+# Verify build output exists
+RUN ls -la dist/public/ || (echo "ERROR: Build output not found!" && exit 1)
+
+# Start - Set NODE_ENV before CMD
 ENV NODE_ENV=production
+
+# Verify NODE_ENV is set
+RUN echo "NODE_ENV will be: $NODE_ENV"
+
 CMD ["pnpm", "run", "start"]
 

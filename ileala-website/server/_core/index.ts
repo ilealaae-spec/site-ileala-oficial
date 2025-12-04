@@ -318,14 +318,22 @@ async function startServer() {
   });
   
   // development mode uses Vite, production mode uses static files
-  const isDevelopment = process.env.NODE_ENV !== "production";
-  logger.info(`[Server] NODE_ENV: ${process.env.NODE_ENV}, isDevelopment: ${isDevelopment}`);
+  // Force production mode if NODE_ENV is not explicitly set to development
+  const nodeEnv = process.env.NODE_ENV || "production";
+  const isDevelopment = nodeEnv === "development";
+  
+  // Log detailed environment info
+  logger.info(`[Server] Environment check:`);
+  logger.info(`  - process.env.NODE_ENV: ${process.env.NODE_ENV || "undefined"}`);
+  logger.info(`  - nodeEnv (resolved): ${nodeEnv}`);
+  logger.info(`  - isDevelopment: ${isDevelopment}`);
+  logger.info(`  - process.cwd(): ${process.cwd()}`);
   
   if (isDevelopment) {
     logger.info("[Server] Using Vite dev server");
     await setupVite(app, server);
   } else {
-    logger.info("[Server] Using static files");
+    logger.info("[Server] Using static files (production mode)");
     serveStatic(app);
   }
 

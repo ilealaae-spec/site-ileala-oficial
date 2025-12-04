@@ -52,19 +52,50 @@ export function serveStatic(app: Express) {
   const projectRoot = path.resolve(import.meta.dirname, "..", "..");
   const distPath = path.resolve(projectRoot, "dist", "public");
   
+  console.log(`[serveStatic] Checking build directory...`);
+  console.log(`  - projectRoot: ${projectRoot}`);
+  console.log(`  - distPath: ${distPath}`);
+  console.log(`  - distPath exists: ${fs.existsSync(distPath)}`);
+  console.log(`  - NODE_ENV: ${process.env.NODE_ENV || "undefined"}`);
+  
   if (!fs.existsSync(distPath)) {
     console.error(
-      `Could not find the build directory: ${distPath}, make sure to build the client first`
+      `❌ Could not find the build directory: ${distPath}, make sure to build the client first`
     );
     console.error(`Current working directory: ${process.cwd()}`);
     console.error(`Project root: ${projectRoot}`);
+    
+    // List what's in the project root
+    if (fs.existsSync(projectRoot)) {
+      console.error(`Files in project root:`, fs.readdirSync(projectRoot));
+    }
+    
+    // Check if dist exists but public doesn't
+    const distDir = path.resolve(projectRoot, "dist");
+    if (fs.existsSync(distDir)) {
+      console.error(`dist directory exists, contents:`, fs.readdirSync(distDir));
+    }
+    
     // Exit process if build directory is critical and not found in production
-    if (process.env.NODE_ENV === 'production') {
-      console.error("Exiting due to missing build directory in production.");
+    const nodeEnv = process.env.NODE_ENV || "production";
+    if (nodeEnv === 'production') {
+      console.error("❌ Exiting due to missing build directory in production.");
       process.exit(1);
     }
   } else {
     console.log(`✅ Serving static files from: ${distPath}`);
+    // List some files to confirm build exists
+    try {
+      const files = fs.readdirSync(distPath);
+      console.log(`✅ Build directory contains ${files.length} files/folders`);
+      if (files.includes('index.html')) {
+        console.log(`✅ index.html found in build directory`);
+      } else {
+        console.error(`❌ index.html NOT found in build directory`);
+      }
+    } catch (e) {
+      console.error(`Error reading dist directory:`, e);
+    }
   }
 
   // Serve static files with proper MIME types
