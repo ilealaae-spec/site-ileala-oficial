@@ -1,4 +1,4 @@
-// Build: 2025-11-02T03:27:00Z - Fixed React Hooks error
+// Build: 2025-12-04T16:30:00Z - Fix blank pages and Sanity messages
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Route, Switch } from "wouter";
