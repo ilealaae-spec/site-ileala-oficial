@@ -791,7 +791,7 @@ export async function getActiveCollections() {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   return await db.select().from(collections)
-    .where(eq(collections.active, true))
+    .where(eq(collections.active, 1)) // active is integer: 0 = inactive, 1 = active
     .orderBy(collections.displayOrder);
 }
 
