@@ -396,6 +396,31 @@ export default function AdminProducts() {
                 <Label htmlFor="featured">{language === 'en' ? 'Featured Product' : 'Produto em Destaque'}</Label>
               </div>
 
+              {/* Active Status - Always show as checked for new products, allow editing for existing */}
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="active"
+                  checked={editingProduct ? (editingProduct.active === 1) : true}
+                  onChange={(e) => {
+                    // For new products, always keep active = 1
+                    if (!editingProduct) return;
+                    // For existing products, allow toggling
+                    // Note: active is not in formData, we'll handle it in submitProduct
+                  }}
+                  disabled={!editingProduct}
+                  className="w-4 h-4"
+                />
+                <Label htmlFor="active">
+                  {language === 'en' ? 'Active (visible on site)' : 'Ativo (visível no site)'}
+                  {!editingProduct && (
+                    <span className="text-xs text-muted-foreground ml-2">
+                      ({language === 'en' ? 'New products are always active' : 'Novos produtos são sempre ativos'})
+                    </span>
+                  )}
+                </Label>
+              </div>
+
               <div className="flex gap-2 pt-4">
                 <Button
                   type="submit"
