@@ -136,13 +136,21 @@ export async function getProductBySlug(slug: string) {
 export async function getProductsByCollection(collection: string) {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(products).where(sql`lower(${products.collection}) = lower(${collection})`);
+  return db.select().from(products)
+    .where(and(
+      sql`lower(${products.collection}) = lower(${collection})`,
+      eq(products.active, 1)
+    ));
 }
 
 export async function getProductsByCategory(category: string) {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(products).where(sql`lower(${products.category}) = lower(${category})`);
+  return db.select().from(products)
+    .where(and(
+      sql`lower(${products.category}) = lower(${category})`,
+      eq(products.active, 1)
+    ));
 }
 
 export async function createProduct(product: InsertProduct) {
