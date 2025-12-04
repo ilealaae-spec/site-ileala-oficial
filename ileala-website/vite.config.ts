@@ -78,6 +78,10 @@ export default defineConfig(({ mode }) => {
     'import.meta.env.VITE_OAUTH_PORTAL_URL': JSON.stringify(env.VITE_OAUTH_PORTAL_URL || ''),
     'import.meta.env.VITE_LEGACY_BUILD': JSON.stringify(env.VITE_LEGACY_BUILD || 'true'),
     'import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY': JSON.stringify(env.VITE_STRIPE_PUBLISHABLE_KEY || ''),
+    // Explicitly disable Sanity to prevent old code from being included
+    'import.meta.env.VITE_SANITY_PROJECT_ID': JSON.stringify(''),
+    'import.meta.env.VITE_SANITY_DATASET': JSON.stringify(''),
+    'import.meta.env.VITE_SANITY_API_VERSION': JSON.stringify(''),
   },
 };
 });

@@ -140,7 +140,13 @@ export default function PetCollection() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <p className="text-red-600">
+          <p className="text-red-600 text-2xl font-bold">
+            🚀 TESTE DEPLOYMENT 2025-12-04 🚀
+          </p>
+          <p className="text-gray-600 mt-4">
+            Se você está vendo esta mensagem, o Railway está fazendo deploy do código correto!
+          </p>
+          <p className="text-sm text-gray-500 mt-2">
             {language === 'en' 
               ? 'No pet collection products available. Please add products in Admin Panel.' 
               : 'Nenhum produto da coleção pet disponível. Por favor, adicione produtos no Painel Admin.'}
