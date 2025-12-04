@@ -47,7 +47,8 @@ export default function Header() {
           <Link href="/collections" className="text-sm font-medium transition-colors hover:text-primary">
             {t.nav.collections}
           </Link>
-          {categories.map((category: any) => (
+          {/* Categories from database - only show if they exist and are active */}
+          {categories && categories.length > 0 && categories.map((category: any) => (
             <Link 
               key={category.id} 
               href={`/category/${category.slug}`} 

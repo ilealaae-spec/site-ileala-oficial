@@ -55,13 +55,20 @@ export default function CategoryPage() {
     );
   }
 
+  // Format price: database stores price in fils (1 AED = 100 fils)
+  const formatPrice = (priceInFils: number) => {
+    const priceInAED = priceInFils / 100;
+    return `${priceInAED.toFixed(2)} AED`;
+  };
+
   const handleAddToCart = (product: any) => {
+    const priceInAED = product.price / 100; // Convert from fils to AED
     addItem({
-      id: product.id,
+      id: String(product.id),
       name: language === 'en' ? product.nameEN : product.namePT,
-      price: product.price,
-      imageUrl: product.imageUrl,
-      quantity: 1,
+      price: priceInAED,
+      image: product.imageUrl || undefined,
+      slug: product.slug,
     });
   };
 
@@ -117,7 +124,7 @@ export default function CategoryPage() {
                 )}
                 <div className="flex items-center justify-between">
                   <span className="text-xl font-bold text-primary">
-                    {product.price.toFixed(2)} AED
+                    {formatPrice(product.price)}
                   </span>
                   <Button
                     size="sm"
