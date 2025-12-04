@@ -1,3 +1,4 @@
+// Force deployment: 2025-12-04 12:25:00
 // Build timestamp: 2025-12-04-11:50:00 - Force rebuild to remove Sanity code
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
