@@ -1,49 +1,18 @@
-<<<<<<< HEAD
-// NIXPACKS BUILD: 2025-12-04 12:32:00
-=======
->>>>>>> 426dd4d43 (Migração completa: Sanity CMS → PostgreSQL via tRPC)
 import { useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCart } from '@/contexts/CartContext';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-<<<<<<< HEAD
-// Migrated from Sanity to tRPC database
-import { Link, useLocation } from 'wouter';
-=======
 import { Link } from 'wouter';
->>>>>>> 426dd4d43 (Migração completa: Sanity CMS → PostgreSQL via tRPC)
 import { ShoppingCart, Loader2, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { trpc } from '@/lib/trpc';
 import LazyImage from '@/components/LazyImage';
 
-<<<<<<< HEAD
-// Using database Product type from tRPC
-
-=======
->>>>>>> 426dd4d43 (Migração completa: Sanity CMS → PostgreSQL via tRPC)
 export default function PetCollection() {
   const { language } = useLanguage();
   const { addItem } = useCart();
   const [searchQuery, setSearchQuery] = useState('');
-<<<<<<< HEAD
-  const [buyingProductId, setBuyingProductId] = useState<number | null>(null);
-
-  // Fetch products from database via tRPC
-  // Fetch all products and filter by category (handles both 'pet-collection' and 'pet collection')
-  const { data: allProducts, isLoading, error } = trpc.products.list.useQuery();
-  
-  // Filter products by pet collection category (normalize spaces and hyphens)
-  const products = allProducts?.filter(p => {
-    const category = (p.category || '').toLowerCase().replace(/[\s-]+/g, '');
-    return category === 'petcollection';
-  });
-
-  const { isAuthenticated } = useAuth();
-  const [, setLocation] = useLocation();
-=======
->>>>>>> 426dd4d43 (Migração completa: Sanity CMS → PostgreSQL via tRPC)
   
   // Fetch all products and filter by category
   const { data: allProducts = [], isLoading: loading, error: queryError } = trpc.products.list.useQuery();
@@ -51,74 +20,6 @@ export default function PetCollection() {
   // Filter products by category "pet-collection"
   const products = allProducts.filter(p => p.category === 'pet-collection' && p.active === 1);
 
-<<<<<<< HEAD
-  const createCheckoutMutation = trpc.payment.createCheckout.useMutation({
-    onSuccess: (data) => {
-      if (data.url) {
-        window.location.href = data.url;
-      }
-    },
-    onError: (error) => {
-      toast.error(language === 'en' ? 'Failed to create checkout session' : 'Falha ao criar sessão de checkout');
-      console.error('Checkout error:', error);
-      setBuyingProductId(null);
-    },
-  });
-
-// Products now fetched via tRPC useQuery hook above
-
-  const formatPrice = (price: number) => {
-    return `${price.toFixed(2)} AED`;
-  };
-
-// Image URLs now come directly from database (mainImage field)
-
-  // Handle Buy Now button click
-  const handleBuyNow = (product: any) => {
-    // Check if user is authenticated
-    if (!isAuthenticated) {
-      toast.error(language === 'en' ? 'Please sign in to continue' : 'Por favor, faça login para continuar');
-      setLocation(`/login?redirect=/pet-collection`);
-      return;
-    }
-
-    // Validate profile data before checkout
-    if (profileValidation && !profileValidation.isValid) {
-      const missingFields = profileValidation.missingFields;
-      const fieldNames: Record<string, string> = {
-        name: language === 'en' ? 'Full Name' : 'Nome Completo',
-        phone: language === 'en' ? 'Phone Number' : 'Telefone',
-        address: language === 'en' ? 'Address' : 'Endereço',
-        city: language === 'en' ? 'City' : 'Cidade',
-        state: language === 'en' ? 'State/Emirate' : 'Estado/Emirado',
-        country: language === 'en' ? 'Country' : 'País',
-      };
-      
-      const missingFieldNames = missingFields.map(field => fieldNames[field] || field).join(', ');
-      
-      toast.error(
-        language === 'en' 
-          ? `Please complete your profile before checkout. Missing: ${missingFieldNames}` 
-          : `Por favor, complete seu perfil antes de finalizar a compra. Faltando: ${missingFieldNames}`,
-        { duration: 5000 }
-      );
-      
-      setLocation('/profile');
-      return;
-    }
-
-    const displayPrice = product.salePrice && product.salePrice < product.price ? product.salePrice : product.price;
-    
-    setBuyingProductId(product.id);
-    
-    createCheckoutMutation.mutate({
-      productId: product.id,
-      productName: product.nameEN || product.name,
-      productPrice: displayPrice,
-      productImage: product.mainImage || undefined,
-      quantity: 1,
-    });
-=======
   // Format price: database stores price in fils (1 AED = 100 fils)
   const formatPrice = (priceInFils: number) => {
     const priceInAED = priceInFils / 100;
@@ -137,22 +38,15 @@ export default function PetCollection() {
     if (language === 'pt' && product.descriptionPT) return product.descriptionPT;
     if (language === 'en' && product.descriptionEN) return product.descriptionEN;
     return '';
->>>>>>> 426dd4d43 (Migração completa: Sanity CMS → PostgreSQL via tRPC)
   };
 
   // Filter products based on search query
   const filteredProducts = products?.filter((product) => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
-<<<<<<< HEAD
-    const name = (product.nameEN || product.name || '').toLowerCase();
-    const description = (product.descriptionEN || product.description || '').toLowerCase();
-    const collection = (product.collection || '').toLowerCase();
-=======
     const name = getProductName(product).toLowerCase();
     const description = getProductDescription(product).toLowerCase();
     const collection = product.collection?.toLowerCase() || '';
->>>>>>> 426dd4d43 (Migração completa: Sanity CMS → PostgreSQL via tRPC)
     
     return (
       name.includes(query) ||
@@ -161,13 +55,9 @@ export default function PetCollection() {
     );
   }) || [];
 
-<<<<<<< HEAD
-  if (isLoading) {
-=======
   const error = queryError ? (queryError.message || 'Failed to load products') : null;
 
   if (loading) {
->>>>>>> 426dd4d43 (Migração completa: Sanity CMS → PostgreSQL via tRPC)
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -179,27 +69,7 @@ export default function PetCollection() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <p className="text-red-600">Error loading products: {error.message}</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!products || products.length === 0) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-600 text-2xl font-bold">
-            🚀 TESTE DEPLOYMENT 2025-12-04 🚀
-          </p>
-          <p className="text-gray-600 mt-4">
-            Se você está vendo esta mensagem, o Railway está fazendo deploy do código correto!
-          </p>
-          <p className="text-sm text-gray-500 mt-2">
-            {language === 'en' 
-              ? 'No pet collection products available. Please add products in Admin Panel.' 
-              : 'Nenhum produto da coleção pet disponível. Por favor, adicione produtos no Painel Admin.'}
-          </p>
+          <p className="text-red-600">{error}</p>
         </div>
       </div>
     );
@@ -262,20 +132,6 @@ export default function PetCollection() {
           {filteredProducts && filteredProducts.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
               {filteredProducts.map((product) => {
-<<<<<<< HEAD
-                const displayPrice = product.salePrice && product.salePrice < product.price ? product.salePrice : product.price;
-                const isBuying = buyingProductId === product.id;
-                const isOnSale = product.salePrice && product.salePrice < product.price;
-                
-                return (
-                  <Card key={product.id} className="overflow-hidden group">
-                    <Link href={`/products/${product.slug || product.id}`}>
-                      <div className="aspect-square overflow-hidden bg-muted cursor-pointer relative">
-                        {product.mainImage ? (
-                          <LazyImage
-                            src={product.mainImage}
-                            alt={product.mainImageAlt || product.nameEN || product.name}
-=======
                 const productName = getProductName(product);
                 const productDescription = getProductDescription(product);
                 const priceInAED = product.price / 100; // Convert from fils to AED
@@ -288,7 +144,6 @@ export default function PetCollection() {
                           <LazyImage
                             src={product.imageUrl}
                             alt={productName}
->>>>>>> 426dd4d43 (Migração completa: Sanity CMS → PostgreSQL via tRPC)
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           />
                         ) : (
@@ -296,14 +151,6 @@ export default function PetCollection() {
                             No image
                           </div>
                         )}
-<<<<<<< HEAD
-                        {isOnSale && (
-                          <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 text-xs font-semibold rounded">
-                            SALE
-                          </div>
-                        )}
-=======
->>>>>>> 426dd4d43 (Migração completa: Sanity CMS → PostgreSQL via tRPC)
                         {product.featured === 1 && (
                           <div className="absolute top-2 left-2 bg-green-500 text-white px-2 py-1 text-xs font-semibold rounded">
                             FEATURED
@@ -312,16 +159,6 @@ export default function PetCollection() {
                       </div>
                     </Link>
                     <div className="p-4">
-<<<<<<< HEAD
-                      <Link href={`/products/${product.slug || product.id}`}>
-                        <h3 className="text-lg font-semibold mb-2 hover:text-primary cursor-pointer">
-                          {product.nameEN || product.name}
-                        </h3>
-                      </Link>
-                      {(product.descriptionEN || product.description) && (
-                        <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
-                          {product.descriptionEN || product.description}
-=======
                       <Link href={`/shop/${product.slug}`}>
                         <h3 className="text-lg font-semibold mb-2 hover:text-primary cursor-pointer">
                           {productName}
@@ -330,7 +167,6 @@ export default function PetCollection() {
                       {productDescription && (
                         <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
                           {productDescription}
->>>>>>> 426dd4d43 (Migração completa: Sanity CMS → PostgreSQL via tRPC)
                         </p>
                       )}
                       {product.collection && (
@@ -343,15 +179,9 @@ export default function PetCollection() {
                           <span className="text-lg font-semibold">
                             {formatPrice(product.price)}
                           </span>
-<<<<<<< HEAD
-                          {isOnSale && (
-                            <span className="text-sm text-muted-foreground line-through">
-                              {formatPrice(product.price)}
-=======
                           {product.stock === 0 && (
                             <span className="text-xs text-red-500">
                               {language === 'en' ? 'Out of stock' : 'Fora de estoque'}
->>>>>>> 426dd4d43 (Migração completa: Sanity CMS → PostgreSQL via tRPC)
                             </span>
                           )}
                         </div>
@@ -362,32 +192,19 @@ export default function PetCollection() {
                             disabled={product.stock === 0}
                             onClick={() => {
                               addItem({
-<<<<<<< HEAD
-                                id: product.id.toString(),
-                                name: product.nameEN || product.name,
-                                price: displayPrice,
-                                image: product.mainImage || undefined,
-                                slug: product.slug || product.id.toString(),
-=======
                                 id: String(product.id),
                                 name: productName,
                                 price: priceInAED,
                                 image: product.imageUrl || undefined,
                                 slug: product.slug,
->>>>>>> 426dd4d43 (Migração completa: Sanity CMS → PostgreSQL via tRPC)
                               });
                               toast.success(language === 'en' ? 'Added to cart' : 'Adicionado ao carrinho');
                             }}
-                            disabled={product.stock === 0}
                           >
                             <ShoppingCart className="w-4 h-4 mr-2" />
                             {language === 'en' ? 'Add' : 'Adicionar'}
                           </Button>
-<<<<<<< HEAD
-                          <Link href={`/products/${product.slug || product.id}`}>
-=======
                           <Link href={`/shop/${product.slug}`}>
->>>>>>> 426dd4d43 (Migração completa: Sanity CMS → PostgreSQL via tRPC)
                             <Button size="sm">
                               {language === 'en' ? 'View' : 'Ver'}
                             </Button>
