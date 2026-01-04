@@ -81,11 +81,16 @@ export default function PetCollection() {
   return (
     <div className="w-full">
       {/* Hero Section */}
-      <section className="relative h-[50vh] min-h-[400px] w-full overflow-hidden">
+      <section className="relative h-[50vh] min-h-[400px] w-full overflow-hidden bg-gradient-to-br from-[#255238] to-[#1E3F2D]">
+        {/* Imagem de fundo - se existir, será exibida; caso contrário, usa gradiente */}
         <img
           src="/images/pet_collection_logo.png"
           alt="Pet Collection - ILE ALA"
           className="absolute inset-0 w-full h-full object-cover"
+          onError={(e) => {
+            // Se a imagem não existir, esconde o elemento img
+            (e.target as HTMLImageElement).style.display = 'none';
+          }}
         />
         <div className="absolute inset-0 bg-black/20" />
         <div className="relative container h-full flex items-center justify-center">
