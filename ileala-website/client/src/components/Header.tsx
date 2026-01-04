@@ -68,7 +68,7 @@ export default function Header() {
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       {/* First Row: Search, Logo, Icons */}
       <div className="border-b">
-        <div className="container flex h-16 items-center justify-between">
+        <div className="container flex h-16 items-center justify-between gap-4">
           {/* Search - Left */}
           <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-md">
             <div className="relative w-full">
@@ -84,16 +84,14 @@ export default function Header() {
           </form>
 
           {/* Logo - Center */}
-          <Link href="/" className="flex items-center justify-center flex-1 md:flex-none">
+          <Link href="/" className="flex items-center justify-center flex-shrink-0">
             <img 
               src="/images/logo_ile_ala.webp" 
               alt="ILE ALA" 
-              className="h-12 md:h-14 w-auto"
               style={{ 
-                maxWidth: '160px',
-                height: 'auto',
-                objectFit: 'contain',
-                aspectRatio: 'auto'
+                height: '36px',
+                width: 'auto',
+                objectFit: 'contain'
               }}
             />
           </Link>

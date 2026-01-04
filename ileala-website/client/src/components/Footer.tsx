@@ -15,11 +15,9 @@ export default function Footer() {
               alt="ILE ALA" 
               className="mb-4"
               style={{ 
-                maxWidth: '200px',
-                height: 'auto',
+                height: '60px',
                 width: 'auto',
-                objectFit: 'contain',
-                aspectRatio: 'auto'
+                objectFit: 'contain'
               }}
             />
             <p className="text-sm text-muted-foreground">

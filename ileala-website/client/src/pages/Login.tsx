@@ -242,11 +242,9 @@ export default function Login() {
               alt="ILE ALA" 
               className="mx-auto mb-4"
               style={{ 
-                maxWidth: '180px',
-                height: 'auto',
+                height: '50px',
                 width: 'auto',
-                objectFit: 'contain',
-                aspectRatio: 'auto'
+                objectFit: 'contain'
               }}
             />
           </Link>
