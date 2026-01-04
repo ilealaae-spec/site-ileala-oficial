@@ -172,19 +172,21 @@ export default function About() {
               <ArtisansMap />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {/* Artisan 1 - Mr. Zeeshan (Tailor) */}
-              <Card className="overflow-hidden hover:shadow-xl transition-shadow">
-                <div className="aspect-square overflow-hidden">
-                  <img 
-                    src="/images/artisans/zeeshan.webp" 
-                    alt="Mr. Zeeshan - Tailor"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
+              <Card className="hover:shadow-lg transition-shadow">
                 <div className="p-6">
-                  <h3 className="text-xl font-semibold mb-2">Mr. Zeeshan</h3>
-                  <p className="text-sm text-primary mb-3">{language === 'en' ? 'Master Tailor • Pakistan' : 'Mestre Alfaiate • Paquistão'}</p>
+                  <div className="flex items-center gap-4 mb-4">
+                    <img 
+                      src="/images/artisans/zeeshan.webp" 
+                      alt="Mr. Zeeshan - Tailor"
+                      className="w-16 h-16 rounded-full object-cover flex-shrink-0"
+                    />
+                    <div>
+                      <h3 className="text-xl font-semibold">Mr. Zeeshan</h3>
+                      <p className="text-sm text-primary">{language === 'en' ? 'Master Tailor • Pakistan' : 'Mestre Alfaiate • Paquistão'}</p>
+                    </div>
+                  </div>
                   <p className="text-sm text-muted-foreground leading-relaxed">
                     {language === 'en' 
                       ? 'From Pakistan, I built my career over more than twenty years, working in prestigious establishments in my country. About a year and a half ago, I arrived in Dubai — a new chapter, full of challenges and achievements. Today I am part of the ILE ALA atelier, where I can apply my experience and continue evolving every day. I take pride in the work I do and the quality we deliver. I hope to keep growing and contributing with the same commitment and dedication.'
@@ -193,18 +195,20 @@ export default function About() {
                 </div>
               </Card>
 
-                {/* Artisan 2 - Mr. Sarajuddin (India) */}
-              <Card className="overflow-hidden hover:shadow-xl transition-shadow">
-                <div className="aspect-square overflow-hidden">
-                  <img 
-                    src="/images/artisans/sarajuddin.webp" 
-                    alt="Mr. Sarajuddin - Tailor" 
-                    className="w-full h-full object-cover"
-                  />
-                </div>
+              {/* Artisan 2 - Mr. Sarajuddin (India) */}
+              <Card className="hover:shadow-lg transition-shadow">
                 <div className="p-6">
-                  <h3 className="text-xl font-semibold mb-2">Mr. Sarajuddin</h3>
-                  <p className="text-sm text-primary mb-3">{language === 'en' ? 'Master Tailor • India' : 'Mestre Alfaiate • Índia'}</p>
+                  <div className="flex items-center gap-4 mb-4">
+                    <img 
+                      src="/images/artisans/sarajuddin.webp" 
+                      alt="Mr. Sarajuddin - Tailor" 
+                      className="w-16 h-16 rounded-full object-cover flex-shrink-0"
+                    />
+                    <div>
+                      <h3 className="text-xl font-semibold">Mr. Sarajuddin</h3>
+                      <p className="text-sm text-primary">{language === 'en' ? 'Master Tailor • India' : 'Mestre Alfaiate • Índia'}</p>
+                    </div>
+                  </div>
                   <p className="text-sm text-muted-foreground leading-relaxed">
                     {language === 'en'
                       ? 'From India to Dubai, I brought with me two decades of an art cultivated with patience and devotion. I came especially to be part of the ILE ALA atelier — an opportunity I honor with every stitch, every seam. My family remains in India, but my heart is divided between two worlds: the home I left behind and the dream I build here. Perfection is not just a goal — it is the path I have chosen to walk. Each piece that passes through my hands carries not only technique, but the essence of who I am and where I come from.'
@@ -214,17 +218,19 @@ export default function About() {
               </Card>
 
               {/* Artisan 3 - Ge (Production & Finishing Manager) */}
-              <Card className="overflow-hidden hover:shadow-xl transition-shadow">
-                <div className="aspect-square overflow-hidden">
-                  <img 
-                    src="/images/artisans/ge.webp" 
-                    alt="Ge - Production Manager" 
-                    className="w-full h-full object-cover"
-                  />
-                </div>
+              <Card className="hover:shadow-lg transition-shadow">
                 <div className="p-6">
-                  <h3 className="text-xl font-semibold mb-2">Ge</h3>
-                  <p className="text-sm text-primary mb-3">{language === 'en' ? 'Production & Finishing Manager • Madagascar' : 'Gerente de Produção e Finalização • Madagascar'}</p>
+                  <div className="flex items-center gap-4 mb-4">
+                    <img 
+                      src="/images/artisans/ge.webp" 
+                      alt="Ge - Production Manager" 
+                      className="w-16 h-16 rounded-full object-cover flex-shrink-0"
+                    />
+                    <div>
+                      <h3 className="text-xl font-semibold">Ge</h3>
+                      <p className="text-sm text-primary">{language === 'en' ? 'Production & Finishing Manager • Madagascar' : 'Gerente de Produção e Finalização • Madagascar'}</p>
+                    </div>
+                  </div>
                   <p className="text-sm text-muted-foreground leading-relaxed">
                     {language === 'en'
                       ? 'I am the bridge between creation and delivery, between dream and reality. I guide, organize, and care for every detail so that each piece leaves the atelier not just perfect, but fragrant, wrapped in care, and ready to touch the heart of those who receive it. Without finishing, art remains incomplete — and this is where my work finds meaning. I am the guardian of excellence, the last hand to touch each creation before it finds its destiny. ILE ALA cannot function without sewing, but it also cannot function without those who ensure everything is impeccable. This is my mission, and I fulfill it with pride every day.'
@@ -234,17 +240,19 @@ export default function About() {
               </Card>
 
               {/* Artisan 4 - Lola (Master of Embroidery) */}
-              <Card className="overflow-hidden hover:shadow-xl transition-shadow">
-                <div className="aspect-square overflow-hidden">
-                  <img 
-                    src="/images/artisans/lola.webp" 
-                    alt="Lola - Master of Embroidery" 
-                    className="w-full h-full object-cover"
-                  />
-                </div>
+              <Card className="hover:shadow-lg transition-shadow">
                 <div className="p-6">
-                  <h3 className="text-xl font-semibold mb-2">Lola</h3>
-                  <p className="text-sm text-primary mb-3">{language === 'en' ? 'Master of Embroidery • Madagascar' : 'Mestre do Bordado • Madagascar'}</p>
+                  <div className="flex items-center gap-4 mb-4">
+                    <img 
+                      src="/images/artisans/lola.webp" 
+                      alt="Lola - Master of Embroidery" 
+                      className="w-16 h-16 rounded-full object-cover flex-shrink-0"
+                    />
+                    <div>
+                      <h3 className="text-xl font-semibold">Lola</h3>
+                      <p className="text-sm text-primary">{language === 'en' ? 'Master of Embroidery • Madagascar' : 'Mestre do Bordado • Madagascar'}</p>
+                    </div>
+                  </div>
                   <p className="text-sm text-muted-foreground leading-relaxed">
                     {language === 'en'
                       ? 'Lola is the soul behind ILE ALA\'s exquisite napkin rings. With hands that move like poetry and eyes that see perfection in every detail, she transforms simple beads and threads into small masterpieces. Her embroidery is not just craft—it is art born from devotion. Each napkin ring she creates carries the warmth of her smile, the rhythm of her island, and the promise that beauty can be both delicate and eternal. In Madagascar, where tradition meets the ocean breeze, Lola stitches dreams into reality.'
@@ -254,17 +262,19 @@ export default function About() {
               </Card>
 
               {/* Artisan 5 - Emily (Atelier & Showroom Caretaker) */}
-              <Card className="overflow-hidden hover:shadow-xl transition-shadow">
-                <div className="aspect-square overflow-hidden">
-                  <img 
-                    src="/images/artisans/emily.webp" 
-                    alt="Emily - Atelier & Showroom Caretaker" 
-                    className="w-full h-full object-cover"
-                  />
-                </div>
+              <Card className="hover:shadow-lg transition-shadow">
                 <div className="p-6">
-                  <h3 className="text-xl font-semibold mb-2">Emily</h3>
-                  <p className="text-sm text-primary mb-3">{language === 'en' ? 'Atelier & Showroom Caretaker • Madagascar' : 'Responsável pela Limpeza e Organização • Madagascar'}</p>
+                  <div className="flex items-center gap-4 mb-4">
+                    <img 
+                      src="/images/artisans/emily.webp" 
+                      alt="Emily - Atelier & Showroom Caretaker" 
+                      className="w-16 h-16 rounded-full object-cover flex-shrink-0"
+                    />
+                    <div>
+                      <h3 className="text-xl font-semibold">Emily</h3>
+                      <p className="text-sm text-primary">{language === 'en' ? 'Atelier & Showroom Caretaker • Madagascar' : 'Responsável pela Limpeza e Organização • Madagascar'}</p>
+                    </div>
+                  </div>
                   <p className="text-sm text-muted-foreground leading-relaxed">
                     {language === 'en'
                       ? 'Emily is the invisible hand that keeps the heart of ILE ALA beating in perfect rhythm. She is the guardian of cleanliness, the keeper of order, and the quiet force that transforms every corner into a sanctuary of beauty. Every morning, before the first stitch is sewn, before the first thread is chosen, Emily ensures that the atelier and showroom shine with impeccable care. Her work is not seen in the final product, but it is felt in every breath of fresh air, every spotless surface, every organized space. She creates the peace that allows artisans to focus on their craft, the harmony that reflects the brand\'s excellence, and the serenity that makes perfection possible. From Madagascar to Dubai, Emily brings the warmth of her island and the devotion of her heart, ensuring that every day begins with the promise of perfection.'
@@ -274,17 +284,19 @@ export default function About() {
               </Card>
 
               {/* Artisan 6 - Ajay (India Representative & Cultural Ambassador) */}
-              <Card className="overflow-hidden hover:shadow-xl transition-shadow">
-                <div className="aspect-square overflow-hidden">
-                  <img 
-                    src="/images/artisans/ajay.webp" 
-                    alt="Ajay - India Representative" 
-                    className="w-full h-full object-cover"
-                  />
-                </div>
+              <Card className="hover:shadow-lg transition-shadow">
                 <div className="p-6">
-                  <h3 className="text-xl font-semibold mb-2">Ajay</h3>
-                  <p className="text-sm text-primary mb-3">{language === 'en' ? 'India Representative & Cultural Ambassador • Jaipur, India' : 'Representante na Índia e Embaixador Cultural • Jaipur, Índia'}</p>
+                  <div className="flex items-center gap-4 mb-4">
+                    <img 
+                      src="/images/artisans/ajay.webp" 
+                      alt="Ajay - India Representative" 
+                      className="w-16 h-16 rounded-full object-cover flex-shrink-0"
+                    />
+                    <div>
+                      <h3 className="text-xl font-semibold">Ajay</h3>
+                      <p className="text-sm text-primary">{language === 'en' ? 'India Representative & Cultural Ambassador • Jaipur, India' : 'Representante na Índia e Embaixador Cultural • Jaipur, Índia'}</p>
+                    </div>
+                  </div>
                   <p className="text-sm text-muted-foreground leading-relaxed">
                     {language === 'en'
                       ? 'Ajay is the bridge between ILE ALA and the soul of India. Based in Jaipur, he is our trusted guide, our friend, and the eyes through which we discover the treasures of Indian craftsmanship. Extremely helpful, reliable, and deeply connected to his culture, Ajay leads us to the most authentic corners of India — where fabrics are born from ancient techniques, where block prints tell stories, where ikats dance with color, and where embroidery is a language passed down through generations. He discovers everything ILE ALA needs: raw materials, artisans, dyeing workshops, textile factories. With Ajay, we don\'t just source materials; we immerse ourselves in culture, learn stories, and build relationships rooted in trust. Ajay is the confidence we carry in India.'
@@ -294,17 +306,19 @@ export default function About() {
               </Card>
 
               {/* Artisan 7 - Moët Chandon (Director of Creative Calm & Harmony) */}
-              <Card className="overflow-hidden hover:shadow-xl transition-shadow">
-                <div className="aspect-square overflow-hidden">
-                  <img 
-                    src="/images/artisans/moet.webp" 
-                    alt="Moët Chandon - Director of Creative Calm & Harmony" 
-                    className="w-full h-full object-cover"
-                  />
-                </div>
+              <Card className="hover:shadow-lg transition-shadow">
                 <div className="p-6">
-                  <h3 className="text-xl font-semibold mb-2">Moët Chandon</h3>
-                  <p className="text-sm text-primary mb-3">{language === 'en' ? 'Director of Creative Calm & Harmony • Coton de Tuléar' : 'Diretora de Calma e Harmonia Criativa • Coton de Tuléar'}</p>
+                  <div className="flex items-center gap-4 mb-4">
+                    <img 
+                      src="/images/artisans/moet.webp" 
+                      alt="Moët Chandon - Director of Creative Calm & Harmony" 
+                      className="w-16 h-16 rounded-full object-cover flex-shrink-0"
+                    />
+                    <div>
+                      <h3 className="text-xl font-semibold">Moët Chandon</h3>
+                      <p className="text-sm text-primary">{language === 'en' ? 'Director of Creative Calm & Harmony • Coton de Tuléar' : 'Diretora de Calma e Harmonia Criativa • Coton de Tuléar'}</p>
+                    </div>
+                  </div>
                   <p className="text-sm text-muted-foreground leading-relaxed">
                     {language === 'en'
                       ? 'Moët Chandon is the heart of ILE ALA — a four-pawed Director of Calm who supervises fabrics, approves softness, and ensures serenity remains woven into every stitch. Between naps and watchful glances, she teaches us that inspiration is born from silence and beauty flourishes in peace. At ILE ALA, she is not just our muse — she is the Director of Calm, the golden guardian who reminds us that even silence can shine. Her presence transforms the atelier into a sanctuary where creativity flows effortlessly, where every thread is touched by grace, and where the art of living beautifully begins with a gentle pause. Named after the champagne that celebrates life\'s finest moments, Moët Chandon embodies the elegance, joy, and timeless sophistication that define ILE ALA. She is the soul that keeps our hearts light and our hands steady — proof that luxury is not only what we create, but how we feel while creating it.'
