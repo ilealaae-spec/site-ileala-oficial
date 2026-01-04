@@ -111,8 +111,14 @@ export default function Register() {
             <img 
               src="/images/logo_ile_ala.webp" 
               alt="ILE ALA" 
-              className="h-20 w-auto mx-auto mb-4 object-contain"
-              style={{ maxWidth: '200px' }}
+              className="mx-auto mb-4"
+              style={{ 
+                maxWidth: '180px',
+                height: 'auto',
+                width: 'auto',
+                objectFit: 'contain',
+                aspectRatio: 'auto'
+              }}
             />
           </Link>
           <h1 className="text-3xl font-display text-sage-900 mb-2">

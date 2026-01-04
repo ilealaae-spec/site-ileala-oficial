@@ -13,8 +13,14 @@ export default function Footer() {
             <img 
               src="/images/logo_ile_ala.webp" 
               alt="ILE ALA" 
-              className="h-24 w-auto mb-4 object-contain"
-              style={{ maxWidth: '220px' }}
+              className="mb-4"
+              style={{ 
+                maxWidth: '200px',
+                height: 'auto',
+                width: 'auto',
+                objectFit: 'contain',
+                aspectRatio: 'auto'
+              }}
             />
             <p className="text-sm text-muted-foreground">
               Dubai, United Arab Emirates

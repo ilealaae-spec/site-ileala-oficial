@@ -263,4 +263,11 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
+  /* Logo proportion fix */
+  img[src*="logo_ile_ala"] {
+    object-fit: contain !important;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
 }
