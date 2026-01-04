@@ -88,7 +88,8 @@ export default function Header() {
             <img 
               src="/images/logo_ile_ala.webp" 
               alt="ILE ALA" 
-              className="h-10 w-auto"
+              className="h-14 md:h-16 w-auto object-contain"
+              style={{ maxWidth: '180px' }}
             />
           </Link>
 

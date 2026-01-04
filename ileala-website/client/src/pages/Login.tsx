@@ -240,7 +240,8 @@ export default function Login() {
             <img 
               src="/images/logo_ile_ala.webp" 
               alt="ILE ALA" 
-              className="h-16 w-auto mx-auto mb-4"
+              className="h-20 w-auto mx-auto mb-4 object-contain"
+              style={{ maxWidth: '200px' }}
             />
           </Link>
           <h1 className="text-3xl font-display text-sage-900 mb-2">
