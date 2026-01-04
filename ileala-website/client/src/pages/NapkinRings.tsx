@@ -83,13 +83,19 @@ export default function NapkinRings() {
   return (
     <div className="w-full">
       {/* Hero Section */}
-      <section className="relative h-[40vh] min-h-[300px] w-full overflow-hidden bg-primary/10">
-        <div className="container h-full flex items-center justify-center">
-          <div className="text-center">
+      <section className="relative h-[50vh] min-h-[400px] w-full overflow-hidden">
+        <img 
+          src="/images/napkin_rings_hero.jpeg" 
+          alt="Napkin Rings - Elegant Table Accessories"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-black/30" />
+        <div className="relative container h-full flex items-center justify-center">
+          <div className="text-center text-white max-w-3xl">
             <h1 className="text-4xl md:text-6xl font-bold mb-4">
-              Napkin Rings
+              {language === 'en' ? 'Napkin Rings' : 'Anéis de Guardanapo'}
             </h1>
-            <p className="text-lg md:text-xl text-muted-foreground">
+            <p className="text-lg md:text-xl font-light">
               {language === 'en' 
                 ? 'Elegant napkin rings to elevate your table setting' 
                 : 'Porta guardanapos elegantes para elevar sua mesa'}
