@@ -107,12 +107,12 @@ export default function Home() {
               </div>
             </CarouselItem>
 
-            {/* Slide 2 - Nova imagem 1 */}
+            {/* Slide 2 - Búzios/Conchas (decorative item) */}
             <CarouselItem className="h-full pl-0">
               <div className="relative h-[70vh] min-h-[500px] w-full">
                 <img 
-                  src="/images/hero_carousel_1.png" 
-                  alt="ILE ALA Collection - Decorative Items"
+                  src="/images/hero_carousel_2.jpeg" 
+                  alt="ILE ALA Collection - Decorative Shells and Wood"
                   className="absolute inset-0 w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-black/20" />
