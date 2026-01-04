@@ -96,11 +96,11 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <Link href="/about">
               <Card className="overflow-hidden group cursor-pointer hover:shadow-xl transition-shadow">
-                <div className="aspect-square overflow-hidden bg-[#255238] flex items-center justify-center">
+                <div className="aspect-square overflow-hidden">
                   <img 
-                    src="/images/logo_ile_ala.webp" 
+                    src="/images/about_me_card.webp" 
                     alt="About me"
-                    className="w-3/4 h-auto object-contain group-hover:scale-105 transition-transform duration-300"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                 </div>
                 <div className="p-6 text-center">
