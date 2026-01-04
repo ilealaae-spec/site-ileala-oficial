@@ -98,7 +98,7 @@ export default function Home() {
               <Card className="overflow-hidden group cursor-pointer hover:shadow-xl transition-shadow">
                 <div className="aspect-square overflow-hidden">
                   <img 
-                    src="/images/about_me_card.webp" 
+                    src="/images/about_me_card_new.png" 
                     alt="About me"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
