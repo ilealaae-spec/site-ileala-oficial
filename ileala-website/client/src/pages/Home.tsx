@@ -107,15 +107,15 @@ export default function Home() {
               </div>
             </CarouselItem>
 
-            {/* Slide 2 - Logo dourada (nova imagem) */}
+            {/* Slide 2 - Nova imagem 1 */}
             <CarouselItem className="h-full pl-0">
               <div className="relative h-[70vh] min-h-[500px] w-full">
                 <img 
-                  src="/images/about_me_card_new.png" 
-                  alt="ILE ALA Logo - Golden Palm Tree"
+                  src="/images/hero_carousel_1.png" 
+                  alt="ILE ALA Collection - Decorative Items"
                   className="absolute inset-0 w-full h-full object-cover"
                 />
-                <div className="absolute inset-0 bg-black/10" />
+                <div className="absolute inset-0 bg-black/20" />
                 <div className="relative container h-full flex items-center justify-center">
                   <div className="text-center text-white max-w-3xl">
                     <h1 className="text-5xl md:text-7xl font-bold mb-6">ILE ALA</h1>
@@ -127,15 +127,15 @@ export default function Home() {
               </div>
             </CarouselItem>
 
-            {/* Slide 3 - Placeholder para nova imagem */}
+            {/* Slide 3 - Nova imagem 2 */}
             <CarouselItem className="h-full pl-0">
               <div className="relative h-[70vh] min-h-[500px] w-full">
                 <img 
-                  src="/images/hero_home_table_setting.webp" 
-                  alt="ILE ALA Collection"
+                  src="/images/hero_carousel_2.jpeg" 
+                  alt="ILE ALA Luxury Collection"
                   className="absolute inset-0 w-full h-full object-cover"
                 />
-                <div className="absolute inset-0 bg-black/30" />
+                <div className="absolute inset-0 bg-black/20" />
                 <div className="relative container h-full flex items-center justify-center">
                   <div className="text-center text-white max-w-3xl">
                     <h1 className="text-5xl md:text-7xl font-bold mb-6">ILE ALA</h1>
@@ -147,15 +147,15 @@ export default function Home() {
               </div>
             </CarouselItem>
 
-            {/* Slide 4 - Placeholder para nova imagem */}
+            {/* Slide 4 - Nova imagem 3 */}
             <CarouselItem className="h-full pl-0">
               <div className="relative h-[70vh] min-h-[500px] w-full">
                 <img 
-                  src="/images/hero_home_table_setting.webp" 
-                  alt="ILE ALA Luxury"
+                  src="/images/hero_carousel_3.jpeg" 
+                  alt="ILE ALA Elegant Design"
                   className="absolute inset-0 w-full h-full object-cover"
                 />
-                <div className="absolute inset-0 bg-black/30" />
+                <div className="absolute inset-0 bg-black/20" />
                 <div className="relative container h-full flex items-center justify-center">
                   <div className="text-center text-white max-w-3xl">
                     <h1 className="text-5xl md:text-7xl font-bold mb-6">ILE ALA</h1>
