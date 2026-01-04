@@ -84,7 +84,7 @@ export default function PetCollection() {
       <section className="relative h-[50vh] min-h-[400px] w-full overflow-hidden bg-gradient-to-br from-[#255238] to-[#1E3F2D]">
         {/* Imagem de fundo - se existir, será exibida; caso contrário, usa gradiente */}
         <img
-          src="/images/pet_collection_logo.png"
+          src="/images/pet_collection_logo.jpeg"
           alt="Pet Collection - ILE ALA"
           className="absolute inset-0 w-full h-full object-cover"
           onError={(e) => {
