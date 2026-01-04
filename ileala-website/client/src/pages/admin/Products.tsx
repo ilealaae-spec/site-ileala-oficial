@@ -24,6 +24,7 @@ export default function AdminProducts() {
   const [imagePreview, setImagePreview] = useState<string>('');
   
   // Admin should use admin.products.list to see ALL products (including inactive)
+  const utils = trpc.useUtils();
   const { data: products, isLoading, refetch } = trpc.admin.products.list.useQuery();
   
   const createMutation = trpc.admin.products.create.useMutation({
@@ -31,6 +32,9 @@ export default function AdminProducts() {
       toast.success(language === 'en' ? 'Product created!' : 'Produto criado!');
       setIsDialogOpen(false);
       refetch();
+      // Invalidate public product queries to ensure images appear immediately
+      utils.products.list.invalidate();
+      utils.products.featured.invalidate();
       resetForm();
     },
     onError: (error) => {
@@ -43,6 +47,9 @@ export default function AdminProducts() {
       toast.success(language === 'en' ? 'Product updated!' : 'Produto atualizado!');
       setIsDialogOpen(false);
       refetch();
+      // Invalidate public product queries to ensure images appear immediately
+      utils.products.list.invalidate();
+      utils.products.featured.invalidate();
       resetForm();
     },
     onError: (error) => {
@@ -134,11 +141,23 @@ export default function AdminProducts() {
         const reader = new FileReader();
         reader.onloadend = async () => {
           const base64 = (reader.result as string).split(',')[1];
+          console.log('[Admin] Uploading image:', {
+            fileName: imageFile.name,
+            size: imageFile.size,
+            type: imageFile.type,
+          });
+          
           const result = await uploadImageMutation.mutateAsync({
             fileName: imageFile.name,
             fileData: base64,
             contentType: imageFile.type,
           });
+          
+          console.log('[Admin] Image uploaded successfully:', {
+            url: result.url,
+            key: result.key,
+          });
+          
           imageUrl = result.url;
           
           // Now submit the product
@@ -147,6 +166,7 @@ export default function AdminProducts() {
         reader.readAsDataURL(imageFile);
         return;
       } catch (error) {
+        console.error('[Admin] Image upload error:', error);
         toast.error(language === 'en' ? 'Image upload failed' : 'Falha no upload da imagem');
         return;
       }
@@ -165,6 +185,13 @@ export default function AdminProducts() {
       );
     }
 
+    console.log('[Admin] Submitting product:', {
+      editing: !!editingProduct,
+      productId: editingProduct?.id,
+      imageUrl,
+      nameEN: formData.nameEN,
+    });
+
     // Generate slug from nameEN (only for new products)
     const generateSlug = (name: string) => {
       return name
@@ -181,13 +208,18 @@ export default function AdminProducts() {
       descriptionEN: formData.descriptionEN,
       descriptionPT: formData.descriptionPT,
       price: Math.round(parseFloat(formData.price) * 100),
-      imageUrl,
+      imageUrl, // Ensure imageUrl is included
       collection: formData.collection,
       category: formData.category,
       stock: parseInt(formData.stock),
       featured: formData.featured,
       active: 1, // Always set active = 1 when creating/updating products
     };
+
+    console.log('[Admin] Product data to save:', {
+      ...productData,
+      imageUrl, // Log the imageUrl to verify it's being sent
+    });
 
     if (editingProduct) {
       // For updates, include active status from the checkbox

@@ -1012,11 +1012,35 @@ export const appRouter = router({
         if (ctx.user?.role !== 'admin') {
           throw new Error('Unauthorized');
         }
+        
+        console.log('[Admin] Updating product:', {
+          id: input.id,
+          data: input.data,
+          imageUrl: input.data.imageUrl,
+        });
+        
         await db.updateProduct(input.id, input.data);
+        
+        // Verify the update
+        const updatedProduct = await db.getProductById(input.id);
+        console.log('[Admin] Product updated, verification:', {
+          id: updatedProduct?.id,
+          name: updatedProduct?.name,
+          imageUrl: updatedProduct?.imageUrl,
+          active: updatedProduct?.active,
+        });
+        
         // Invalidate product caches
         invalidateCache(CacheKeys.product(input.id));
         invalidateCache(CacheKeys.products());
         invalidateCache(CacheKeys.featuredProducts());
+        if (input.data.collection) {
+          invalidateCache(CacheKeys.products(`collection:${input.data.collection}`));
+        }
+        if (input.data.category) {
+          invalidateCache(CacheKeys.products(`category:${input.data.category}`));
+        }
+        
         return { success: true };
       }),
     delete: protectedProcedure
