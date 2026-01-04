@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/_core/hooks/useAuth';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { trpc } from '@/lib/trpc';
 import {
   DropdownMenu,
@@ -13,12 +14,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Globe, ShoppingCart, Instagram, Facebook, User, LogOut, Package, Shield } from 'lucide-react';
+import { Globe, ShoppingCart, Instagram, Facebook, User, LogOut, Package, Shield, Search, Heart } from 'lucide-react';
 
 export default function Header() {
   const { language, setLanguage, t } = useLanguage();
   const { totalItems } = useCart();
   const { user, isAuthenticated, logout } = useAuth();
+  const [, setLocation] = useLocation();
+  const [searchQuery, setSearchQuery] = useState('');
   const { data: categories = [] } = trpc.categories.listActive.useQuery(undefined, {
     staleTime: 10 * 60 * 1000, // 10 minutes - categories don't change often
     refetchOnWindowFocus: false, // Prevent refetch on window focus
@@ -29,172 +32,199 @@ export default function Header() {
     window.location.href = '/';
   };
 
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      setLocation(`/shop?search=${encodeURIComponent(searchQuery.trim())}`);
+      setSearchQuery('');
+    }
+  };
+
+  // Collect all menu items
+  const menuItems = [
+    { href: '/', label: t.nav.home },
+    { href: '/about', label: t.nav.about },
+    { href: '/collections', label: t.nav.collections },
+    { href: '/napkin-rings', label: language === 'en' ? 'Napkin Rings' : 'Anéis de Guardanapo' },
+    { href: '/table-essentials', label: language === 'en' ? 'Table Essentials' : 'Essenciais de Mesa' },
+    { href: '/home-accents', label: language === 'en' ? 'Home Accents' : 'Acentos para Casa' },
+    { href: '/accessories', label: language === 'en' ? 'Accessories' : 'Acessórios' },
+    { href: '/pet-collection', label: language === 'en' ? 'Pet Collection' : 'Coleção Pet' },
+    { href: '/contact', label: t.nav.contact },
+    // Additional categories from database
+    ...(categories && categories.length > 0 ? categories
+      .filter((category: any) => {
+        const slug = (category.slug || '').toLowerCase();
+        const fixedSlugs = ['collections', 'napkin-rings', 'table-essentials', 'home-accents', 'accessories', 'pet-collection'];
+        return !fixedSlugs.includes(slug);
+      })
+      .map((category: any) => ({
+        href: `/category/${category.slug}`,
+        label: language === 'en' ? category.nameEN : category.namePT,
+      })) : []),
+  ];
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-20 items-center justify-between">
-        <Link href="/" className="flex items-center space-x-2">
-          <img 
-            src="/images/logo_ile_ala.webp" 
-            alt="ILE ALA" 
-            className="h-12 w-auto"
-          />
-        </Link>
+      {/* First Row: Search, Logo, Icons */}
+      <div className="border-b">
+        <div className="container flex h-16 items-center justify-between">
+          {/* Search - Left */}
+          <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-md">
+            <div className="relative w-full">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <Input
+                type="text"
+                placeholder={language === 'en' ? 'What are you looking for?' : 'O que você está procurando?'}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 pr-4 h-9 text-sm"
+              />
+            </div>
+          </form>
 
-        <nav className="hidden md:flex items-center space-x-8 ml-12">
-          <Link href="/" className="text-sm font-medium transition-colors hover:text-primary">
-            {t.nav.home}
+          {/* Logo - Center */}
+          <Link href="/" className="flex items-center justify-center flex-1 md:flex-none">
+            <img 
+              src="/images/logo_ile_ala.webp" 
+              alt="ILE ALA" 
+              className="h-10 w-auto"
+            />
           </Link>
-          <Link href="/about" className="text-sm font-medium transition-colors hover:text-primary">
-            {t.nav.about}
-          </Link>
-          <Link href="/collections" className="text-sm font-medium transition-colors hover:text-primary">
-            {t.nav.collections}
-          </Link>
-          {/* Fixed collection pages */}
-          <Link href="/napkin-rings" className="text-sm font-medium transition-colors hover:text-primary">
-            {language === 'en' ? 'Napkin Rings' : 'Anéis de Guardanapo'}
-          </Link>
-          <Link href="/table-essentials" className="text-sm font-medium transition-colors hover:text-primary">
-            {language === 'en' ? 'Table Essentials' : 'Essenciais de Mesa'}
-          </Link>
-          <Link href="/home-accents" className="text-sm font-medium transition-colors hover:text-primary">
-            {language === 'en' ? 'Home Accents' : 'Acentos para Casa'}
-          </Link>
-          <Link href="/accessories" className="text-sm font-medium transition-colors hover:text-primary">
-            {language === 'en' ? 'Accessories' : 'Acessórios'}
-          </Link>
-          <Link href="/pet-collection" className="text-sm font-medium transition-colors hover:text-primary">
-            {language === 'en' ? 'Pet Collection' : 'Coleção Pet'}
-          </Link>
-          {/* Additional categories from database - only show if they don't duplicate fixed links */}
-          {categories && categories.length > 0 && categories
-            .filter((category: any) => {
-              // Exclude categories that match fixed links
-              const slug = (category.slug || '').toLowerCase();
-              const fixedSlugs = ['collections', 'napkin-rings', 'table-essentials', 'home-accents', 'accessories', 'pet-collection'];
-              return !fixedSlugs.includes(slug);
-            })
-            .map((category: any) => (
-              <Link 
-                key={category.id} 
-                href={`/category/${category.slug}`} 
-                className="text-sm font-medium transition-colors hover:text-primary"
+
+          {/* Icons - Right */}
+          <div className="flex items-center gap-3 md:gap-4">
+            {/* Language Selector */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setLanguage(language === 'en' ? 'pt' : 'en')}
+              className="hidden md:flex items-center gap-2 h-9 px-3"
+            >
+              <Globe className="h-4 w-4" />
+              <span className="text-sm font-medium">{language.toUpperCase()}</span>
+            </Button>
+
+            {/* Social Media Icons */}
+            <div className="hidden lg:flex items-center gap-2">
+              <a 
+                href="https://instagram.com/ileala.ae" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-primary transition-colors"
+                aria-label="Instagram"
               >
-                {language === 'en' ? category.nameEN : category.namePT}
-              </Link>
-            ))}
-        </nav>
+                <Instagram className="h-4 w-4" />
+              </a>
+              <a 
+                href="https://www.facebook.com/share/17f63HzTAk/?mibextid=wwXIfr" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-primary transition-colors"
+                aria-label="Facebook"
+              >
+                <Facebook className="h-4 w-4" />
+              </a>
+            </div>
 
-        <div className="flex items-center gap-6">
-        {/* Contact Link */}
-        <Link href="/contact" className="hidden lg:inline-flex text-sm font-medium transition-colors hover:text-primary">
-          {t.nav.contact}
-        </Link>
-        
-        {/* User Menu */}
-        {isAuthenticated && user ? (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="flex items-center gap-2">
-                <User className="h-4 w-4" />
-                <span className="hidden md:inline text-sm">{user.name || user.email}</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuLabel>
-                {language === 'en' ? 'My Account' : 'Minha Conta'}
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link href="/profile" className="flex items-center cursor-pointer">
-                  <User className="h-4 w-4 mr-2" />
-                  {language === 'en' ? 'Profile' : 'Perfil'}
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/orders" className="flex items-center cursor-pointer">
-                  <Package className="h-4 w-4 mr-2" />
-                  {language === 'en' ? 'My Orders' : 'Meus Pedidos'}
-                </Link>
-              </DropdownMenuItem>
-              {user?.role === 'admin' && (
-                <>
+            {/* User Menu */}
+            {isAuthenticated && user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-9 w-9 p-0">
+                    <User className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuLabel>
+                    {language === 'en' ? 'My Account' : 'Minha Conta'}
+                  </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link href="/admin" className="flex items-center cursor-pointer bg-sage-50">
-                      <Shield className="h-4 w-4 mr-2 text-sage-700" />
-                      <span className="font-semibold text-sage-700">
-                        {language === 'en' ? 'Admin Panel' : 'Painel Admin'}
-                      </span>
+                    <Link href="/profile" className="flex items-center cursor-pointer">
+                      <User className="h-4 w-4 mr-2" />
+                      {language === 'en' ? 'Profile' : 'Perfil'}
                     </Link>
                   </DropdownMenuItem>
-                </>
-              )}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
-                <LogOut className="h-4 w-4 mr-2" />
-                {language === 'en' ? 'Logout' : 'Sair'}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ) : (
-          <div className="hidden lg:flex items-center gap-3">
-            <Link href="/login">
-              <Button variant="ghost" size="sm">
-                {language === 'en' ? 'Login' : 'Entrar'}
-              </Button>
-            </Link>
-            <Link href="/register">
-              <Button variant="default" size="sm" className="bg-green-700 hover:bg-green-800 text-white font-semibold">
-                {language === 'en' ? 'Sign Up' : 'Criar Conta'}
+                  <DropdownMenuItem asChild>
+                    <Link href="/orders" className="flex items-center cursor-pointer">
+                      <Package className="h-4 w-4 mr-2" />
+                      {language === 'en' ? 'My Orders' : 'Meus Pedidos'}
+                    </Link>
+                  </DropdownMenuItem>
+                  {user?.role === 'admin' && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem asChild>
+                        <Link href="/admin" className="flex items-center cursor-pointer bg-sage-50">
+                          <Shield className="h-4 w-4 mr-2 text-sage-700" />
+                          <span className="font-semibold text-sage-700">
+                            {language === 'en' ? 'Admin Panel' : 'Painel Admin'}
+                          </span>
+                        </Link>
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
+                    <LogOut className="h-4 w-4 mr-2" />
+                    {language === 'en' ? 'Logout' : 'Sair'}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <div className="hidden lg:flex items-center gap-2">
+                <Link href="/login">
+                  <Button variant="ghost" size="sm" className="h-9">
+                    {language === 'en' ? 'Login' : 'Entrar'}
+                  </Button>
+                </Link>
+                <Link href="/register">
+                  <Button variant="default" size="sm" className="h-9 bg-[#255238] hover:bg-[#1e3f2d] text-white">
+                    {language === 'en' ? 'Sign Up' : 'Criar Conta'}
+                  </Button>
+                </Link>
+              </div>
+            )}
+
+            {/* Wishlist Icon */}
+            <Button variant="ghost" size="sm" className="h-9 w-9 p-0 hidden lg:flex">
+              <Heart className="h-4 w-4" />
+            </Button>
+
+            {/* Cart */}
+            <Link href="/cart" className="inline-flex">
+              <Button variant="ghost" size="sm" className="relative h-9 w-9 p-0" asChild>
+                <span>
+                  <ShoppingCart className="h-4 w-4" />
+                  {totalItems > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-[#255238] text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                      {totalItems}
+                    </span>
+                  )}
+                </span>
               </Button>
             </Link>
           </div>
-        )}
-
-        {/* Social Media Icons */}
-        <div className="hidden lg:flex items-center gap-3">
-          <a 
-            href="https://instagram.com/ileala.ae" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="text-muted-foreground hover:text-primary transition-colors"
-            aria-label="Instagram"
-          >
-            <Instagram className="h-4 w-4" />
-          </a>
-          <a 
-            href="https://www.facebook.com/share/17f63HzTAk/?mibextid=wwXIfr" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="text-muted-foreground hover:text-primary transition-colors"
-            aria-label="Facebook"
-          >
-            <Facebook className="h-4 w-4" />
-          </a>
         </div>
+      </div>
 
-        <Link href="/cart" className="inline-flex">
-          <Button variant="ghost" size="sm" className="relative" asChild>
-            <span>
-              <ShoppingCart className="h-5 w-5" />
-              {totalItems > 0 && (
-                <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  {totalItems}
-                </span>
-              )}
-            </span>
-          </Button>
-        </Link>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setLanguage(language === 'en' ? 'pt' : 'en')}
-          className="flex items-center gap-2"
-        >
-          <Globe className="h-4 w-4" />
-          <span className="text-sm font-medium">{language.toUpperCase()}</span>
-        </Button>
+      {/* Second Row: Navigation Menu */}
+      <div className="border-b bg-white">
+        <div className="container">
+          <nav className="flex items-center justify-center overflow-x-auto">
+            <div className="flex items-center gap-4 md:gap-6 lg:gap-8 py-3 px-2">
+              {menuItems.map((item) => (
+                <Link 
+                  key={item.href}
+                  href={item.href} 
+                  className="text-sm font-medium text-[#214430] hover:text-[#255238] transition-colors whitespace-nowrap"
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </div>
+          </nav>
         </div>
       </div>
     </header>

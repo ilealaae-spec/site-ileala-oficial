@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/_core/hooks/useAuth';
@@ -13,9 +13,20 @@ import LazyImage from '@/components/LazyImage';
 export default function Shop() {
   const { language } = useLanguage();
   const { addItem } = useCart();
-  const [searchQuery, setSearchQuery] = useState('');
+  const [location] = useLocation();
   const { isAuthenticated } = useAuth();
-  const [, setLocation] = useLocation();
+  
+  // Get search query from URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const initialSearch = urlParams.get('search') || '';
+  const [searchQuery, setSearchQuery] = useState(initialSearch);
+  
+  // Update search query when URL changes
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const searchParam = params.get('search') || '';
+    setSearchQuery(searchParam);
+  }, [location]);
   
   // Fetch products from PostgreSQL via tRPC
   const { data: products = [], isLoading: loading, error: queryError } = trpc.products.list.useQuery(undefined, {

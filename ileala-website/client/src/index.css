@@ -254,4 +254,13 @@
       max-width: 1280px; /* Standard content width */
     }
   }
+
+  /* Hide scrollbar for navigation menu */
+  nav::-webkit-scrollbar {
+    display: none;
+  }
+  nav {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 }
