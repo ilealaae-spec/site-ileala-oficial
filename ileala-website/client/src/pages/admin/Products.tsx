@@ -8,6 +8,7 @@ import { trpc } from '@/lib/trpc';
 import { Loader2, Plus, Pencil, Trash2, Upload, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useState } from 'react';
+import LazyImage from '@/components/LazyImage';
 import {
   Dialog,
   DialogContent,
@@ -498,13 +499,19 @@ export default function AdminProducts() {
           index === self.findIndex((p) => p.id === product.id)
         ).map((product) => (
           <Card key={product.id} className="overflow-hidden">
-            {product.imageUrl && (
-              <img
-                src={product.imageUrl}
-                alt={product.nameEN}
-                className="w-full h-48 object-cover"
-              />
-            )}
+            <div className="w-full h-48 bg-muted overflow-hidden">
+              {product.imageUrl ? (
+                <LazyImage
+                  src={product.imageUrl}
+                  alt={product.nameEN || 'Product image'}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
+                  {language === 'en' ? 'No image' : 'Sem imagem'}
+                </div>
+              )}
+            </div>
             <div className="p-4">
               <h3 className="font-semibold text-lg mb-2">
                 {language === 'en' ? product.nameEN : product.namePT}
