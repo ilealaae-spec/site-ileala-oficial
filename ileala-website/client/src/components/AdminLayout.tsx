@@ -174,7 +174,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <div className="min-h-screen flex admin-panel">
       {/* Sidebar */}
-      <aside className="w-64 bg-[#214430] border-r text-white">
+      <aside className="w-64 bg-[#172d20] border-r text-white">
         <div className="p-6">
           <h2 className="text-2xl font-bold text-white">
             {language === 'en' ? 'Admin Panel' : 'Painel Admin'}
@@ -199,7 +199,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <a
                   className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-white ${
                     isActive
-                      ? 'bg-[#26553a] text-white'
+                      ? 'bg-[#255238] text-white'
                       : 'hover:bg-white/10'
                   }`}
                 >
