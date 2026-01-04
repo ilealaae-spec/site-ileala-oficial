@@ -6,9 +6,17 @@ import { useAuth } from '@/_core/hooks/useAuth';
 import WelcomePopup from '@/components/WelcomePopup';
 import SEO from '@/components/SEO';
 import Testimonials from '@/components/Testimonials';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { trpc } from '@/lib/trpc';
 import { toast } from 'sonner';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+  type CarouselApi,
+} from '@/components/ui/carousel';
 
 export default function Home() {
   // The userAuth hooks provides authentication state
@@ -17,6 +25,25 @@ export default function Home() {
 
   const { t, language } = useLanguage();
   const [newsletterEmail, setNewsletterEmail] = useState('');
+  const [api, setApi] = useState<CarouselApi>();
+  const [current, setCurrent] = useState(0);
+
+  // Auto-play do carrossel
+  useEffect(() => {
+    if (!api) return;
+
+    setCurrent(api.selectedScrollSnap());
+
+    api.on('select', () => {
+      setCurrent(api.selectedScrollSnap());
+    });
+
+    const interval = setInterval(() => {
+      api.scrollNext();
+    }, 5000); // Muda a cada 5 segundos
+
+    return () => clearInterval(interval);
+  }, [api]);
   
   const subscribeMutation = trpc.newsletter.subscribe.useMutation({
     onSuccess: () => {
@@ -49,22 +76,116 @@ export default function Home() {
         ogImage="/images/hero_home_table_setting.webp"
       />
       <WelcomePopup />
-      {/* Hero Section */}
+      {/* Hero Section - Carousel */}
       <section className="relative h-[70vh] min-h-[500px] w-full overflow-hidden">
-        <img 
-          src="/images/hero_home_table_setting.webp" 
-          alt="ILE ALA Luxury Table Setting - Handcrafted Placemats and Elegant Tableware"
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-black/30" />
-        <div className="relative container h-full flex items-center justify-center">
-          <div className="text-center text-white max-w-3xl">
-            <h1 className="text-5xl md:text-7xl font-bold mb-6">ILE ALA</h1>
-            <p className="text-xl md:text-2xl font-light">
-              {t.home.tagline}
-            </p>
+        <Carousel
+          className="w-full h-full"
+          setApi={setApi}
+          opts={{
+            align: "start",
+            loop: true,
+          }}
+        >
+          <CarouselContent className="h-full">
+            {/* Slide 1 - Imagem atual */}
+            <CarouselItem className="h-full pl-0">
+              <div className="relative h-[70vh] min-h-[500px] w-full">
+                <img 
+                  src="/images/hero_home_table_setting.webp" 
+                  alt="ILE ALA Luxury Table Setting - Handcrafted Placemats and Elegant Tableware"
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-black/30" />
+                <div className="relative container h-full flex items-center justify-center">
+                  <div className="text-center text-white max-w-3xl">
+                    <h1 className="text-5xl md:text-7xl font-bold mb-6">ILE ALA</h1>
+                    <p className="text-xl md:text-2xl font-light">
+                      {t.home.tagline}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </CarouselItem>
+
+            {/* Slide 2 - Logo dourada (nova imagem) */}
+            <CarouselItem className="h-full pl-0">
+              <div className="relative h-[70vh] min-h-[500px] w-full">
+                <img 
+                  src="/images/about_me_card_new.png" 
+                  alt="ILE ALA Logo - Golden Palm Tree"
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-black/10" />
+                <div className="relative container h-full flex items-center justify-center">
+                  <div className="text-center text-white max-w-3xl">
+                    <h1 className="text-5xl md:text-7xl font-bold mb-6">ILE ALA</h1>
+                    <p className="text-xl md:text-2xl font-light">
+                      {t.home.tagline}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </CarouselItem>
+
+            {/* Slide 3 - Placeholder para nova imagem */}
+            <CarouselItem className="h-full pl-0">
+              <div className="relative h-[70vh] min-h-[500px] w-full">
+                <img 
+                  src="/images/hero_home_table_setting.webp" 
+                  alt="ILE ALA Collection"
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-black/30" />
+                <div className="relative container h-full flex items-center justify-center">
+                  <div className="text-center text-white max-w-3xl">
+                    <h1 className="text-5xl md:text-7xl font-bold mb-6">ILE ALA</h1>
+                    <p className="text-xl md:text-2xl font-light">
+                      {t.home.tagline}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </CarouselItem>
+
+            {/* Slide 4 - Placeholder para nova imagem */}
+            <CarouselItem className="h-full pl-0">
+              <div className="relative h-[70vh] min-h-[500px] w-full">
+                <img 
+                  src="/images/hero_home_table_setting.webp" 
+                  alt="ILE ALA Luxury"
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-black/30" />
+                <div className="relative container h-full flex items-center justify-center">
+                  <div className="text-center text-white max-w-3xl">
+                    <h1 className="text-5xl md:text-7xl font-bold mb-6">ILE ALA</h1>
+                    <p className="text-xl md:text-2xl font-light">
+                      {t.home.tagline}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </CarouselItem>
+          </CarouselContent>
+          <CarouselPrevious className="left-4" />
+          <CarouselNext className="right-4" />
+          
+          {/* Indicadores de slide */}
+          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2 z-10">
+            {[0, 1, 2, 3].map((index) => (
+              <button
+                key={index}
+                onClick={() => api?.scrollTo(index)}
+                className={`h-2 rounded-full transition-all ${
+                  current === index
+                    ? 'w-8 bg-white'
+                    : 'w-2 bg-white/50 hover:bg-white/75'
+                }`}
+                aria-label={`Go to slide ${index + 1}`}
+              />
+            ))}
           </div>
-        </div>
+        </Carousel>
       </section>
 
       {/* Essence Section */}
