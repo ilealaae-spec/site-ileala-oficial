@@ -297,11 +297,11 @@ export default function Admin() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Sidebar */}
-      <aside className="fixed left-0 top-0 h-screen w-64 bg-gradient-to-b from-gray-900 to-gray-800 flex flex-col z-20 shadow-2xl">
+      <aside className="fixed left-0 top-0 h-screen w-64 bg-[#172d20] flex flex-col z-20 shadow-2xl text-white">
         {/* Logo */}
-        <div className="p-6 border-b border-gray-700">
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">ILE ALA</h1>
-          <p className="text-sm text-gray-400">Admin Panel</p>
+        <div className="p-6 border-b border-white/20">
+          <h1 className="text-2xl font-bold text-white">ILE ALA</h1>
+          <p className="text-sm text-white/80">Admin Panel</p>
         </div>
 
         {/* Navigation */}
@@ -315,10 +315,10 @@ export default function Admin() {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors",
+                  "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors text-white",
                   isActive
-                    ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/50"
-                    : "text-gray-300 hover:bg-gray-700/50"
+                    ? "bg-[#255238] text-white"
+                    : "hover:bg-white/10"
                 )}
               >
                 <Icon className="w-5 h-5" />
@@ -329,10 +329,10 @@ export default function Admin() {
         </nav>
 
         {/* Logout */}
-        <div className="p-4 border-t border-gray-700">
+        <div className="p-4 border-t border-white/20">
           <Button
             variant="ghost"
-            className="w-full justify-start text-red-400 hover:text-red-300 hover:bg-gray-700/50"
+            className="w-full justify-start text-white hover:text-white hover:bg-white/10"
             onClick={handleLogout}
           >
             <LogOut className="w-5 h-5 mr-3" />
