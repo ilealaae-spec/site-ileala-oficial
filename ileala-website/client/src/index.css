@@ -45,11 +45,13 @@
 }
 
 :root {
-  --color-sage-600: #4A7C59;
-  --color-sage-700: #3D6A4A;
-  --color-sage-500: #5A8C6A;
-  --primary: oklch(0.45 0.12 160);
+  --color-sage-600: #255238;
+  --color-sage-700: #1E3F2D;
+  --color-sage-500: #2D6B4A;
+  --primary: oklch(0.35 0.08 160);
   --primary-foreground: oklch(0.98 0 0);
+  --admin-primary: #26553a;
+  --admin-primary-foreground: oklch(0.98 0 0);
   --sidebar-primary: var(--color-blue-600);
   --sidebar-primary-foreground: var(--color-blue-50);
   --chart-1: var(--color-blue-300);
@@ -59,16 +61,16 @@
   --chart-5: var(--color-blue-800);
   --radius: 0.65rem;
   --background: oklch(1 0 0);
-  --foreground: oklch(0.235 0.015 65);
+  --foreground: #214430;
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.235 0.015 65);
+  --card-foreground: #214430;
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.235 0.015 65);
+  --popover-foreground: #214430;
   --secondary: oklch(0.98 0.001 286.375);
   --secondary-foreground: oklch(0.4 0.015 65);
   --muted: oklch(0.967 0.001 286.375);
   --muted-foreground: oklch(0.552 0.016 285.938);
-  --accent: oklch(0.45 0.12 160);
+  --accent: oklch(0.35 0.08 160);
   --accent-foreground: oklch(0.98 0 0);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.985 0 0);
@@ -76,7 +78,7 @@
   --input: oklch(0.92 0.004 286.32);
   --ring: oklch(0.623 0.214 259.815);
   --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.235 0.015 65);
+  --sidebar-foreground: #214430;
   --sidebar-accent: oklch(0.967 0.001 286.375);
   --sidebar-accent-foreground: oklch(0.141 0.005 285.823);
   --sidebar-border: oklch(0.92 0.004 286.32);
@@ -84,19 +86,19 @@
 }
 
 .dark {
-  --color-sage-600: #4A7C59;
-  --color-sage-700: #3D6A4A;
-  --color-sage-500: #5A8C6A;
-  --primary: oklch(0.45 0.12 160);
+  --color-sage-600: #255238;
+  --color-sage-700: #1E3F2D;
+  --color-sage-500: #2D6B4A;
+  --primary: oklch(0.35 0.08 160);
   --primary-foreground: oklch(0.98 0 0);
   --sidebar-primary: var(--color-blue-500);
   --sidebar-primary-foreground: var(--color-blue-50);
   --background: oklch(0.141 0.005 285.823);
-  --foreground: oklch(0.85 0.005 65);
+  --foreground: #214430;
   --card: oklch(0.21 0.006 285.885);
-  --card-foreground: oklch(0.85 0.005 65);
+  --card-foreground: #214430;
   --popover: oklch(0.21 0.006 285.885);
-  --popover-foreground: oklch(0.85 0.005 65);
+  --popover-foreground: #214430;
   --secondary: oklch(0.24 0.006 286.033);
   --secondary-foreground: oklch(0.7 0.005 65);
   --muted: oklch(0.274 0.006 286.033);
@@ -147,6 +149,40 @@
 }
 
 @layer components {
+  /**
+   * Admin Panel - Override colors for admin panel
+   * Sidebar green: #214430
+   * Buttons: #26553a
+   */
+  .admin-panel {
+    --admin-sidebar-green: #214430;
+    --admin-button-green: #26553a;
+    --primary: #214430;
+    --primary-foreground: oklch(0.98 0 0);
+  }
+  
+  /* Sidebar and active menu items */
+  .admin-panel aside,
+  .admin-panel .bg-primary:not(button),
+  .admin-panel [class*="bg-primary"]:not(button) {
+    background-color: #214430 !important;
+  }
+  
+  /* Buttons */
+  .admin-panel button.bg-primary,
+  .admin-panel .bg-primary button,
+  .admin-panel button[class*="bg-primary"] {
+    background-color: #26553a !important;
+  }
+  
+  .admin-panel .text-primary {
+    color: #214430 !important;
+  }
+  
+  .admin-panel .border-primary {
+    border-color: #214430 !important;
+  }
+  
   /**
    * Custom container utility that centers content and adds responsive padding.
    *
