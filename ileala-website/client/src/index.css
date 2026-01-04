@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600;700&family=Montserrat:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Bodoni+Moda:opsz,wght@6..96,400;6..96,500;6..96,600;6..96,700&display=swap');
 
 @import "tailwindcss";
 @import "tw-animate-css";
@@ -129,11 +129,42 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: 'Montserrat', sans-serif;
+    font-family: 'Helvetica', 'Arial', sans-serif;
   }
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: 'Playfair Display', 'Bodoni Moda', serif;
     font-weight: 500;
+  }
+  /* Subtítulos */
+  .subtitle,
+  h2.subtitle,
+  h3.subtitle {
+    font-family: 'Helvetica', 'Arial', sans-serif;
+  }
+  /* Menu e navegação */
+  nav,
+  .nav,
+  header nav,
+  .menu {
+    font-family: 'Helvetica', 'Arial', sans-serif;
+  }
+  /* Painel Admin - Aplicar mesmas fontes */
+  .admin-panel {
+    font-family: 'Helvetica', 'Arial', sans-serif;
+  }
+  .admin-panel h1,
+  .admin-panel h2,
+  .admin-panel h3,
+  .admin-panel h4,
+  .admin-panel h5,
+  .admin-panel h6 {
+    font-family: 'Playfair Display', 'Bodoni Moda', serif;
+    font-weight: 500;
+  }
+  .admin-panel nav,
+  .admin-panel aside,
+  .admin-panel .menu {
+    font-family: 'Helvetica', 'Arial', sans-serif;
   }
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
