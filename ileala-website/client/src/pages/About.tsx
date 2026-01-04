@@ -176,16 +176,9 @@ export default function About() {
               {/* Artisan 1 - Mr. Zeeshan (Tailor) */}
               <Card className="hover:shadow-lg transition-shadow">
                 <div className="p-6">
-                  <div className="flex items-center gap-4 mb-4">
-                    <img 
-                      src="/images/artisans/zeeshan.webp" 
-                      alt="Mr. Zeeshan - Tailor"
-                      className="w-16 h-16 rounded-full object-cover flex-shrink-0"
-                    />
-                    <div>
-                      <h3 className="text-xl font-semibold">Mr. Zeeshan</h3>
-                      <p className="text-sm text-primary">{language === 'en' ? 'Master Tailor • Pakistan' : 'Mestre Alfaiate • Paquistão'}</p>
-                    </div>
+                  <div className="mb-4">
+                    <h3 className="text-xl font-semibold mb-1">Mr. Zeeshan</h3>
+                    <p className="text-sm text-primary">{language === 'en' ? 'Master Tailor • Pakistan' : 'Mestre Alfaiate • Paquistão'}</p>
                   </div>
                   <p className="text-sm text-muted-foreground leading-relaxed">
                     {language === 'en' 
@@ -198,16 +191,9 @@ export default function About() {
               {/* Artisan 2 - Mr. Sarajuddin (India) */}
               <Card className="hover:shadow-lg transition-shadow">
                 <div className="p-6">
-                  <div className="flex items-center gap-4 mb-4">
-                    <img 
-                      src="/images/artisans/sarajuddin.webp" 
-                      alt="Mr. Sarajuddin - Tailor" 
-                      className="w-16 h-16 rounded-full object-cover flex-shrink-0"
-                    />
-                    <div>
-                      <h3 className="text-xl font-semibold">Mr. Sarajuddin</h3>
-                      <p className="text-sm text-primary">{language === 'en' ? 'Master Tailor • India' : 'Mestre Alfaiate • Índia'}</p>
-                    </div>
+                  <div className="mb-4">
+                    <h3 className="text-xl font-semibold mb-1">Mr. Sarajuddin</h3>
+                    <p className="text-sm text-primary">{language === 'en' ? 'Master Tailor • India' : 'Mestre Alfaiate • Índia'}</p>
                   </div>
                   <p className="text-sm text-muted-foreground leading-relaxed">
                     {language === 'en'
@@ -220,16 +206,9 @@ export default function About() {
               {/* Artisan 3 - Ge (Production & Finishing Manager) */}
               <Card className="hover:shadow-lg transition-shadow">
                 <div className="p-6">
-                  <div className="flex items-center gap-4 mb-4">
-                    <img 
-                      src="/images/artisans/ge.webp" 
-                      alt="Ge - Production Manager" 
-                      className="w-16 h-16 rounded-full object-cover flex-shrink-0"
-                    />
-                    <div>
-                      <h3 className="text-xl font-semibold">Ge</h3>
-                      <p className="text-sm text-primary">{language === 'en' ? 'Production & Finishing Manager • Madagascar' : 'Gerente de Produção e Finalização • Madagascar'}</p>
-                    </div>
+                  <div className="mb-4">
+                    <h3 className="text-xl font-semibold mb-1">Ge</h3>
+                    <p className="text-sm text-primary">{language === 'en' ? 'Production & Finishing Manager • Madagascar' : 'Gerente de Produção e Finalização • Madagascar'}</p>
                   </div>
                   <p className="text-sm text-muted-foreground leading-relaxed">
                     {language === 'en'
@@ -242,16 +221,9 @@ export default function About() {
               {/* Artisan 4 - Lola (Master of Embroidery) */}
               <Card className="hover:shadow-lg transition-shadow">
                 <div className="p-6">
-                  <div className="flex items-center gap-4 mb-4">
-                    <img 
-                      src="/images/artisans/lola.webp" 
-                      alt="Lola - Master of Embroidery" 
-                      className="w-16 h-16 rounded-full object-cover flex-shrink-0"
-                    />
-                    <div>
-                      <h3 className="text-xl font-semibold">Lola</h3>
-                      <p className="text-sm text-primary">{language === 'en' ? 'Master of Embroidery • Madagascar' : 'Mestre do Bordado • Madagascar'}</p>
-                    </div>
+                  <div className="mb-4">
+                    <h3 className="text-xl font-semibold mb-1">Lola</h3>
+                    <p className="text-sm text-primary">{language === 'en' ? 'Master of Embroidery • Madagascar' : 'Mestre do Bordado • Madagascar'}</p>
                   </div>
                   <p className="text-sm text-muted-foreground leading-relaxed">
                     {language === 'en'
@@ -264,16 +236,9 @@ export default function About() {
               {/* Artisan 5 - Emily (Atelier & Showroom Caretaker) */}
               <Card className="hover:shadow-lg transition-shadow">
                 <div className="p-6">
-                  <div className="flex items-center gap-4 mb-4">
-                    <img 
-                      src="/images/artisans/emily.webp" 
-                      alt="Emily - Atelier & Showroom Caretaker" 
-                      className="w-16 h-16 rounded-full object-cover flex-shrink-0"
-                    />
-                    <div>
-                      <h3 className="text-xl font-semibold">Emily</h3>
-                      <p className="text-sm text-primary">{language === 'en' ? 'Atelier & Showroom Caretaker • Madagascar' : 'Responsável pela Limpeza e Organização • Madagascar'}</p>
-                    </div>
+                  <div className="mb-4">
+                    <h3 className="text-xl font-semibold mb-1">Emily</h3>
+                    <p className="text-sm text-primary">{language === 'en' ? 'Atelier & Showroom Caretaker • Madagascar' : 'Responsável pela Limpeza e Organização • Madagascar'}</p>
                   </div>
                   <p className="text-sm text-muted-foreground leading-relaxed">
                     {language === 'en'
@@ -286,16 +251,9 @@ export default function About() {
               {/* Artisan 6 - Ajay (India Representative & Cultural Ambassador) */}
               <Card className="hover:shadow-lg transition-shadow">
                 <div className="p-6">
-                  <div className="flex items-center gap-4 mb-4">
-                    <img 
-                      src="/images/artisans/ajay.webp" 
-                      alt="Ajay - India Representative" 
-                      className="w-16 h-16 rounded-full object-cover flex-shrink-0"
-                    />
-                    <div>
-                      <h3 className="text-xl font-semibold">Ajay</h3>
-                      <p className="text-sm text-primary">{language === 'en' ? 'India Representative & Cultural Ambassador • Jaipur, India' : 'Representante na Índia e Embaixador Cultural • Jaipur, Índia'}</p>
-                    </div>
+                  <div className="mb-4">
+                    <h3 className="text-xl font-semibold mb-1">Ajay</h3>
+                    <p className="text-sm text-primary">{language === 'en' ? 'India Representative & Cultural Ambassador • Jaipur, India' : 'Representante na Índia e Embaixador Cultural • Jaipur, Índia'}</p>
                   </div>
                   <p className="text-sm text-muted-foreground leading-relaxed">
                     {language === 'en'
@@ -308,16 +266,9 @@ export default function About() {
               {/* Artisan 7 - Moët Chandon (Director of Creative Calm & Harmony) */}
               <Card className="hover:shadow-lg transition-shadow">
                 <div className="p-6">
-                  <div className="flex items-center gap-4 mb-4">
-                    <img 
-                      src="/images/artisans/moet.webp" 
-                      alt="Moët Chandon - Director of Creative Calm & Harmony" 
-                      className="w-16 h-16 rounded-full object-cover flex-shrink-0"
-                    />
-                    <div>
-                      <h3 className="text-xl font-semibold">Moët Chandon</h3>
-                      <p className="text-sm text-primary">{language === 'en' ? 'Director of Creative Calm & Harmony • Coton de Tuléar' : 'Diretora de Calma e Harmonia Criativa • Coton de Tuléar'}</p>
-                    </div>
+                  <div className="mb-4">
+                    <h3 className="text-xl font-semibold mb-1">Moët Chandon</h3>
+                    <p className="text-sm text-primary">{language === 'en' ? 'Director of Creative Calm & Harmony • Coton de Tuléar' : 'Diretora de Calma e Harmonia Criativa • Coton de Tuléar'}</p>
                   </div>
                   <p className="text-sm text-muted-foreground leading-relaxed">
                     {language === 'en'
