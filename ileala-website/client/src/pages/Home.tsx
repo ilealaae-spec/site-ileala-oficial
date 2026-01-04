@@ -87,7 +87,7 @@ export default function Home() {
           }}
         >
           <CarouselContent className="h-full">
-            {/* Slide 1 - Imagem atual */}
+            {/* Slide 1 - Mesa posta luxuosa (imagem principal) */}
             <CarouselItem className="h-full pl-0">
               <div className="relative h-[70vh] min-h-[500px] w-full">
                 <img 
@@ -107,27 +107,7 @@ export default function Home() {
               </div>
             </CarouselItem>
 
-            {/* Slide 2 - Búzios/Conchas (decorative item) */}
-            <CarouselItem className="h-full pl-0">
-              <div className="relative h-[70vh] min-h-[500px] w-full">
-                <img 
-                  src="/images/hero_carousel_2.jpeg" 
-                  alt="ILE ALA Collection - Decorative Shells and Wood"
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-black/20" />
-                <div className="relative container h-full flex items-center justify-center">
-                  <div className="text-center text-white max-w-3xl">
-                    <h1 className="text-5xl md:text-7xl font-bold mb-6">ILE ALA</h1>
-                    <p className="text-xl md:text-2xl font-light">
-                      {t.home.tagline}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </CarouselItem>
-
-            {/* Slide 3 - Moët Chandon (sala luxuosa) */}
+            {/* Slide 2 - Moët Chandon (sala verde esmeralda) */}
             <CarouselItem className="h-full pl-0">
               <div className="relative h-[70vh] min-h-[500px] w-full">
                 <img 
@@ -147,12 +127,32 @@ export default function Home() {
               </div>
             </CarouselItem>
 
-            {/* Slide 4 - Nova imagem 3 */}
+            {/* Slide 3 - Búzios/Conchas (decorative item) */}
+            <CarouselItem className="h-full pl-0">
+              <div className="relative h-[70vh] min-h-[500px] w-full">
+                <img 
+                  src="/images/hero_carousel_2.jpeg" 
+                  alt="ILE ALA Collection - Decorative Shells and Wood"
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-black/20" />
+                <div className="relative container h-full flex items-center justify-center">
+                  <div className="text-center text-white max-w-3xl">
+                    <h1 className="text-5xl md:text-7xl font-bold mb-6">ILE ALA</h1>
+                    <p className="text-xl md:text-2xl font-light">
+                      {t.home.tagline}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </CarouselItem>
+
+            {/* Slide 4 - Banheiro luxuoso com mármore */}
             <CarouselItem className="h-full pl-0">
               <div className="relative h-[70vh] min-h-[500px] w-full">
                 <img 
                   src="/images/hero_carousel_3.jpeg" 
-                  alt="ILE ALA Elegant Design"
+                  alt="ILE ALA Elegant Design - Luxury Bathroom"
                   className="absolute inset-0 w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-black/20" />
