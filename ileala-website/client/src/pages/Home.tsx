@@ -127,12 +127,12 @@ export default function Home() {
               </div>
             </CarouselItem>
 
-            {/* Slide 3 - Nova imagem 2 */}
+            {/* Slide 3 - Moët Chandon (sala luxuosa) */}
             <CarouselItem className="h-full pl-0">
               <div className="relative h-[70vh] min-h-[500px] w-full">
                 <img 
-                  src="/images/hero_carousel_2.jpeg" 
-                  alt="ILE ALA Luxury Collection"
+                  src="/images/hero_carousel_moet.jpeg" 
+                  alt="ILE ALA Luxury Collection - Moët Chandon"
                   className="absolute inset-0 w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-black/20" />
