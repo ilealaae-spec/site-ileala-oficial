@@ -459,7 +459,7 @@ export const appRouter = router({
     verify2FALogin: publicProcedure
       .input(z.object({
         tempToken: z.string(),
-        code: z.string().length(6),
+        code: z.string().min(6).max(9), // Accept 6-digit TOTP or 8-char backup code (with optional hyphen)
       }))
       .mutation(async ({ input, ctx }) => {
         // Decode temp token
@@ -485,9 +485,16 @@ export const appRouter = router({
         const isValid = verify2FAToken(input.code, user.twoFactorSecret);
         if (!isValid) {
           // Try backup codes
-          const isBackupValid = await verifyBackupCode(user.id, input.code);
-          if (!isBackupValid) {
+          const backupResult = verifyBackupCode(input.code, user.twoFactorBackupCodes);
+          if (!backupResult.valid) {
             throw new Error('Invalid verification code');
+          }
+          
+          // Update backup codes if one was used
+          if (backupResult.remainingCodes) {
+            await db.updateUser(user.id, {
+              twoFactorBackupCodes: JSON.stringify(backupResult.remainingCodes),
+            });
           }
         }
         

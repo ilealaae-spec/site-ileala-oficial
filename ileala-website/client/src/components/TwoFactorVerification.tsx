@@ -42,12 +42,22 @@ export default function TwoFactorVerification({ tempToken, onSuccess, onBack }: 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!code || code.length !== 6) {
-      toast.error(language === 'en' ? 'Please enter a 6-digit code' : 'Por favor, digite um código de 6 dígitos');
+    // Normalize code: remove spaces and convert to uppercase
+    const normalizedCode = code.trim().toUpperCase().replace(/\s+/g, '');
+    
+    // Accept either:
+    // - 6-digit TOTP code (numbers only)
+    // - 8-character backup code (alphanumeric, with or without hyphen)
+    if (!normalizedCode || (normalizedCode.length !== 6 && normalizedCode.length !== 8)) {
+      toast.error(
+        language === 'en' 
+          ? 'Please enter a 6-digit code or 8-character backup code' 
+          : 'Por favor, digite um código de 6 dígitos ou código de backup de 8 caracteres'
+      );
       return;
     }
 
-    verify2FAMutation.mutate({ tempToken, code });
+    verify2FAMutation.mutate({ tempToken, code: normalizedCode });
   };
 
   return (
@@ -64,8 +74,8 @@ export default function TwoFactorVerification({ tempToken, onSuccess, onBack }: 
           </h1>
           <p className="text-sage-600">
             {language === 'en' 
-              ? 'Enter the 6-digit code from your authenticator app' 
-              : 'Digite o código de 6 dígitos do seu aplicativo autenticador'}
+              ? 'Enter the 6-digit code from your authenticator app or an 8-character backup code' 
+              : 'Digite o código de 6 dígitos do seu aplicativo autenticador ou um código de backup de 8 caracteres'}
           </p>
         </div>
 
@@ -77,10 +87,14 @@ export default function TwoFactorVerification({ tempToken, onSuccess, onBack }: 
             <Input
               id="code"
               type="text"
-              maxLength={6}
+              maxLength={9}
               value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-              placeholder="000000"
+              onChange={(e) => {
+                // Allow alphanumeric and hyphens, convert to uppercase
+                const value = e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, '');
+                setCode(value);
+              }}
+              placeholder="000000 ou XXXX-XXXX"
               className="text-center text-2xl font-mono tracking-widest"
               disabled={verify2FAMutation.isPending}
               autoFocus
@@ -90,7 +104,7 @@ export default function TwoFactorVerification({ tempToken, onSuccess, onBack }: 
           <div className="space-y-3">
             <Button
               type="submit"
-              disabled={verify2FAMutation.isPending || code.length !== 6}
+              disabled={verify2FAMutation.isPending || (code.trim().replace(/[^A-Z0-9]/g, '').length !== 6 && code.trim().replace(/[^A-Z0-9]/g, '').length !== 8)}
               className="w-full"
             >
               {verify2FAMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
@@ -113,8 +127,8 @@ export default function TwoFactorVerification({ tempToken, onSuccess, onBack }: 
         <div className="mt-6 text-center text-sm text-sage-600">
           <p>
             {language === 'en' 
-              ? "Can't access your authenticator? Contact support." 
-              : 'Não consegue acessar seu autenticador? Entre em contato com o suporte.'}
+              ? "Can't access your authenticator? Use a backup code (8 characters) or contact support." 
+              : 'Não consegue acessar seu autenticador? Use um código de backup (8 caracteres) ou entre em contato com o suporte.'}
           </p>
         </div>
       </Card>
