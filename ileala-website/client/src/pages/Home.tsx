@@ -266,9 +266,10 @@ export default function Home() {
               />
               <Button 
                 type="submit" 
-                variant="secondary" 
+                variant="default"
                 size="lg"
                 disabled={subscribeMutation.isPending}
+                className="bg-white text-[#255238] hover:bg-white/90 font-medium"
               >
                 {subscribeMutation.isPending ? (language === 'en' ? 'Sending...' : 'Enviando...') : (language === 'en' ? 'Submit' : 'Enviar')}
               </Button>
