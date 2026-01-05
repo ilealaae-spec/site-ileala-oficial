@@ -1017,6 +1017,8 @@ export const appRouter = router({
           id: input.id,
           data: input.data,
           imageUrl: input.data.imageUrl,
+          imageUrlType: typeof input.data.imageUrl,
+          imageUrlLength: input.data.imageUrl?.length,
         });
         
         await db.updateProduct(input.id, input.data);
@@ -1027,8 +1029,18 @@ export const appRouter = router({
           id: updatedProduct?.id,
           name: updatedProduct?.name,
           imageUrl: updatedProduct?.imageUrl,
+          imageUrlType: typeof updatedProduct?.imageUrl,
+          imageUrlLength: updatedProduct?.imageUrl?.length,
           active: updatedProduct?.active,
         });
+        
+        // Log if imageUrl is missing or different
+        if (input.data.imageUrl && updatedProduct?.imageUrl !== input.data.imageUrl) {
+          console.error('[Admin] WARNING: imageUrl mismatch!', {
+            sent: input.data.imageUrl,
+            saved: updatedProduct?.imageUrl,
+          });
+        }
         
         // Invalidate product caches
         invalidateCache(CacheKeys.product(input.id));

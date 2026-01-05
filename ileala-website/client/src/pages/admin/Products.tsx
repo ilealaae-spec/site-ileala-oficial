@@ -29,13 +29,16 @@ export default function AdminProducts() {
   const { data: products, isLoading, refetch } = trpc.admin.products.list.useQuery();
   
   const createMutation = trpc.admin.products.create.useMutation({
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success(language === 'en' ? 'Product created!' : 'Produto criado!');
       setIsDialogOpen(false);
       refetch();
-      // Invalidate public product queries to ensure images appear immediately
-      utils.products.list.invalidate();
-      utils.products.featured.invalidate();
+      // Invalidate AND refetch public product queries to ensure images appear immediately
+      await utils.products.list.invalidate();
+      await utils.products.featured.invalidate();
+      // Force refetch to ensure fresh data
+      await utils.products.list.refetch();
+      await utils.products.featured.refetch();
       resetForm();
     },
     onError: (error) => {
@@ -44,13 +47,16 @@ export default function AdminProducts() {
   });
   
   const updateMutation = trpc.admin.products.update.useMutation({
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success(language === 'en' ? 'Product updated!' : 'Produto atualizado!');
       setIsDialogOpen(false);
       refetch();
-      // Invalidate public product queries to ensure images appear immediately
-      utils.products.list.invalidate();
-      utils.products.featured.invalidate();
+      // Invalidate AND refetch public product queries to ensure images appear immediately
+      await utils.products.list.invalidate();
+      await utils.products.featured.invalidate();
+      // Force refetch to ensure fresh data
+      await utils.products.list.refetch();
+      await utils.products.featured.refetch();
       resetForm();
     },
     onError: (error) => {
