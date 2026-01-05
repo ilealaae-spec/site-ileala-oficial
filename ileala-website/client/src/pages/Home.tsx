@@ -127,12 +127,12 @@ export default function Home() {
               </div>
             </CarouselItem>
 
-            {/* Slide 3 - Moët Chandon (sala verde esmeralda) */}
+            {/* Slide 3 - Banheiro luxuoso com mármore */}
             <CarouselItem className="h-full pl-0">
               <div className="relative h-[70vh] min-h-[500px] w-full">
                 <img 
-                  src="/images/hero_carousel_moet.jpeg" 
-                  alt="ILE ALA Luxury Collection - Moët Chandon"
+                  src="/images/hero_carousel_3.jpeg" 
+                  alt="ILE ALA Elegant Design - Luxury Bathroom"
                   className="absolute inset-0 w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-black/20" />
@@ -147,12 +147,12 @@ export default function Home() {
               </div>
             </CarouselItem>
 
-            {/* Slide 4 - Banheiro luxuoso com mármore */}
+            {/* Slide 4 - Moët Chandon (sala verde esmeralda) - foto correta */}
             <CarouselItem className="h-full pl-0">
               <div className="relative h-[70vh] min-h-[500px] w-full">
                 <img 
-                  src="/images/hero_carousel_3.jpeg" 
-                  alt="ILE ALA Elegant Design - Luxury Bathroom"
+                  src="/images/hero_carousel_moet.jpeg" 
+                  alt="ILE ALA Luxury Collection - Moët Chandon"
                   className="absolute inset-0 w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-black/20" />
