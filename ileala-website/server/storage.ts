@@ -51,7 +51,11 @@ export async function storagePut(
     console.log('[S3] Upload successful!');
     
     // Generate public URL
-    const url = `https://${BUCKET_NAME}.s3.${process.env.AWS_REGION || 'us-east-1'}.amazonaws.com/${key}`;
+    // For us-east-1, the URL format is different (no region in URL)
+    const region = process.env.AWS_REGION || 'us-east-1';
+    const url = region === 'us-east-1'
+      ? `https://${BUCKET_NAME}.s3.amazonaws.com/${key}`
+      : `https://${BUCKET_NAME}.s3.${region}.amazonaws.com/${key}`;
     
     return { key, url };
   } catch (error) {
@@ -69,7 +73,11 @@ export async function storageGet(relKey: string): Promise<{ key: string; url: st
   const key = normalizeKey(relKey);
   
   // Generate public URL
-  const url = `https://${BUCKET_NAME}.s3.${process.env.AWS_REGION || 'us-east-1'}.amazonaws.com/${key}`;
+  // For us-east-1, the URL format is different (no region in URL)
+  const region = process.env.AWS_REGION || 'us-east-1';
+  const url = region === 'us-east-1'
+    ? `https://${BUCKET_NAME}.s3.amazonaws.com/${key}`
+    : `https://${BUCKET_NAME}.s3.${region}.amazonaws.com/${key}`;
   
   return { key, url };
 }
