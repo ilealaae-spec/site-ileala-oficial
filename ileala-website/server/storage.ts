@@ -23,14 +23,26 @@ export async function storagePut(
   contentType = 'application/octet-stream'
 ): Promise<{ key: string; url: string }> {
   const key = normalizeKey(relKey);
+  const region = process.env.AWS_REGION || 'us-east-1';
+  
+  // Validate bucket name
+  if (!BUCKET_NAME || BUCKET_NAME.trim() === '') {
+    throw new Error('AWS_S3_BUCKET environment variable is not set');
+  }
+  
+  // Validate credentials
+  if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
+    throw new Error('AWS credentials are not configured');
+  }
   
   console.log('[S3] Upload attempt:', {
     bucket: BUCKET_NAME,
-    region: process.env.AWS_REGION || 'us-east-1',
+    region,
     key,
     contentType,
     hasAccessKey: !!process.env.AWS_ACCESS_KEY_ID,
     hasSecretKey: !!process.env.AWS_SECRET_ACCESS_KEY,
+    accessKeyPrefix: process.env.AWS_ACCESS_KEY_ID?.substring(0, 8) || 'NOT SET',
   });
   
   // Convert data to Buffer if it's a string
