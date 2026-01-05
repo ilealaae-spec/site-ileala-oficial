@@ -1316,7 +1316,42 @@ export const appRouter = router({
         .mutation(async ({ input, ctx }) => {
           if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
           const { id, ...updates } = input;
+          
+          // Get product before update to check collection/category for cache invalidation
+          const productBeforeUpdate = await db.getProductById(id);
+          
           await db.updateProduct(id, updates);
+          
+          // Invalidate all product caches
+          invalidateCache(CacheKeys.product(id));
+          invalidateCache(CacheKeys.products());
+          invalidateCache(CacheKeys.featuredProducts());
+          
+          // Invalidate collection/category caches if they changed
+          if (updates.collection || productBeforeUpdate?.collection) {
+            const collection = updates.collection || productBeforeUpdate?.collection;
+            if (collection) {
+              invalidateCache(CacheKeys.products(`collection:${collection}`));
+            }
+          }
+          if (updates.category || productBeforeUpdate?.category) {
+            const category = updates.category || productBeforeUpdate?.category;
+            if (category) {
+              invalidateCache(CacheKeys.products(`category:${category}`));
+            }
+          }
+          
+          // If slug might have changed, invalidate by slug cache
+          if (updates.nameEN && productBeforeUpdate) {
+            const oldSlug = productBeforeUpdate.slug;
+            invalidateCache(CacheKeys.productBySlug(oldSlug));
+          }
+          
+          console.log('[Admin.Products.Update] Product updated and cache invalidated:', {
+            productId: id,
+            updates: Object.keys(updates),
+          });
+          
           return { success: true };
         }),
       delete: protectedProcedure
