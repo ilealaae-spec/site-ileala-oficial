@@ -156,8 +156,28 @@ export async function getProductsByCategory(category: string) {
 export async function createProduct(product: InsertProduct) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  const result = await db.insert(products).values(product).returning({ id: products.id });
-  return result[0].id;
+  
+  console.log('[DB] Creating product:', {
+    name: product.name,
+    nameEN: product.nameEN,
+    slug: product.slug,
+    imageUrl: product.imageUrl,
+    active: product.active,
+  });
+  
+  try {
+    const result = await db.insert(products).values(product).returning({ id: products.id });
+    console.log('[DB] Product created successfully with ID:', result[0].id);
+    return result[0].id;
+  } catch (error) {
+    console.error('[DB] Error creating product:', error);
+    console.error('[DB] Error details:', {
+      name: error instanceof Error ? error.name : 'Unknown',
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    throw error;
+  }
 }
 
 export async function updateProduct(id: number, product: Partial<InsertProduct>) {

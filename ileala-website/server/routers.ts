@@ -1300,19 +1300,37 @@ export const appRouter = router({
             name,
             slug,
             nameEN: input.nameEN,
+            namePT: input.namePT,
+            price: input.price,
+            imageUrl: input.imageUrl,
             active: input.active ?? 1,
             collection: input.collection,
             category: input.category,
+            stock: input.stock,
           });
           
-          const productId = await db.createProduct({
+          const productData = {
             ...input,
             name,
             slug,
             active: input.active ?? 1, // Default to 1 if not provided
-          });
+          };
+          
+          console.log('[Admin.Products.Create] Product data to save:', productData);
+          
+          const productId = await db.createProduct(productData);
           
           console.log('[Admin.Products.Create] Product created with ID:', productId);
+          
+          // Verify the product was created
+          const createdProduct = await db.getProductById(productId);
+          console.log('[Admin.Products.Create] Verification - Product in DB:', createdProduct ? {
+            id: createdProduct.id,
+            name: createdProduct.name,
+            nameEN: createdProduct.nameEN,
+            imageUrl: createdProduct.imageUrl,
+            active: createdProduct.active,
+          } : 'PRODUCT NOT FOUND IN DATABASE!');
           
           // Invalidate all product caches
           invalidateCache(CacheKeys.products());
