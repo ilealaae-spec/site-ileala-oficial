@@ -1357,8 +1357,7 @@ export const appRouter = router({
             invalidateCache(CacheKeys.products(`category:${input.category}`));
           }
           
-          // Return the created product
-          const createdProduct = await db.getProductById(productId);
+          // Return the created product (already verified above)
           return createdProduct || { id: productId };
         }),
       update: protectedProcedure
