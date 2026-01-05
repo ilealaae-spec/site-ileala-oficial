@@ -35,9 +35,9 @@ export async function storagePut(
   const key = normalizeKey(relKey);
   const region = process.env.AWS_REGION || 'us-east-1';
   
-  // Validate bucket name
+  // Validate bucket name is set
   if (!BUCKET_NAME || BUCKET_NAME.trim() === '') {
-    throw new Error('AWS_S3_BUCKET environment variable is not set');
+    throw new Error('AWS_S3_BUCKET environment variable is not set or is empty');
   }
   
   // Validate credentials
@@ -58,12 +58,7 @@ export async function storagePut(
   // Convert data to Buffer if it's a string
   const buffer = typeof data === 'string' ? Buffer.from(data) : Buffer.from(data);
   
-  // Validate bucket name is set
-  if (!BUCKET_NAME || BUCKET_NAME.trim() === '') {
-    throw new Error('AWS_S3_BUCKET environment variable is not set or is empty');
-  }
-  
-  // Let AWS SDK validate the bucket name format - it has more accurate rules
+  // Let AWS SDK validate the bucket name format - it has the correct rules
   
   // Upload to S3
   const command = new PutObjectCommand({
