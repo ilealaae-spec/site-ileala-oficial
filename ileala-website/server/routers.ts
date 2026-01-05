@@ -1358,7 +1358,32 @@ export const appRouter = router({
         .input(z.object({ id: z.number() }))
         .mutation(async ({ input, ctx }) => {
           if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+          
+          // Get product before delete to check collection/category for cache invalidation
+          const productBeforeDelete = await db.getProductById(input.id);
+          
           await db.deleteProduct(input.id);
+          
+          // Invalidate all product caches
+          invalidateCache(CacheKeys.product(input.id));
+          invalidateCache(CacheKeys.products());
+          invalidateCache(CacheKeys.featuredProducts());
+          
+          // Invalidate collection/category caches
+          if (productBeforeDelete?.collection) {
+            invalidateCache(CacheKeys.products(`collection:${productBeforeDelete.collection}`));
+          }
+          if (productBeforeDelete?.category) {
+            invalidateCache(CacheKeys.products(`category:${productBeforeDelete.category}`));
+          }
+          if (productBeforeDelete?.slug) {
+            invalidateCache(CacheKeys.productBySlug(productBeforeDelete.slug));
+          }
+          
+          console.log('[Admin.Products.Delete] Product deleted and cache invalidated:', {
+            productId: input.id,
+          });
+          
           return { success: true };
         }),
     }),
