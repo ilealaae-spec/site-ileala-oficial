@@ -846,9 +846,27 @@ export const appRouter = router({
     list: publicProcedure.query(async () => {
       const cacheKey = CacheKeys.products();
       const cached = getCached(cacheKey);
-      if (cached) return cached;
+      if (cached) {
+        console.log('[Products API] Returning cached products:', cached.length, 'products');
+        // Log first product's imageUrl for debugging
+        if (cached.length > 0) {
+          console.log('[Products API] First product imageUrl:', cached[0].imageUrl);
+        }
+        return cached;
+      }
       
       const products = await db.getAllProducts();
+      console.log('[Products API] Fetched from database:', products.length, 'products');
+      // Log first product's imageUrl for debugging
+      if (products.length > 0) {
+        console.log('[Products API] First product from DB:', {
+          id: products[0].id,
+          name: products[0].name,
+          imageUrl: products[0].imageUrl,
+          imageUrlType: typeof products[0].imageUrl,
+          imageUrlLength: products[0].imageUrl?.length,
+        });
+      }
       setCached(cacheKey, products, 5 * 60 * 1000); // 5 minutes
       return products;
     }),
