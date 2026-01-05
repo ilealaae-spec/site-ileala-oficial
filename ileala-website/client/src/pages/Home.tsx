@@ -87,7 +87,7 @@ export default function Home() {
           }}
         >
           <CarouselContent className="h-full">
-            {/* Slide 1 - Mesa posta luxuosa (imagem principal) */}
+            {/* Slide 1 - Mesa posta luxuosa (pratos dourados, oliveiras) */}
             <CarouselItem className="h-full pl-0">
               <div className="relative h-[70vh] min-h-[500px] w-full">
                 <img 
@@ -107,12 +107,12 @@ export default function Home() {
               </div>
             </CarouselItem>
 
-            {/* Slide 2 - Moët Chandon (sala verde esmeralda) */}
+            {/* Slide 2 - Búzios/Conchas (decorative item) */}
             <CarouselItem className="h-full pl-0">
               <div className="relative h-[70vh] min-h-[500px] w-full">
                 <img 
-                  src="/images/hero_carousel_moet.jpeg" 
-                  alt="ILE ALA Luxury Collection - Moët Chandon"
+                  src="/images/hero_carousel_2.jpeg" 
+                  alt="ILE ALA Collection - Decorative Shells and Wood"
                   className="absolute inset-0 w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-black/20" />
@@ -127,12 +127,12 @@ export default function Home() {
               </div>
             </CarouselItem>
 
-            {/* Slide 3 - Búzios/Conchas (decorative item) */}
+            {/* Slide 3 - Moët Chandon (sala verde esmeralda) */}
             <CarouselItem className="h-full pl-0">
               <div className="relative h-[70vh] min-h-[500px] w-full">
                 <img 
-                  src="/images/hero_carousel_2.jpeg" 
-                  alt="ILE ALA Collection - Decorative Shells and Wood"
+                  src="/images/hero_carousel_moet.jpeg" 
+                  alt="ILE ALA Luxury Collection - Moët Chandon"
                   className="absolute inset-0 w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-black/20" />
