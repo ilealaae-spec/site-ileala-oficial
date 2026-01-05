@@ -84,7 +84,7 @@ export default function PetCollection() {
       <section className="relative h-[50vh] min-h-[400px] w-full overflow-hidden bg-gradient-to-br from-[#255238] to-[#1E3F2D]">
         {/* Imagem de fundo - se existir, será exibida; caso contrário, usa gradiente */}
         <img
-          src="/images/pet_collection_logo.png?v=3"
+          src="/images/pet_collection_logo.png?v=4"
           alt="Pet Collection - ILE ALA"
           className="absolute inset-0 w-full h-full object-cover"
           onError={(e) => {
@@ -92,19 +92,6 @@ export default function PetCollection() {
             (e.target as HTMLImageElement).style.display = 'none';
           }}
         />
-        <div className="absolute inset-0 bg-black/20" />
-        <div className="relative container h-full flex items-center justify-center">
-          <div className="text-center text-white">
-            <h1 className="text-4xl md:text-6xl font-bold mb-4">
-              Pet Collection
-            </h1>
-            <p className="text-lg md:text-xl font-light">
-              {language === 'en' 
-                ? 'Luxury accessories for your beloved pets' 
-                : 'Acessórios de luxo para seus pets queridos'}
-            </p>
-          </div>
-        </div>
       </section>
 
       {/* Search Bar */}
