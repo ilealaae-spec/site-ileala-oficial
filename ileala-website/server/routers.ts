@@ -1265,9 +1265,24 @@ export const appRouter = router({
       list: protectedProcedure.query(async ({ ctx }) => {
         if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
         // Admin should see ALL products, including inactive ones
-        const db = await getDb();
-        if (!db) return [];
-        return db.select().from(products).orderBy(products.id);
+        const dbInstance = await db.getDb();
+        if (!dbInstance) {
+          console.error('[Admin.Products.List] Database not available!');
+          return [];
+        }
+        
+        const allProducts = await dbInstance.select().from(products).orderBy(products.id);
+        console.log('[Admin.Products.List] Fetched products from DB:', {
+          count: allProducts.length,
+          firstProduct: allProducts.length > 0 ? {
+            id: allProducts[0].id,
+            name: allProducts[0].name,
+            imageUrl: allProducts[0].imageUrl,
+            active: allProducts[0].active,
+          } : 'No products',
+        });
+        
+        return allProducts;
       }),
       create: protectedProcedure
         .input(z.object({
