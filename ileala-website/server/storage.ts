@@ -44,7 +44,33 @@ function getS3Client() {
   return client;
 }
 
-const BUCKET_NAME = process.env.AWS_S3_BUCKET || 'ileala-uploads';
+// Get bucket name with trim to remove any leading/trailing spaces
+function getBucketName(): string {
+  const bucketName = (process.env.AWS_S3_BUCKET || 'ileala-uploads').trim();
+  
+  // Validate bucket name format
+  if (!bucketName || bucketName.length === 0) {
+    throw new Error('AWS_S3_BUCKET environment variable is not set or is empty');
+  }
+  
+  // Check for invalid characters (spaces, etc.)
+  if (bucketName !== bucketName.trim()) {
+    console.warn('[S3] WARNING: Bucket name has leading/trailing spaces. Trimming...');
+  }
+  
+  // Bucket names must be 3-63 characters, lowercase, and can contain only letters, numbers, hyphens, and dots
+  if (bucketName.length < 3 || bucketName.length > 63) {
+    throw new Error(`Bucket name '${bucketName}' must be between 3 and 63 characters`);
+  }
+  
+  if (!/^[a-z0-9.-]+$/.test(bucketName)) {
+    throw new Error(`Bucket name '${bucketName}' contains invalid characters. Only lowercase letters, numbers, hyphens, and dots are allowed.`);
+  }
+  
+  return bucketName;
+}
+
+const BUCKET_NAME = getBucketName();
 
 function normalizeKey(relKey: string): string {
   return relKey.replace(/^\/+/, '');
@@ -58,10 +84,8 @@ export async function storagePut(
   const key = normalizeKey(relKey);
   const region = process.env.AWS_REGION || 'us-east-1';
   
-  // Validate bucket name is set
-  if (!BUCKET_NAME || BUCKET_NAME.trim() === '') {
-    throw new Error('AWS_S3_BUCKET environment variable is not set or is empty');
-  }
+  // Get fresh bucket name (in case env var changed)
+  const bucketName = getBucketName();
   
   // Validate credentials
   if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
@@ -69,7 +93,9 @@ export async function storagePut(
   }
   
   console.log('[S3] Upload attempt:', {
-    bucket: BUCKET_NAME,
+    bucket: bucketName,
+    bucketLength: bucketName.length,
+    bucketHasSpaces: bucketName !== bucketName.trim(),
     region,
     key,
     contentType,
@@ -85,7 +111,7 @@ export async function storagePut(
   
   // Upload to S3
   const command = new PutObjectCommand({
-    Bucket: BUCKET_NAME,
+    Bucket: bucketName,
     Key: key,
     Body: buffer,
     ContentType: contentType,
@@ -96,8 +122,8 @@ export async function storagePut(
     const s3Client = getS3Client();
     
     console.log('[S3] Sending PutObjectCommand...', {
-      bucket: BUCKET_NAME,
-      bucketLength: BUCKET_NAME.length,
+      bucket: bucketName,
+      bucketLength: bucketName.length,
       region: process.env.AWS_REGION || 'us-east-1',
       key,
       keyLength: key.length,
@@ -112,7 +138,7 @@ export async function storagePut(
     
     console.log('[S3] Upload successful!', {
       duration: `${duration}ms`,
-      bucket: BUCKET_NAME,
+      bucket: bucketName,
       key,
     });
     
@@ -120,8 +146,8 @@ export async function storagePut(
     // For us-east-1, the URL format is different (no region in URL)
     const region = process.env.AWS_REGION || 'us-east-1';
     const url = region === 'us-east-1'
-      ? `https://${BUCKET_NAME}.s3.amazonaws.com/${key}`
-      : `https://${BUCKET_NAME}.s3.${region}.amazonaws.com/${key}`;
+      ? `https://${bucketName}.s3.amazonaws.com/${key}`
+      : `https://${bucketName}.s3.${region}.amazonaws.com/${key}`;
     
     return { key, url };
   } catch (error) {
@@ -132,7 +158,8 @@ export async function storagePut(
       code: (error as any)?.Code || (error as any)?.code || 'N/A',
       requestId: (error as any)?.requestId || (error as any)?.$metadata?.requestId || 'N/A',
       region: process.env.AWS_REGION || 'us-east-1',
-      bucket: BUCKET_NAME,
+      bucket: bucketName,
+      bucketLength: bucketName.length,
       accessKeyPrefix: process.env.AWS_ACCESS_KEY_ID?.substring(0, 8) || 'NOT SET',
       stack: error instanceof Error ? error.stack : undefined,
     });
@@ -140,7 +167,7 @@ export async function storagePut(
     // Provide more helpful error messages
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     if (errorMessage.includes('bucket is not valid')) {
-      throw new Error(`Bucket '${BUCKET_NAME}' is not valid. Please verify: 1) Bucket exists in region '${process.env.AWS_REGION || 'us-east-1'}', 2) Bucket name is correct, 3) AWS credentials have access to this bucket.`);
+      throw new Error(`Bucket '${bucketName}' is not valid. Please verify: 1) Bucket exists in region '${process.env.AWS_REGION || 'us-east-1'}', 2) Bucket name is correct (no spaces: '${bucketName}'), 3) AWS credentials have access to this bucket.`);
     }
     if (errorMessage.includes('InvalidAccessKeyId')) {
       throw new Error(`Invalid AWS Access Key. Please verify AWS_ACCESS_KEY_ID in Railway variables.`);
@@ -149,7 +176,7 @@ export async function storagePut(
       throw new Error(`Invalid AWS Secret Key. Please verify AWS_SECRET_ACCESS_KEY in Railway variables.`);
     }
     if (errorMessage.includes('Access Denied')) {
-      throw new Error(`Access Denied to bucket '${BUCKET_NAME}'. Please verify IAM User has S3 permissions.`);
+      throw new Error(`Access Denied to bucket '${bucketName}'. Please verify IAM User has S3 permissions.`);
     }
     
     throw new Error(`Storage upload failed: ${errorMessage}`);
@@ -158,13 +185,14 @@ export async function storagePut(
 
 export async function storageGet(relKey: string): Promise<{ key: string; url: string }> {
   const key = normalizeKey(relKey);
+  const bucketName = getBucketName();
   
   // Generate public URL
   // For us-east-1, the URL format is different (no region in URL)
   const region = process.env.AWS_REGION || 'us-east-1';
   const url = region === 'us-east-1'
-    ? `https://${BUCKET_NAME}.s3.amazonaws.com/${key}`
-    : `https://${BUCKET_NAME}.s3.${region}.amazonaws.com/${key}`;
+    ? `https://${bucketName}.s3.amazonaws.com/${key}`
+    : `https://${bucketName}.s3.${region}.amazonaws.com/${key}`;
   
   return { key, url };
 }
