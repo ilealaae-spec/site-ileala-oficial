@@ -58,15 +58,12 @@ export async function storagePut(
   // Convert data to Buffer if it's a string
   const buffer = typeof data === 'string' ? Buffer.from(data) : Buffer.from(data);
   
-  // Validate bucket name format (S3 bucket names have specific rules)
+  // Validate bucket name is set
   if (!BUCKET_NAME || BUCKET_NAME.trim() === '') {
     throw new Error('AWS_S3_BUCKET environment variable is not set or is empty');
   }
   
-  // S3 bucket name validation: 3-63 characters, lowercase, no uppercase, numbers, hyphens, dots
-  if (!/^[a-z0-9.-]{3,63}$/.test(BUCKET_NAME)) {
-    throw new Error(`Invalid bucket name format: ${BUCKET_NAME}. Bucket names must be 3-63 characters, lowercase, and can contain only letters, numbers, hyphens, and dots.`);
-  }
+  // Let AWS SDK validate the bucket name format - it has more accurate rules
   
   // Upload to S3
   const command = new PutObjectCommand({
