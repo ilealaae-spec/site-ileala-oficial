@@ -2,14 +2,24 @@
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
-// S3 Configuration
-const s3Client = new S3Client({
-  region: process.env.AWS_REGION || 'us-east-1',
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
-  },
-});
+// S3 Configuration - Create client lazily to ensure env vars are loaded
+function getS3Client() {
+  const region = process.env.AWS_REGION || 'us-east-1';
+  const accessKeyId = process.env.AWS_ACCESS_KEY_ID || '';
+  const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY || '';
+  
+  if (!accessKeyId || !secretAccessKey) {
+    throw new Error('AWS credentials are not configured. Please set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY.');
+  }
+  
+  return new S3Client({
+    region,
+    credentials: {
+      accessKeyId,
+      secretAccessKey,
+    },
+  });
+}
 
 const BUCKET_NAME = process.env.AWS_S3_BUCKET || 'ileala-uploads';
 
@@ -48,6 +58,16 @@ export async function storagePut(
   // Convert data to Buffer if it's a string
   const buffer = typeof data === 'string' ? Buffer.from(data) : Buffer.from(data);
   
+  // Validate bucket name format (S3 bucket names have specific rules)
+  if (!BUCKET_NAME || BUCKET_NAME.trim() === '') {
+    throw new Error('AWS_S3_BUCKET environment variable is not set or is empty');
+  }
+  
+  // S3 bucket name validation: 3-63 characters, lowercase, no uppercase, numbers, hyphens, dots
+  if (!/^[a-z0-9.-]{3,63}$/.test(BUCKET_NAME)) {
+    throw new Error(`Invalid bucket name format: ${BUCKET_NAME}. Bucket names must be 3-63 characters, lowercase, and can contain only letters, numbers, hyphens, and dots.`);
+  }
+  
   // Upload to S3
   const command = new PutObjectCommand({
     Bucket: BUCKET_NAME,
@@ -58,7 +78,12 @@ export async function storagePut(
   });
   
   try {
-    console.log('[S3] Sending PutObjectCommand...');
+    const s3Client = getS3Client();
+    console.log('[S3] Sending PutObjectCommand...', {
+      bucket: BUCKET_NAME,
+      region: process.env.AWS_REGION || 'us-east-1',
+      key,
+    });
     await s3Client.send(command);
     console.log('[S3] Upload successful!');
     
