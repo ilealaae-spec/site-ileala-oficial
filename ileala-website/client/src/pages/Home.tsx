@@ -131,7 +131,7 @@ export default function Home() {
             <CarouselItem className="h-full pl-0">
               <div className="relative h-[70vh] min-h-[500px] w-full">
                 <img 
-                  src="/images/hero_carousel_3.jpeg" 
+                  src="/images/hero_carousel_3.jpeg?v=2" 
                   alt="ILE ALA Elegant Design - Luxury Bathroom"
                   className="absolute inset-0 w-full h-full object-cover"
                 />
