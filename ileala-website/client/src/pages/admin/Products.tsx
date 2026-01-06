@@ -293,22 +293,38 @@ export default function AdminProducts() {
     if (editingProduct) {
       // For updates, include active status from the checkbox
       const activeCheckbox = document.getElementById('active') as HTMLInputElement;
+      
+      // Ensure imageUrl is explicitly included in the update data
       const updateData = {
         id: editingProduct.id,
         data: {
           ...productData,
+          imageUrl: imageUrl || productData.imageUrl || null, // Explicitly set imageUrl
           active: activeCheckbox?.checked ? 1 : 0,
         },
       };
-      console.log('[Admin] Calling updateMutation.mutate with:', updateData);
+      
+      console.log('[Admin] Calling updateMutation.mutate with:', {
+        ...updateData,
+        imageUrlIncluded: !!updateData.data.imageUrl,
+        imageUrlValue: updateData.data.imageUrl,
+      });
+      
       updateMutation.mutate(updateData);
     } else {
       // For new products, always set active = 1
       const createData = {
         ...productData,
+        imageUrl: imageUrl || productData.imageUrl || null, // Explicitly set imageUrl
         active: 1,
       };
-      console.log('[Admin] Calling createMutation.mutate with:', createData);
+      
+      console.log('[Admin] Calling createMutation.mutate with:', {
+        ...createData,
+        imageUrlIncluded: !!createData.imageUrl,
+        imageUrlValue: createData.imageUrl,
+      });
+      
       createMutation.mutate(createData);
     }
     console.log('[Admin] ===== MUTATION CALLED =====');
