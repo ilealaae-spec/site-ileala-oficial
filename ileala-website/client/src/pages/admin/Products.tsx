@@ -206,11 +206,19 @@ export default function AdminProducts() {
       );
     }
 
-    console.log('[Admin] Submitting product:', {
-      editing: !!editingProduct,
-      productId: editingProduct?.id,
-      imageUrl,
+    console.log('[Admin] ===== SUBMITTING PRODUCT =====');
+    console.log('[Admin] Editing mode:', !!editingProduct);
+    console.log('[Admin] Product ID:', editingProduct?.id);
+    console.log('[Admin] Image URL:', imageUrl);
+    console.log('[Admin] Image URL type:', typeof imageUrl);
+    console.log('[Admin] Image URL length:', imageUrl?.length);
+    console.log('[Admin] Form data:', {
       nameEN: formData.nameEN,
+      namePT: formData.namePT,
+      price: formData.price,
+      stock: formData.stock,
+      collection: formData.collection,
+      category: formData.category,
     });
 
     // Generate slug from nameEN (only for new products)
@@ -241,24 +249,33 @@ export default function AdminProducts() {
       ...productData,
       imageUrl, // Log the imageUrl to verify it's being sent
     });
+    console.log('[Admin] Mutation state:', {
+      createPending: createMutation.isPending,
+      updatePending: updateMutation.isPending,
+    });
 
     if (editingProduct) {
       // For updates, include active status from the checkbox
       const activeCheckbox = document.getElementById('active') as HTMLInputElement;
-      updateMutation.mutate({
+      const updateData = {
         id: editingProduct.id,
         data: {
           ...productData,
           active: activeCheckbox?.checked ? 1 : 0,
         },
-      });
+      };
+      console.log('[Admin] Calling updateMutation.mutate with:', updateData);
+      updateMutation.mutate(updateData);
     } else {
       // For new products, always set active = 1
-      createMutation.mutate({
+      const createData = {
         ...productData,
         active: 1,
-      });
+      };
+      console.log('[Admin] Calling createMutation.mutate with:', createData);
+      createMutation.mutate(createData);
     }
+    console.log('[Admin] ===== MUTATION CALLED =====');
   };
 
   const handleDelete = (id: number) => {
