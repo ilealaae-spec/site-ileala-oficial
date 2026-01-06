@@ -1076,6 +1076,7 @@ export const appRouter = router({
           }
           
           // Invalidate product caches
+          console.log('[Admin] Invalidating caches for product:', input.id);
           invalidateCache(CacheKeys.product(input.id));
           invalidateCache(CacheKeys.products());
           invalidateCache(CacheKeys.featuredProducts());
@@ -1085,6 +1086,8 @@ export const appRouter = router({
           if (input.data.category) {
             invalidateCache(CacheKeys.products(`category:${input.data.category}`));
           }
+          
+          console.log('[Admin] Cache invalidated. Next products.list request will fetch fresh data from DB.');
           
           return { success: true };
         } catch (error) {
