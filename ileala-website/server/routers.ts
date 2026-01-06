@@ -1027,51 +1027,79 @@ export const appRouter = router({
         }),
       }))
       .mutation(async ({ input, ctx }) => {
-        if (ctx.user?.role !== 'admin') {
-          throw new Error('Unauthorized');
-        }
-        
-        console.log('[Admin] Updating product:', {
-          id: input.id,
-          data: input.data,
-          imageUrl: input.data.imageUrl,
-          imageUrlType: typeof input.data.imageUrl,
-          imageUrlLength: input.data.imageUrl?.length,
-        });
-        
-        await db.updateProduct(input.id, input.data);
-        
-        // Verify the update
-        const updatedProduct = await db.getProductById(input.id);
-        console.log('[Admin] Product updated, verification:', {
-          id: updatedProduct?.id,
-          name: updatedProduct?.name,
-          imageUrl: updatedProduct?.imageUrl,
-          imageUrlType: typeof updatedProduct?.imageUrl,
-          imageUrlLength: updatedProduct?.imageUrl?.length,
-          active: updatedProduct?.active,
-        });
-        
-        // Log if imageUrl is missing or different
-        if (input.data.imageUrl && updatedProduct?.imageUrl !== input.data.imageUrl) {
-          console.error('[Admin] WARNING: imageUrl mismatch!', {
-            sent: input.data.imageUrl,
-            saved: updatedProduct?.imageUrl,
+        try {
+          if (ctx.user?.role !== 'admin') {
+            throw new Error('Unauthorized');
+          }
+          
+          console.log('[Admin] Updating product:', {
+            id: input.id,
+            data: input.data,
+            imageUrl: input.data.imageUrl,
+            imageUrlType: typeof input.data.imageUrl,
+            imageUrlLength: input.data.imageUrl?.length,
+            dataKeys: Object.keys(input.data),
           });
+          
+          // Clean up the data - remove undefined values
+          const cleanData: Record<string, any> = {};
+          for (const [key, value] of Object.entries(input.data)) {
+            if (value !== undefined) {
+              cleanData[key] = value;
+            }
+          }
+          
+          console.log('[Admin] Cleaned data for update:', {
+            keys: Object.keys(cleanData),
+            imageUrl: cleanData.imageUrl,
+          });
+          
+          await db.updateProduct(input.id, cleanData);
+          
+          // Verify the update
+          const updatedProduct = await db.getProductById(input.id);
+          console.log('[Admin] Product updated, verification:', {
+            id: updatedProduct?.id,
+            name: updatedProduct?.name,
+            imageUrl: updatedProduct?.imageUrl,
+            imageUrlType: typeof updatedProduct?.imageUrl,
+            imageUrlLength: updatedProduct?.imageUrl?.length,
+            active: updatedProduct?.active,
+          });
+          
+          // Log if imageUrl is missing or different
+          if (input.data.imageUrl && updatedProduct?.imageUrl !== input.data.imageUrl) {
+            console.error('[Admin] WARNING: imageUrl mismatch!', {
+              sent: input.data.imageUrl,
+              saved: updatedProduct?.imageUrl,
+            });
+          }
+          
+          // Invalidate product caches
+          invalidateCache(CacheKeys.product(input.id));
+          invalidateCache(CacheKeys.products());
+          invalidateCache(CacheKeys.featuredProducts());
+          if (input.data.collection) {
+            invalidateCache(CacheKeys.products(`collection:${input.data.collection}`));
+          }
+          if (input.data.category) {
+            invalidateCache(CacheKeys.products(`category:${input.data.category}`));
+          }
+          
+          return { success: true };
+        } catch (error) {
+          console.error('[Admin] Error updating product:', error);
+          console.error('[Admin] Error details:', {
+            message: error instanceof Error ? error.message : 'Unknown error',
+            stack: error instanceof Error ? error.stack : undefined,
+            input: {
+              id: input.id,
+              dataKeys: Object.keys(input.data),
+              imageUrl: input.data.imageUrl,
+            },
+          });
+          throw error;
         }
-        
-        // Invalidate product caches
-        invalidateCache(CacheKeys.product(input.id));
-        invalidateCache(CacheKeys.products());
-        invalidateCache(CacheKeys.featuredProducts());
-        if (input.data.collection) {
-          invalidateCache(CacheKeys.products(`collection:${input.data.collection}`));
-        }
-        if (input.data.category) {
-          invalidateCache(CacheKeys.products(`category:${input.data.category}`));
-        }
-        
-        return { success: true };
       }),
     delete: protectedProcedure
       .input(z.object({ id: z.number() }))

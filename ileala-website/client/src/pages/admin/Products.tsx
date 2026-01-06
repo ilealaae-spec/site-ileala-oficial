@@ -268,21 +268,32 @@ export default function AdminProducts() {
         .replace(/^-|-$/g, '') + '-' + Date.now();
     };
 
-    const productData = {
+    // Build product data, only including fields that have values
+    const productData: Record<string, any> = {
       name: formData.nameEN, // Use nameEN as the main name
-      slug: editingProduct ? editingProduct.slug : generateSlug(formData.nameEN), // Generate slug for new products
       nameEN: formData.nameEN,
       namePT: formData.namePT,
-      descriptionEN: formData.descriptionEN,
-      descriptionPT: formData.descriptionPT,
-      price: Math.round(parseFloat(formData.price) * 100),
-      imageUrl, // Ensure imageUrl is included
-      collection: formData.collection,
-      category: formData.category,
-      stock: parseInt(formData.stock),
-      featured: formData.featured,
-      active: 1, // Always set active = 1 when creating/updating products
     };
+    
+    // Only add slug for new products
+    if (!editingProduct) {
+      productData.slug = generateSlug(formData.nameEN);
+    }
+    
+    // Add optional fields only if they have values
+    if (formData.descriptionEN) productData.descriptionEN = formData.descriptionEN;
+    if (formData.descriptionPT) productData.descriptionPT = formData.descriptionPT;
+    if (formData.price) productData.price = Math.round(parseFloat(formData.price) * 100);
+    if (imageUrl) productData.imageUrl = imageUrl; // Always include imageUrl if provided
+    if (formData.collection) productData.collection = formData.collection;
+    if (formData.category) productData.category = formData.category;
+    if (formData.stock) productData.stock = parseInt(formData.stock);
+    if (formData.featured !== undefined) productData.featured = formData.featured;
+    
+    // Always set active for new products
+    if (!editingProduct) {
+      productData.active = 1;
+    }
 
     console.log('[Admin] Product data to save:', {
       ...productData,
