@@ -857,6 +857,13 @@ export const appRouter = router({
       
       const products = await db.getAllProducts();
       console.log('[Products API] Fetched from database:', products.length, 'products');
+      
+      // Log products with images for debugging
+      const productsWithImages = products.filter(p => p.imageUrl);
+      const productsWithoutImages = products.filter(p => !p.imageUrl);
+      console.log('[Products API] Products with images:', productsWithImages.length);
+      console.log('[Products API] Products without images:', productsWithoutImages.length);
+      
       // Log first product's imageUrl for debugging
       if (products.length > 0) {
         console.log('[Products API] First product from DB:', {
@@ -867,6 +874,21 @@ export const appRouter = router({
           imageUrlLength: products[0].imageUrl?.length,
         });
       }
+      
+      // Log products with "dress" in name (Pet Collection)
+      const dressProducts = products.filter(p => 
+        p.nameEN?.toLowerCase().includes('dress') || 
+        p.category === 'Pet Collection'
+      );
+      if (dressProducts.length > 0) {
+        console.log('[Products API] Pet Collection products:', dressProducts.map(p => ({
+          id: p.id,
+          name: p.nameEN,
+          imageUrl: p.imageUrl,
+          hasImage: !!p.imageUrl,
+        })));
+      }
+      
       setCached(cacheKey, products, 5 * 60 * 1000); // 5 minutes
       return products;
     }),
