@@ -182,8 +182,31 @@ export async function createProduct(product: InsertProduct) {
 
 export async function updateProduct(id: number, product: Partial<InsertProduct>) {
   const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  await db.update(products).set(product).where(eq(products.id, id));
+  if (!db) {
+    logger.error("[DB] Database not available for updateProduct");
+    throw new Error("Database not available");
+  }
+  logger.info("[DB] Updating product:", { id, updates: Object.keys(product), imageUrl: product.imageUrl, active: product.active });
+  try {
+    await db.update(products).set(product).where(eq(products.id, id));
+    logger.info("[DB] Product updated successfully:", { id });
+    
+    // Verify the update
+    const updatedProduct = await db.select().from(products).where(eq(products.id, id)).limit(1);
+    if (updatedProduct.length > 0) {
+      logger.info("[DB] Product verification after update:", {
+        id: updatedProduct[0].id,
+        name: updatedProduct[0].name,
+        imageUrl: updatedProduct[0].imageUrl,
+        active: updatedProduct[0].active,
+      });
+    } else {
+      logger.error("[DB] WARNING: Product not found after update!", { id });
+    }
+  } catch (error) {
+    logger.error("[DB] Failed to update product:", error);
+    throw error;
+  }
 }
 
 export async function deleteProduct(id: number) {

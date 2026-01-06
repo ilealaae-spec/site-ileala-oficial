@@ -1379,10 +1379,48 @@ export const appRouter = router({
           if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
           const { id, ...updates } = input;
           
+          console.log('[Admin.Products.Update] Starting update:', {
+            id,
+            updates: Object.keys(updates),
+            imageUrl: updates.imageUrl,
+            imageUrlType: typeof updates.imageUrl,
+            imageUrlLength: updates.imageUrl?.length,
+            user: ctx.user?.email,
+          });
+          
           // Get product before update to check collection/category for cache invalidation
           const productBeforeUpdate = await db.getProductById(id);
+          console.log('[Admin.Products.Update] Product before update:', productBeforeUpdate ? {
+            id: productBeforeUpdate.id,
+            name: productBeforeUpdate.name,
+            imageUrl: productBeforeUpdate.imageUrl,
+            active: productBeforeUpdate.active,
+          } : 'PRODUCT NOT FOUND!');
+          
+          if (!productBeforeUpdate) {
+            throw new Error(`Product with id ${id} not found`);
+          }
           
           await db.updateProduct(id, updates);
+          
+          // Verify the update
+          const updatedProduct = await db.getProductById(id);
+          console.log('[Admin.Products.Update] Product updated, verification:', {
+            id: updatedProduct?.id,
+            name: updatedProduct?.name,
+            imageUrl: updatedProduct?.imageUrl,
+            imageUrlType: typeof updatedProduct?.imageUrl,
+            imageUrlLength: updatedProduct?.imageUrl?.length,
+            active: updatedProduct?.active,
+          });
+          
+          // Log if imageUrl is missing or different
+          if (updates.imageUrl && updatedProduct?.imageUrl !== updates.imageUrl) {
+            console.error('[Admin.Products.Update] WARNING: imageUrl mismatch!', {
+              sent: updates.imageUrl,
+              saved: updatedProduct?.imageUrl,
+            });
+          }
           
           // Invalidate all product caches
           invalidateCache(CacheKeys.product(id));
