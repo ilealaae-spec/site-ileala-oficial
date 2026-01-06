@@ -29,7 +29,8 @@ export default function AdminProducts() {
   const { data: products, isLoading, refetch } = trpc.admin.products.list.useQuery();
   
   const createMutation = trpc.admin.products.create.useMutation({
-    onSuccess: async () => {
+    onSuccess: async (data) => {
+      console.log('[Admin] createMutation.onSuccess called with:', data);
       toast.success(language === 'en' ? 'Product created!' : 'Produto criado!');
       setIsDialogOpen(false);
       refetch();
@@ -42,12 +43,19 @@ export default function AdminProducts() {
       resetForm();
     },
     onError: (error) => {
+      console.error('[Admin] createMutation.onError called with:', error);
+      console.error('[Admin] Error details:', {
+        message: error.message,
+        data: error.data,
+        shape: error.shape,
+      });
       toast.error(error.message);
     },
   });
   
   const updateMutation = trpc.admin.products.update.useMutation({
-    onSuccess: async () => {
+    onSuccess: async (data) => {
+      console.log('[Admin] updateMutation.onSuccess called with:', data);
       toast.success(language === 'en' ? 'Product updated!' : 'Produto atualizado!');
       setIsDialogOpen(false);
       refetch();
@@ -60,6 +68,12 @@ export default function AdminProducts() {
       resetForm();
     },
     onError: (error) => {
+      console.error('[Admin] updateMutation.onError called with:', error);
+      console.error('[Admin] Error details:', {
+        message: error.message,
+        data: error.data,
+        shape: error.shape,
+      });
       toast.error(error.message);
     },
   });
