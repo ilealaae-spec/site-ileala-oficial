@@ -1355,64 +1355,96 @@ export const appRouter = router({
           active: z.number().default(1), // Accept active status
         }))
         .mutation(async ({ input, ctx }) => {
-          if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
-          
-          // Generate slug from nameEN if not provided
-          const slug = input.slug || input.nameEN.toLowerCase()
-            .replace(/[^a-z0-9]+/g, '-')
-            .replace(/^-|-$/g, '') + '-' + Date.now();
-          
-          // Use provided name or default to nameEN
-          const name = input.name || input.nameEN;
-          
-          console.log('[Admin.Products.Create] Creating product:', {
-            name,
-            slug,
-            nameEN: input.nameEN,
-            namePT: input.namePT,
-            price: input.price,
-            imageUrl: input.imageUrl,
-            active: input.active ?? 1,
-            collection: input.collection,
-            category: input.category,
-            stock: input.stock,
-          });
-          
-          const productData = {
-            ...input,
-            name,
-            slug,
-            active: input.active ?? 1, // Default to 1 if not provided
-          };
-          
-          console.log('[Admin.Products.Create] Product data to save:', productData);
-          
-          const productId = await db.createProduct(productData);
-          
-          console.log('[Admin.Products.Create] Product created with ID:', productId);
-          
-          // Verify the product was created
-          const createdProduct = await db.getProductById(productId);
-          console.log('[Admin.Products.Create] Verification - Product in DB:', createdProduct ? {
-            id: createdProduct.id,
-            name: createdProduct.name,
-            nameEN: createdProduct.nameEN,
-            imageUrl: createdProduct.imageUrl,
-            active: createdProduct.active,
-          } : 'PRODUCT NOT FOUND IN DATABASE!');
-          
-          // Invalidate all product caches
-          invalidateCache(CacheKeys.products());
-          invalidateCache(CacheKeys.featuredProducts());
-          if (input.collection) {
-            invalidateCache(CacheKeys.products(`collection:${input.collection}`));
+          try {
+            if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+            
+            // Generate slug from nameEN if not provided
+            const slug = input.slug || input.nameEN.toLowerCase()
+              .replace(/[^a-z0-9]+/g, '-')
+              .replace(/^-|-$/g, '') + '-' + Date.now();
+            
+            // Use provided name or default to nameEN
+            const name = input.name || input.nameEN;
+            
+            console.log('[Admin.Products.Create] Starting product creation:', {
+              name,
+              slug,
+              nameEN: input.nameEN,
+              namePT: input.namePT,
+              price: input.price,
+              imageUrl: input.imageUrl,
+              active: input.active ?? 1,
+              collection: input.collection,
+              category: input.category,
+              stock: input.stock,
+              featured: input.featured,
+              user: ctx.user?.email,
+            });
+            
+            // Check if slug already exists
+            const existingProduct = await db.getProductBySlug(slug);
+            if (existingProduct) {
+              console.error('[Admin.Products.Create] ERROR: Slug already exists:', slug);
+              throw new Error(`Product with slug "${slug}" already exists. Please use a different name.`);
+            }
+            
+            const productData = {
+              ...input,
+              name,
+              slug,
+              active: input.active ?? 1, // Default to 1 if not provided
+            };
+            
+            console.log('[Admin.Products.Create] Product data to save:', productData);
+            
+            const productId = await db.createProduct(productData);
+            
+            console.log('[Admin.Products.Create] Product created successfully with ID:', productId);
+            
+            // Verify the product was created
+            const createdProduct = await db.getProductById(productId);
+            console.log('[Admin.Products.Create] Verification - Product in DB:', createdProduct ? {
+              id: createdProduct.id,
+              name: createdProduct.name,
+              nameEN: createdProduct.nameEN,
+              slug: createdProduct.slug,
+              imageUrl: createdProduct.imageUrl,
+              active: createdProduct.active,
+            } : 'PRODUCT NOT FOUND IN DATABASE!');
+            
+            if (!createdProduct) {
+              console.error('[Admin.Products.Create] CRITICAL ERROR: Product was not found after creation!', {
+                productId,
+                slug,
+              });
+              throw new Error('Product was created but could not be verified. Please check the database.');
+            }
+            
+            // Invalidate all product caches
+            invalidateCache(CacheKeys.products());
+            invalidateCache(CacheKeys.featuredProducts());
+            if (input.collection) {
+              invalidateCache(CacheKeys.products(`collection:${input.collection}`));
+            }
+            if (input.category) {
+              invalidateCache(CacheKeys.products(`category:${input.category}`));
+            }
+            
+            // Return the created product (already verified above)
+            return createdProduct || { id: productId };
+          } catch (error) {
+            console.error('[Admin.Products.Create] ERROR creating product:', error);
+            console.error('[Admin.Products.Create] Error details:', {
+              message: error instanceof Error ? error.message : 'Unknown error',
+              stack: error instanceof Error ? error.stack : undefined,
+              input: {
+                name: input.name,
+                nameEN: input.nameEN,
+                slug: input.slug,
+              },
+            });
+            throw error;
           }
-          if (input.category) {
-            invalidateCache(CacheKeys.products(`category:${input.category}`));
-          }
-          
-          // Return the created product (already verified above)
-          return createdProduct || { id: productId };
         }),
       update: protectedProcedure
         .input(z.object({
