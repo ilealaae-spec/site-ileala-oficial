@@ -127,12 +127,12 @@ export default function Home() {
               </div>
             </CarouselItem>
 
-            {/* Slide 3 - Banheiro luxuoso com mármore */}
+            {/* Slide 3 - Mesa posta com tema abelha/mel/limão */}
             <CarouselItem className="h-full pl-0">
               <div className="relative h-[70vh] min-h-[500px] w-full">
                 <img 
-                  src="/images/hero_carousel_3.jpeg?v=3" 
-                  alt="ILE ALA Elegant Design - Luxury Bathroom"
+                  src="/images/hero_carousel_3.jpeg?v=4" 
+                  alt="ILE ALA Elegant Table Setting - Bee and Honey Theme"
                   className="absolute inset-0 w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-black/20" />
