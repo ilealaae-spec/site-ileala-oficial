@@ -31,16 +31,34 @@ export default function AdminProducts() {
   const createMutation = trpc.admin.products.create.useMutation({
     onSuccess: async (data) => {
       console.log('[Admin] createMutation.onSuccess called with:', data);
-      toast.success(language === 'en' ? 'Product created!' : 'Produto criado!');
-      setIsDialogOpen(false);
-      refetch();
-      // Invalidate AND refetch public product queries to ensure images appear immediately
-      await utils.products.list.invalidate();
-      await utils.products.featured.invalidate();
-      // Force refetch to ensure fresh data
-      await utils.products.list.refetch();
-      await utils.products.featured.refetch();
-      resetForm();
+      try {
+        toast.success(language === 'en' ? 'Product created!' : 'Produto criado!');
+        setIsDialogOpen(false);
+        
+        // Refetch admin products list
+        try {
+          await refetch();
+        } catch (error) {
+          console.error('[Admin] Error refetching admin products:', error);
+        }
+        
+        // Invalidate AND refetch public product queries to ensure images appear immediately
+        try {
+          await utils.products.list.invalidate();
+          await utils.products.featured.invalidate();
+          // Force refetch to ensure fresh data
+          await utils.products.list.refetch();
+          await utils.products.featured.refetch();
+        } catch (error) {
+          console.error('[Admin] Error invalidating/refetching public products:', error);
+          // Don't throw - this is not critical
+        }
+        
+        resetForm();
+      } catch (error) {
+        console.error('[Admin] Error in createMutation.onSuccess:', error);
+        // Don't show error toast here - the product was created successfully
+      }
     },
     onError: (error) => {
       console.error('[Admin] createMutation.onError called with:', error);
@@ -56,16 +74,34 @@ export default function AdminProducts() {
   const updateMutation = trpc.admin.products.update.useMutation({
     onSuccess: async (data) => {
       console.log('[Admin] updateMutation.onSuccess called with:', data);
-      toast.success(language === 'en' ? 'Product updated!' : 'Produto atualizado!');
-      setIsDialogOpen(false);
-      refetch();
-      // Invalidate AND refetch public product queries to ensure images appear immediately
-      await utils.products.list.invalidate();
-      await utils.products.featured.invalidate();
-      // Force refetch to ensure fresh data
-      await utils.products.list.refetch();
-      await utils.products.featured.refetch();
-      resetForm();
+      try {
+        toast.success(language === 'en' ? 'Product updated!' : 'Produto atualizado!');
+        setIsDialogOpen(false);
+        
+        // Refetch admin products list
+        try {
+          await refetch();
+        } catch (error) {
+          console.error('[Admin] Error refetching admin products:', error);
+        }
+        
+        // Invalidate AND refetch public product queries to ensure images appear immediately
+        try {
+          await utils.products.list.invalidate();
+          await utils.products.featured.invalidate();
+          // Force refetch to ensure fresh data
+          await utils.products.list.refetch();
+          await utils.products.featured.refetch();
+        } catch (error) {
+          console.error('[Admin] Error invalidating/refetching public products:', error);
+          // Don't throw - this is not critical
+        }
+        
+        resetForm();
+      } catch (error) {
+        console.error('[Admin] Error in updateMutation.onSuccess:', error);
+        // Don't show error toast here - the product was updated successfully
+      }
     },
     onError: (error) => {
       console.error('[Admin] updateMutation.onError called with:', error);
