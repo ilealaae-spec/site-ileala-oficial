@@ -966,15 +966,16 @@ export const appRouter = router({
         active: z.number().default(1), // Default to active = 1
       }))
       .mutation(async ({ input, ctx }) => {
-        // Only admin can create products
-        if (ctx.user?.role !== 'admin') {
-          throw new Error('Unauthorized');
-        }
-        // Ensure active is always 1 for new products
-        const productData = {
-          ...input,
-          active: input.active ?? 1, // Default to 1 if not provided
-        };
+        try {
+          // Only admin can create products
+          if (ctx.user?.role !== 'admin') {
+            throw new Error('Unauthorized');
+          }
+          // Ensure active is always 1 for new products
+          const productData = {
+            ...input,
+            active: input.active ?? 1, // Default to 1 if not provided
+          };
         
         console.log('[Admin] Creating product:', {
           name: productData.name,
