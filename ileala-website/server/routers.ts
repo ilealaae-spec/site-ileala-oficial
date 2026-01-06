@@ -1365,20 +1365,24 @@ export const appRouter = router({
             // Use provided name or default to nameEN
             const name = input.name || input.nameEN;
             
-            console.log('[Admin.Products.Create] Starting product creation:', {
-              name,
-              slug,
-              nameEN: input.nameEN,
-              namePT: input.namePT,
-              price: input.price,
-              imageUrl: input.imageUrl,
-              active: input.active ?? 1,
-              collection: input.collection,
-              category: input.category,
-              stock: input.stock,
-              featured: input.featured,
-              user: ctx.user?.email,
-            });
+          console.log('[Admin.Products.Create] Starting product creation:', {
+            name,
+            slug,
+            nameEN: input.nameEN,
+            namePT: input.namePT,
+            price: input.price,
+            imageUrl: input.imageUrl,
+            imageUrlType: typeof input.imageUrl,
+            imageUrlLength: input.imageUrl?.length,
+            imageUrlIsEmpty: input.imageUrl === '' || input.imageUrl === null || input.imageUrl === undefined,
+            active: input.active ?? 1,
+            collection: input.collection,
+            category: input.category,
+            stock: input.stock,
+            featured: input.featured,
+            user: ctx.user?.email,
+            fullInput: JSON.stringify(input, null, 2), // Log full input for debugging
+          });
             
             // Check if slug already exists
             const existingProduct = await db.getProductBySlug(slug);
@@ -1387,14 +1391,22 @@ export const appRouter = router({
               throw new Error(`Product with slug "${slug}" already exists. Please use a different name.`);
             }
             
-            const productData = {
-              ...input,
-              name,
-              slug,
-              active: input.active ?? 1, // Default to 1 if not provided
-            };
-            
-            console.log('[Admin.Products.Create] Product data to save:', productData);
+          const productData = {
+            ...input,
+            name,
+            slug,
+            active: input.active ?? 1, // Default to 1 if not provided
+            // Explicitly ensure imageUrl is included
+            imageUrl: input.imageUrl || null, // Use null instead of undefined
+          };
+          
+          console.log('[Admin.Products.Create] Product data to save:', {
+            ...productData,
+            imageUrl: productData.imageUrl,
+            imageUrlType: typeof productData.imageUrl,
+            imageUrlLength: productData.imageUrl?.length,
+            imageUrlIncluded: 'imageUrl' in productData,
+          });
             
             const productId = await db.createProduct(productData);
             
