@@ -284,7 +284,8 @@ export default function AdminProducts() {
     if (formData.descriptionEN) productData.descriptionEN = formData.descriptionEN;
     if (formData.descriptionPT) productData.descriptionPT = formData.descriptionPT;
     if (formData.price) productData.price = Math.round(parseFloat(formData.price) * 100);
-    if (imageUrl) productData.imageUrl = imageUrl; // Always include imageUrl if provided
+    // Always include imageUrl - use provided imageUrl or formData.imageUrl or null
+    productData.imageUrl = imageUrl || formData.imageUrl || null;
     if (formData.collection) productData.collection = formData.collection;
     if (formData.category) productData.category = formData.category;
     if (formData.stock) productData.stock = parseInt(formData.stock);
