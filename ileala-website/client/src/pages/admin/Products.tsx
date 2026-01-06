@@ -217,6 +217,9 @@ export default function AdminProducts() {
           
           imageUrl = result.url;
           
+          // Update formData with the new imageUrl to ensure it's saved
+          setFormData({ ...formData, imageUrl: result.url });
+          
           // Now submit the product
           submitProduct(imageUrl);
         };
