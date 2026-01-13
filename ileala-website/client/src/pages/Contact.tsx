@@ -4,8 +4,12 @@ import { Card } from '@/components/ui/card';
 import { Mail, MapPin, Instagram, Facebook } from 'lucide-react';
 
 
+
+
 export default function Contact() {
   const { t } = useLanguage();
+
+
 
 
   return (
@@ -21,6 +25,8 @@ export default function Contact() {
           </div>
         </div>
       </section>
+
+
 
 
       {/* Contact Info */}
@@ -40,6 +46,8 @@ export default function Contact() {
             </Card>
 
 
+
+
             <Card className="p-8 text-center hover:shadow-xl transition-shadow">
               <div className="flex justify-center mb-4">
                 <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
@@ -56,6 +64,8 @@ export default function Contact() {
             </Card>
 
 
+
+
             <Card className="p-8 text-center hover:shadow-xl transition-shadow">
               <div className="flex justify-center mb-4">
                 <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
@@ -67,8 +77,3 @@ export default function Contact() {
                 <a 
                   href="https://www.instagram.com/ileala.ae" 
                   target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-primary hover:text-primary/80 transition-colors"
-                >
-                  <Instagram className="h-6 w-6" />
-                </a>
