@@ -6,8 +6,16 @@ import { HelpCircle, Package, RefreshCw, Truck, Users, Sparkles } from 'lucide-r
 
 
 
+
+
+
+
 export default function Help() {
   const { language } = useLanguage();
+
+
+
+
 
 
 
@@ -66,10 +74,8 @@ export default function Help() {
 
 
 
+
+
+
+
   if (language === 'pt') {
-    return (
-      <div className="w-full py-20">
-        <div className="container max-w-6xl">
-          <div className="text-center mb-12">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4 text-primary">Como Podemos Ajudar?</h1>
-            <p className="text-lg text-muted-foreground">
