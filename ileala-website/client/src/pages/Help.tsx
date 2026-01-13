@@ -4,8 +4,12 @@ import { Link } from 'wouter';
 import { HelpCircle, Package, RefreshCw, Truck, Users, Sparkles } from 'lucide-react';
 
 
+
+
 export default function Help() {
   const { language } = useLanguage();
+
+
 
 
   const helpTopics = [
@@ -60,6 +64,8 @@ export default function Help() {
   ];
 
 
+
+
   if (language === 'pt') {
     return (
       <div className="w-full py-20">
@@ -67,6 +73,3 @@ export default function Help() {
           <div className="text-center mb-12">
             <h1 className="text-4xl md:text-5xl font-bold mb-4 text-primary">Como Podemos Ajudar?</h1>
             <p className="text-lg text-muted-foreground">
-              Encontre respostas rápidas ou entre em contato com nossa equipe de suporte
-            </p>
-          </div>
