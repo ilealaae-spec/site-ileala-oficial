@@ -74,3 +74,11 @@ export const getGoogleLoginUrl = (redirectTo: string = '/') => {
     client_id: googleClientId,
     redirect_uri: redirectUri,
     response_type: 'code',
+    scope: 'openid email profile',
+    access_type: 'offline',
+    state: state,
+    prompt: 'consent',
+  });
+
+  return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+};
