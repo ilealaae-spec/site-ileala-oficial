@@ -27,7 +27,7 @@ export default function FindRetailer() {
                 </div>
                 <div className="flex items-center justify-center gap-2">
                   <Mail className="w-5 h-5 text-primary" />
-                  <p>info@ileala.ae</p>
+                  <p>contact@ileala.ae</p>
                 </div>
                 <div className="flex items-center justify-center gap-2">
                   <Globe className="w-5 h-5 text-primary" />
@@ -36,7 +36,7 @@ export default function FindRetailer() {
               </div>
               <Button 
                 className="mt-6"
-                onClick={() => window.location.href = 'mailto:info@ileala.ae?subject=Informações sobre Revendedores'}
+                onClick={() => window.location.href = 'mailto:contact@ileala.ae?subject=Informações sobre Revendedores'}
               >
                 Entre em Contato
               </Button>
@@ -78,7 +78,7 @@ export default function FindRetailer() {
                 <p className="mb-4 font-medium">Interessado em se tornar um revendedor ILE ALA?</p>
                 <Button 
                   size="lg"
-                  onClick={() => window.location.href = 'mailto:info@ileala.ae?subject=Proposta de Parceria - Revendedor'}
+                  onClick={() => window.location.href = 'mailto:contact@ileala.ae?subject=Proposta de Parceria - Revendedor'}
                 >
                   Solicite Informações sobre Parceria
                 </Button>
@@ -107,7 +107,7 @@ export default function FindRetailer() {
             <p className="text-muted-foreground mb-4">
               Nossa equipe está pronta para ajudar com qualquer dúvida
             </p>
-            <p className="font-medium">info@ileala.ae</p>
+            <p className="font-medium">contact@ileala.ae</p>
           </div>
         </div>
       </div>
@@ -134,7 +134,7 @@ export default function FindRetailer() {
               </div>
               <div className="flex items-center justify-center gap-2">
                 <Mail className="w-5 h-5 text-primary" />
-                <p>info@ileala.ae</p>
+                <p>contact@ileala.ae</p>
               </div>
               <div className="flex items-center justify-center gap-2">
                 <Globe className="w-5 h-5 text-primary" />
@@ -143,7 +143,7 @@ export default function FindRetailer() {
             </div>
             <Button 
               className="mt-6"
-              onClick={() => window.location.href = 'mailto:info@ileala.ae?subject=Retailer Information'}
+              onClick={() => window.location.href = 'mailto:contact@ileala.ae?subject=Retailer Information'}
             >
               Contact Us
             </Button>
@@ -185,7 +185,7 @@ export default function FindRetailer() {
               <p className="mb-4 font-medium">Interested in becoming an ILE ALA retailer?</p>
               <Button 
                 size="lg"
-                onClick={() => window.location.href = 'mailto:info@ileala.ae?subject=Partnership Proposal - Retailer'}
+                onClick={() => window.location.href = 'mailto:contact@ileala.ae?subject=Partnership Proposal - Retailer'}
               >
                 Request Partnership Information
               </Button>
@@ -214,7 +214,7 @@ export default function FindRetailer() {
           <p className="text-muted-foreground mb-4">
             Our team is ready to help with any questions
           </p>
-          <p className="font-medium">info@ileala.ae</p>
+          <p className="font-medium">contact@ileala.ae</p>
         </div>
       </div>
     </div>

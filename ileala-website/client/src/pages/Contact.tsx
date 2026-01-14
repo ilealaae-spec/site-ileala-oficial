@@ -1,7 +1,7 @@
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Mail, MapPin, Instagram, Facebook } from 'lucide-react';
+import { Mail, MapPin, Instagram, Facebook, Phone } from 'lucide-react';
 
 
 
@@ -32,7 +32,7 @@ export default function Contact() {
       {/* Contact Info */}
       <section className="py-20">
         <div className="container">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
             <Card className="p-8 text-center hover:shadow-xl transition-shadow">
               <div className="flex justify-center mb-4">
                 <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
@@ -51,15 +51,30 @@ export default function Contact() {
             <Card className="p-8 text-center hover:shadow-xl transition-shadow">
               <div className="flex justify-center mb-4">
                 <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Phone className="h-8 w-8 text-primary" />
+                </div>
+              </div>
+              <h3 className="text-xl font-semibold mb-3">{t.contact.phone || 'Phone'}</h3>
+              <a
+                href="tel:+971501742090"
+                className="text-primary hover:underline"
+              >
+                +971 50 174 2090
+              </a>
+            </Card>
+
+            <Card className="p-8 text-center hover:shadow-xl transition-shadow">
+              <div className="flex justify-center mb-4">
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
                   <Mail className="h-8 w-8 text-primary" />
                 </div>
               </div>
               <h3 className="text-xl font-semibold mb-3">{t.contact.email}</h3>
-              <a 
-                href="mailto:info@ileala.ae" 
+              <a
+                href="mailto:contact@ileala.ae"
                 className="text-primary hover:underline"
               >
-                info@ileala.ae
+                contact@ileala.ae
               </a>
             </Card>
 

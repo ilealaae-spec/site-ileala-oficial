@@ -106,7 +106,7 @@ export default function Privacy() {
             <section>
               <h2 className="text-2xl font-semibold mb-4">11. Contato</h2>
               <p className="leading-relaxed">
-                Para exercer seus direitos ou fazer perguntas sobre esta política, entre em contato através de info@ileala.ae
+                Para exercer seus direitos ou fazer perguntas sobre esta política, entre em contato através de contact@ileala.ae
               </p>
             </section>
           </div>
@@ -217,7 +217,7 @@ export default function Privacy() {
           <section>
             <h2 className="text-2xl font-semibold mb-4">11. Contact</h2>
             <p className="leading-relaxed">
-              To exercise your rights or ask questions about this policy, please contact us at info@ileala.ae
+              To exercise your rights or ask questions about this policy, please contact us at contact@ileala.ae
             </p>
           </section>
         </div>

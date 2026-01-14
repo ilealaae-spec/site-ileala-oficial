@@ -23,7 +23,8 @@ export default function SchemaOrg() {
       "contactPoint": {
         "@type": "ContactPoint",
         "contactType": "Customer Service",
-        "email": "info@ileala.ae",
+        "telephone": "+971501742090",
+        "email": "contact@ileala.ae",
         "availableLanguage": ["English", "Portuguese"]
       },
       "sameAs": [

@@ -1,5 +1,5 @@
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Instagram, Facebook } from 'lucide-react';
+import { Instagram, Facebook, Phone, Mail } from 'lucide-react';
 import { Link } from 'wouter';
 
 export default function Footer() {
@@ -40,6 +40,14 @@ export default function Footer() {
           <div>
             <h3 className="font-semibold mb-4">{t.contact.title}</h3>
             <div className="space-y-2 text-sm text-muted-foreground">
+              <a href="tel:+971501742090" className="flex items-center gap-2 hover:text-primary transition-colors">
+                <Phone className="h-4 w-4" />
+                +971 50 174 2090
+              </a>
+              <a href="mailto:contact@ileala.ae" className="flex items-center gap-2 hover:text-primary transition-colors">
+                <Mail className="h-4 w-4" />
+                contact@ileala.ae
+              </a>
               <p>www.ileala.ae</p>
               <div className="flex gap-4 mt-4">
                 <a 

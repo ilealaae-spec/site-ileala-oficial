@@ -62,7 +62,7 @@ export default function AIPolicy() {
             <section>
               <h2 className="text-2xl font-semibold mb-4">7. Contato</h2>
               <p className="leading-relaxed">
-                Para questões sobre nossa política de IA, entre em contato através de info@ileala.ae
+                Para questões sobre nossa política de IA, entre em contato através de contact@ileala.ae
               </p>
             </section>
           </div>
@@ -129,7 +129,7 @@ export default function AIPolicy() {
           <section>
             <h2 className="text-2xl font-semibold mb-4">7. Contact</h2>
             <p className="leading-relaxed">
-              For questions about our AI policy, please contact us at info@ileala.ae
+              For questions about our AI policy, please contact us at contact@ileala.ae
             </p>
           </section>
         </div>

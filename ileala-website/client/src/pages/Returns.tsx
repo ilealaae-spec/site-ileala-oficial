@@ -71,7 +71,7 @@ export default function Returns() {
                   <div>
                     <h4 className="font-semibold mb-1">Entre em Contato</h4>
                     <p className="text-sm text-muted-foreground">
-                      Envie um e-mail para info@ileala.ae dentro de 7 dias após o recebimento com seu número de pedido e descrição do problema.
+                      Envie um e-mail para contact@ileala.ae dentro de 7 dias após o recebimento com seu número de pedido e descrição do problema.
                     </p>
                   </div>
                 </div>
@@ -193,7 +193,7 @@ export default function Returns() {
             <Card className="p-6 bg-primary/5 border-primary/20">
               <h3 className="text-xl font-semibold mb-4">Precisa de Ajuda?</h3>
               <p className="mb-4">Entre em contato com nossa equipe de atendimento ao cliente:</p>
-              <p><strong>E-mail:</strong> info@ileala.ae</p>
+              <p><strong>E-mail:</strong> contact@ileala.ae</p>
               <p><strong>Assunto:</strong> "Devolução/Troca - [Número do Pedido]"</p>
             </Card>
           </div>
@@ -267,7 +267,7 @@ export default function Returns() {
                 <div>
                   <h4 className="font-semibold mb-1">Contact Us</h4>
                   <p className="text-sm text-muted-foreground">
-                    Email info@ileala.ae within 7 days of receipt with your order number and description of the issue.
+                    Email contact@ileala.ae within 7 days of receipt with your order number and description of the issue.
                   </p>
                 </div>
               </div>
@@ -389,7 +389,7 @@ export default function Returns() {
           <Card className="p-6 bg-primary/5 border-primary/20">
             <h3 className="text-xl font-semibold mb-4">Need Help?</h3>
             <p className="mb-4">Contact our customer service team:</p>
-            <p><strong>Email:</strong> info@ileala.ae</p>
+            <p><strong>Email:</strong> contact@ileala.ae</p>
             <p><strong>Subject:</strong> "Return/Exchange - [Order Number]"</p>
           </Card>
         </div>

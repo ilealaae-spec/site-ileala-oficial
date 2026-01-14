@@ -124,8 +124,8 @@ export default function PaymentSuccess() {
           <div className="border-t border-sage-200 pt-6">
             <p className="text-sm text-sage-600">
               {language === 'en' ? 'Questions about your order? Contact us at' : 'Dúvidas sobre seu pedido? Entre em contato conosco em'}{' '}
-              <a href="mailto:info@ileala.ae" className="text-sage-900 font-medium hover:underline">
-                info@ileala.ae
+              <a href="mailto:contact@ileala.ae" className="text-sage-900 font-medium hover:underline">
+                contact@ileala.ae
               </a>
             </p>
           </div>

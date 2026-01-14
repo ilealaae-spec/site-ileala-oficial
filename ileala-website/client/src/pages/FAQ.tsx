@@ -23,7 +23,7 @@ export default function FAQ() {
         },
         {
           q: "Can I customize products?",
-          a: "We offer customization options for certain products. Please contact us at info@ileala.ae with your specific requirements, and our team will be happy to discuss possibilities and pricing."
+          a: "We offer customization options for certain products. Please contact us at contact@ileala.ae with your specific requirements, and our team will be happy to discuss possibilities and pricing."
         }
       ]
     },
@@ -74,7 +74,7 @@ export default function FAQ() {
         },
         {
           q: "How do I initiate a return?",
-          a: "Contact our customer service team at info@ileala.ae with your order number, photos of the item, and a description of the issue. We will guide you through the return process."
+          a: "Contact our customer service team at contact@ileala.ae with your order number, photos of the item, and a description of the issue. We will guide you through the return process."
         }
       ]
     },
@@ -107,7 +107,7 @@ export default function FAQ() {
         },
         {
           q: "Posso personalizar produtos?",
-          a: "Oferecemos opções de personalização para certos produtos. Entre em contato conosco em info@ileala.ae com seus requisitos específicos, e nossa equipe terá prazer em discutir possibilidades e preços."
+          a: "Oferecemos opções de personalização para certos produtos. Entre em contato conosco em contact@ileala.ae com seus requisitos específicos, e nossa equipe terá prazer em discutir possibilidades e preços."
         }
       ]
     },
@@ -158,7 +158,7 @@ export default function FAQ() {
         },
         {
           q: "Como inicio uma devolução?",
-          a: "Entre em contato com nossa equipe de atendimento ao cliente em info@ileala.ae com seu número de pedido, fotos do item e uma descrição do problema. Nós o guiaremos através do processo de devolução."
+          a: "Entre em contato com nossa equipe de atendimento ao cliente em contact@ileala.ae com seu número de pedido, fotos do item e uma descrição do problema. Nós o guiaremos através do processo de devolução."
         }
       ]
     },
@@ -220,7 +220,7 @@ export default function FAQ() {
               ? 'Contact our customer service team for personalized assistance'
               : 'Entre em contato com nossa equipe de atendimento para assistência personalizada'}
           </p>
-          <p className="font-medium">info@ileala.ae</p>
+          <p className="font-medium">contact@ileala.ae</p>
         </div>
       </div>
     </div>

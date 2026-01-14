@@ -85,7 +85,7 @@ export default function Terms() {
             <section>
               <h2 className="text-2xl font-semibold mb-4">10. Contato</h2>
               <p className="leading-relaxed">
-                Para questões sobre estes termos, entre em contato através de info@ileala.ae
+                Para questões sobre estes termos, entre em contato através de contact@ileala.ae
               </p>
             </section>
           </div>
@@ -175,7 +175,7 @@ export default function Terms() {
           <section>
             <h2 className="text-2xl font-semibold mb-4">10. Contact</h2>
             <p className="leading-relaxed">
-              For questions about these terms, please contact us at info@ileala.ae
+              For questions about these terms, please contact us at contact@ileala.ae
             </p>
           </section>
         </div>

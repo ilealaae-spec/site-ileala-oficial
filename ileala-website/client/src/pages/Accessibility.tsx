@@ -74,7 +74,7 @@ export default function Accessibility() {
                 Valorizamos seu feedback sobre a acessibilidade do nosso site. Se você encontrar alguma barreira de acessibilidade ou tiver sugestões de melhoria, entre em contato conosco:
               </p>
               <ul className="list-none space-y-2 ml-4">
-                <li><strong>E-mail:</strong> info@ileala.ae</li>
+                <li><strong>E-mail:</strong> contact@ileala.ae</li>
                 <li><strong>Assunto:</strong> "Acessibilidade do Site"</li>
               </ul>
               <p className="leading-relaxed mt-4">
@@ -171,7 +171,7 @@ export default function Accessibility() {
               We value your feedback on the accessibility of our website. If you encounter any accessibility barriers or have suggestions for improvement, please contact us:
             </p>
             <ul className="list-none space-y-2 ml-4">
-              <li><strong>Email:</strong> info@ileala.ae</li>
+              <li><strong>Email:</strong> contact@ileala.ae</li>
               <li><strong>Subject:</strong> "Website Accessibility"</li>
             </ul>
             <p className="leading-relaxed mt-4">

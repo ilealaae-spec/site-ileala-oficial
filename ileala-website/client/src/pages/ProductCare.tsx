@@ -146,7 +146,7 @@ export default function ProductCare() {
               <p className="text-muted-foreground mb-4">
                 Nossa equipe está pronta para ajudar com dúvidas específicas sobre cuidados
               </p>
-              <p className="font-medium">info@ileala.ae</p>
+              <p className="font-medium">contact@ileala.ae</p>
             </div>
           </div>
         </div>
@@ -295,7 +295,7 @@ export default function ProductCare() {
             <p className="text-muted-foreground mb-4">
               Our team is ready to help with specific care questions
             </p>
-            <p className="font-medium">info@ileala.ae</p>
+            <p className="font-medium">contact@ileala.ae</p>
           </div>
         </div>
       </div>

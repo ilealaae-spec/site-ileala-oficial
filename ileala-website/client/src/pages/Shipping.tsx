@@ -111,7 +111,7 @@ export default function Shipping() {
                 Se houver algum problema com sua entrega, entre em contato conosco imediatamente:
               </p>
               <Card className="p-6 bg-primary/5 border-primary/20">
-                <p><strong>E-mail:</strong> info@ileala.ae</p>
+                <p><strong>E-mail:</strong> contact@ileala.ae</p>
                 <p><strong>Assunto:</strong> "Problema com Entrega - [Número do Pedido]"</p>
                 <p className="text-sm text-muted-foreground mt-4">
                   Nossa equipe responderá dentro de 24 horas e trabalhará para resolver qualquer questão rapidamente.
@@ -253,7 +253,7 @@ export default function Shipping() {
               If there is any problem with your delivery, please contact us immediately:
             </p>
             <Card className="p-6 bg-primary/5 border-primary/20">
-              <p><strong>Email:</strong> info@ileala.ae</p>
+              <p><strong>Email:</strong> contact@ileala.ae</p>
               <p><strong>Subject:</strong> "Delivery Issue - [Order Number]"</p>
               <p className="text-sm text-muted-foreground mt-4">
                 Our team will respond within 24 hours and work to resolve any issues quickly.

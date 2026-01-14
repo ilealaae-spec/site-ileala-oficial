@@ -77,14 +77,14 @@ export default function DoNotSell() {
                 Para exercer qualquer um desses direitos ou fazer perguntas sobre como tratamos suas informações pessoais, entre em contato conosco:
               </p>
               <div className="space-y-2 mb-6">
-                <p><strong>E-mail:</strong> info@ileala.ae</p>
+                <p><strong>E-mail:</strong> contact@ileala.ae</p>
                 <p><strong>Assunto:</strong> "Privacidade de Dados - Não Vender Informações"</p>
               </div>
               <p className="text-sm text-muted-foreground mb-6">
                 Responderemos a todas as solicitações dentro de 30 dias. Podemos solicitar informações adicionais para verificar sua identidade antes de processar sua solicitação.
               </p>
               <Button 
-                onClick={() => window.location.href = 'mailto:info@ileala.ae?subject=Privacidade de Dados - Não Vender Informações'}
+                onClick={() => window.location.href = 'mailto:contact@ileala.ae?subject=Privacidade de Dados - Não Vender Informações'}
                 className="w-full md:w-auto"
               >
                 Entrar em Contato
@@ -188,14 +188,14 @@ export default function DoNotSell() {
               To exercise any of these rights or ask questions about how we handle your personal information, please contact us:
             </p>
             <div className="space-y-2 mb-6">
-              <p><strong>Email:</strong> info@ileala.ae</p>
+              <p><strong>Email:</strong> contact@ileala.ae</p>
               <p><strong>Subject:</strong> "Data Privacy - Do Not Sell Information"</p>
             </div>
             <p className="text-sm text-muted-foreground mb-6">
               We will respond to all requests within 30 days. We may request additional information to verify your identity before processing your request.
             </p>
             <Button 
-              onClick={() => window.location.href = 'mailto:info@ileala.ae?subject=Data Privacy - Do Not Sell Information'}
+              onClick={() => window.location.href = 'mailto:contact@ileala.ae?subject=Data Privacy - Do Not Sell Information'}
               className="w-full md:w-auto"
             >
               Contact Us
