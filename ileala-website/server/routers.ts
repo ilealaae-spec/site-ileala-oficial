@@ -2058,6 +2058,17 @@ export const appRouter = router({
       }),
   }),
   settings: router({
+    // Public endpoint for frontend to fetch site settings
+    public: publicProcedure.query(async () => {
+      const settings = await db.getAllSettings();
+      // Return as key-value object for easy access
+      const settingsMap: Record<string, string> = {};
+      for (const setting of settings) {
+        settingsMap[setting.key] = setting.value;
+      }
+      return settingsMap;
+    }),
+    // Admin only - list all settings with metadata
     list: protectedProcedure.query(async ({ ctx }) => {
       if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
       return await db.getAllSettings();

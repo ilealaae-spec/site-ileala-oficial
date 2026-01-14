@@ -5,9 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { trpc } from '@/lib/trpc';
-import { Loader2, Plus, Edit, Trash2, Settings, Save } from 'lucide-react';
+import { Loader2, Plus, Edit, Trash2, Settings, Save, Phone, Mail, MapPin, Instagram, Facebook, Globe, Zap } from 'lucide-react';
 import { toast } from 'sonner';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -58,6 +58,54 @@ export default function SettingsTab() {
       toast.error(error.message);
     },
   });
+
+  // Default contact settings to create
+  const defaultContactSettings = [
+    { key: 'contact-phone', value: '+971 50 174 2090', description: 'Phone number displayed on the website', category: 'contact' },
+    { key: 'contact-email', value: 'contact@ileala.ae', description: 'Contact email address', category: 'contact' },
+    { key: 'contact-address', value: 'Dubai, United Arab Emirates', description: 'Business address', category: 'contact' },
+    { key: 'social-instagram', value: 'https://instagram.com/ileala.ae', description: 'Instagram profile URL', category: 'social' },
+    { key: 'social-facebook', value: 'https://www.facebook.com/share/17f63HzTAk/?mibextid=wwXIfr', description: 'Facebook page URL', category: 'social' },
+    { key: 'site-name', value: 'ILE ALA', description: 'Site name', category: 'general' },
+    { key: 'site-url', value: 'www.ileala.ae', description: 'Main website URL', category: 'general' },
+  ];
+
+  const [isCreatingDefaults, setIsCreatingDefaults] = useState(false);
+
+  const handleCreateDefaultSettings = async () => {
+    setIsCreatingDefaults(true);
+    let created = 0;
+    let skipped = 0;
+
+    for (const setting of defaultContactSettings) {
+      // Check if setting already exists
+      const exists = settings?.some((s: any) => s.key === setting.key);
+      if (exists) {
+        skipped++;
+        continue;
+      }
+
+      try {
+        await upsertMutation.mutateAsync(setting);
+        created++;
+      } catch (error) {
+        console.error(`Failed to create setting ${setting.key}:`, error);
+      }
+    }
+
+    setIsCreatingDefaults(false);
+    toast.success(
+      language === 'en'
+        ? `Created ${created} settings, skipped ${skipped} existing`
+        : `Criadas ${created} configurações, puladas ${skipped} existentes`
+    );
+    utils.settings.list.invalidate();
+  };
+
+  // Check if default settings are missing
+  const missingDefaults = defaultContactSettings.filter(
+    d => !settings?.some((s: any) => s.key === d.key)
+  );
 
   const resetForm = () => {
     setFormData({
@@ -126,10 +174,26 @@ export default function SettingsTab() {
               : 'Gerencie configurações globais e preferências da loja'}
           </p>
         </div>
-        <Button onClick={() => { resetForm(); setIsDialogOpen(true); }}>
-          <Plus className="w-4 h-4 mr-2" />
-          {language === 'en' ? 'Add Setting' : 'Adicionar Configuração'}
-        </Button>
+        <div className="flex gap-2">
+          {missingDefaults.length > 0 && (
+            <Button
+              variant="outline"
+              onClick={handleCreateDefaultSettings}
+              disabled={isCreatingDefaults}
+            >
+              {isCreatingDefaults ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Zap className="w-4 h-4 mr-2" />
+              )}
+              {language === 'en' ? 'Create Default Settings' : 'Criar Configurações Padrão'}
+            </Button>
+          )}
+          <Button onClick={() => { resetForm(); setIsDialogOpen(true); }}>
+            <Plus className="w-4 h-4 mr-2" />
+            {language === 'en' ? 'Add Setting' : 'Adicionar Configuração'}
+          </Button>
+        </div>
       </div>
 
       {categories.length > 0 ? (
@@ -253,6 +317,8 @@ export default function SettingsTab() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="general">General</SelectItem>
+                  <SelectItem value="contact">Contact</SelectItem>
+                  <SelectItem value="social">Social Media</SelectItem>
                   <SelectItem value="shipping">Shipping</SelectItem>
                   <SelectItem value="payment">Payment</SelectItem>
                   <SelectItem value="tax">Tax</SelectItem>

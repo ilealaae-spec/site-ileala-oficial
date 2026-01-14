@@ -1,9 +1,11 @@
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Instagram, Facebook, Phone, Mail } from 'lucide-react';
 import { Link } from 'wouter';
+import { useSiteSettings } from '@/hooks/useSiteSettings';
 
 export default function Footer() {
   const { language, t } = useLanguage();
+  const { settings } = useSiteSettings();
 
   return (
     <footer className="border-t bg-muted/30">
@@ -21,7 +23,7 @@ export default function Footer() {
               }}
             />
             <p className="text-sm text-muted-foreground">
-              Dubai, United Arab Emirates
+              {settings.address}
             </p>
           </div>
 
@@ -40,28 +42,28 @@ export default function Footer() {
           <div>
             <h3 className="font-semibold mb-4">{t.contact.title}</h3>
             <div className="space-y-2 text-sm text-muted-foreground">
-              <a href="tel:+971501742090" className="flex items-center gap-2 hover:text-primary transition-colors">
+              <a href={`tel:${settings.phone.replace(/\s/g, '')}`} className="flex items-center gap-2 hover:text-primary transition-colors">
                 <Phone className="h-4 w-4" />
-                +971 50 174 2090
+                {settings.phone}
               </a>
-              <a href="mailto:contact@ileala.ae" className="flex items-center gap-2 hover:text-primary transition-colors">
+              <a href={`mailto:${settings.email}`} className="flex items-center gap-2 hover:text-primary transition-colors">
                 <Mail className="h-4 w-4" />
-                contact@ileala.ae
+                {settings.email}
               </a>
-              <p>www.ileala.ae</p>
+              <p>{settings.siteUrl}</p>
               <div className="flex gap-4 mt-4">
-                <a 
-                  href="https://instagram.com/ileala.ae" 
-                  target="_blank" 
+                <a
+                  href={settings.instagram}
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-primary transition-colors"
                   aria-label="Instagram"
                 >
                   <Instagram className="h-5 w-5" />
                 </a>
-                <a 
-                  href="https://www.facebook.com/share/17f63HzTAk/?mibextid=wwXIfr" 
-                  target="_blank" 
+                <a
+                  href={settings.facebook}
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-primary transition-colors"
                   aria-label="Facebook"

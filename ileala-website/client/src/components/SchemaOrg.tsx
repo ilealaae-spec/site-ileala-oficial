@@ -1,12 +1,15 @@
 import { useEffect } from 'react';
+import { useSiteSettings } from '@/hooks/useSiteSettings';
 
 export default function SchemaOrg() {
+  const { settings } = useSiteSettings();
+
   useEffect(() => {
     // Organization Schema
     const organizationSchema = {
       "@context": "https://schema.org",
       "@type": "Organization",
-      "name": "ILE ALA",
+      "name": settings.siteName,
       "alternateName": "Ile Ala",
       "url": "https://ileala.ae",
       "logo": "https://ileala.ae/images/logo_ile_ala.webp",
@@ -23,17 +26,17 @@ export default function SchemaOrg() {
       "contactPoint": {
         "@type": "ContactPoint",
         "contactType": "Customer Service",
-        "telephone": "+971501742090",
-        "email": "contact@ileala.ae",
+        "telephone": settings.phone.replace(/\s/g, ''),
+        "email": settings.email,
         "availableLanguage": ["English", "Portuguese"]
       },
       "sameAs": [
-        "https://www.instagram.com/ileala.ae",
-        "https://www.facebook.com/share/17f63HzTAk/?mibextid=wwXIfr"
+        settings.instagram,
+        settings.facebook
       ],
       "brand": {
         "@type": "Brand",
-        "name": "ILE ALA",
+        "name": settings.siteName,
         "logo": "https://ileala.ae/images/logo_ile_ala.webp"
       }
     };
@@ -73,7 +76,7 @@ export default function SchemaOrg() {
       const schemas = document.querySelectorAll('script[data-schema]');
       schemas.forEach(script => script.remove());
     };
-  }, []);
+  }, [settings]);
 
   return null;
 }

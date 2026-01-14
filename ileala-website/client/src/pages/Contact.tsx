@@ -1,16 +1,11 @@
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Mail, MapPin, Instagram, Facebook, Phone } from 'lucide-react';
-
-
-
+import { useSiteSettings } from '@/hooks/useSiteSettings';
 
 export default function Contact() {
   const { t } = useLanguage();
-
-
-
+  const { settings } = useSiteSettings();
 
   return (
     <div className="w-full">
@@ -26,9 +21,6 @@ export default function Contact() {
         </div>
       </section>
 
-
-
-
       {/* Contact Info */}
       <section className="py-20">
         <div className="container">
@@ -41,12 +33,9 @@ export default function Contact() {
               </div>
               <h3 className="text-xl font-semibold mb-3">{t.contact.location}</h3>
               <p className="text-muted-foreground">
-                {t.contact.dubai}
+                {settings.address}
               </p>
             </Card>
-
-
-
 
             <Card className="p-8 text-center hover:shadow-xl transition-shadow">
               <div className="flex justify-center mb-4">
@@ -56,10 +45,10 @@ export default function Contact() {
               </div>
               <h3 className="text-xl font-semibold mb-3">{t.contact.phone || 'Phone'}</h3>
               <a
-                href="tel:+971501742090"
+                href={`tel:${settings.phone.replace(/\s/g, '')}`}
                 className="text-primary hover:underline"
               >
-                +971 50 174 2090
+                {settings.phone}
               </a>
             </Card>
 
@@ -71,15 +60,12 @@ export default function Contact() {
               </div>
               <h3 className="text-xl font-semibold mb-3">{t.contact.email}</h3>
               <a
-                href="mailto:contact@ileala.ae"
+                href={`mailto:${settings.email}`}
                 className="text-primary hover:underline"
               >
-                contact@ileala.ae
+                {settings.email}
               </a>
             </Card>
-
-
-
 
             <Card className="p-8 text-center hover:shadow-xl transition-shadow">
               <div className="flex justify-center mb-4">
@@ -89,6 +75,29 @@ export default function Contact() {
               </div>
               <h3 className="text-xl font-semibold mb-3">Social Media</h3>
               <div className="flex gap-4 justify-center">
-                <a 
-                  href="https://www.instagram.com/ileala.ae" 
-                  target="_blank" 
+                <a
+                  href={settings.instagram}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:opacity-70 transition-opacity"
+                  aria-label="Instagram"
+                >
+                  <Instagram className="h-6 w-6" />
+                </a>
+                <a
+                  href={settings.facebook}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:opacity-70 transition-opacity"
+                  aria-label="Facebook"
+                >
+                  <Facebook className="h-6 w-6" />
+                </a>
+              </div>
+            </Card>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
