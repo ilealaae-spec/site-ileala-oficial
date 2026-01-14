@@ -42,15 +42,15 @@ export default function Header() {
 
   // Collect all menu items
   const menuItems = [
-    { href: '/', label: t.nav.home },
-    { href: '/about', label: t.nav.about },
-    { href: '/collections', label: t.nav.collections },
-    { href: '/napkin-rings', label: language === 'en' ? 'Napkin Rings' : 'Anéis de Guardanapo' },
-    { href: '/table-essentials', label: language === 'en' ? 'Table Essentials' : 'Essenciais de Mesa' },
-    { href: '/home-accents', label: language === 'en' ? 'Home Accents' : 'Acentos para Casa' },
-    { href: '/accessories', label: language === 'en' ? 'Accessories' : 'Acessórios' },
-    { href: '/pet-collection', label: language === 'en' ? 'Pet Collection' : 'Coleção Pet' },
-    { href: '/contact', label: t.nav.contact },
+    { href: '/', label: 'Home' },
+    { href: '/about', label: 'About' },
+    { href: '/collections', label: 'Collections' },
+    { href: '/napkin-rings', label: 'Napkin Rings' },
+    { href: '/table-essentials', label: 'Table Essentials' },
+    { href: '/home-accents', label: 'Home Accents' },
+    { href: '/accessories', label: 'Accessories' },
+    { href: '/pet-collection', label: 'Pet Collection' },
+    { href: '/contact', label: 'Contact' },
     // Additional categories from database
     ...(categories && categories.length > 0 ? categories
       .filter((category: any) => {
