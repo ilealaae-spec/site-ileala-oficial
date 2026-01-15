@@ -18,17 +18,17 @@ export default function ProductDetail() {
   const [quantity, setQuantity] = useState(1);
 
   // Try to fetch by slug first, fallback to ID
-  const { data: productBySlug, isLoading: isLoadingBySlug } = trpc.products.bySlug.useQuery(
+  const productBySlugQuery = trpc.products.bySlug.useQuery(
     { slug: slug || '' },
     { enabled: !!slug }
   );
-  const { data: productById, isLoading: isLoadingById } = trpc.products.byId.useQuery(
+  const productByIdQuery = trpc.products.byId.useQuery(
     { id: productId },
     { enabled: !slug && productId > 0 }
   );
-  
-  const product = slug ? productBySlug : productById;
-  const isLoading = slug ? isLoadingBySlug : isLoadingById;
+
+  const product: any = slug ? productBySlugQuery.data : productByIdQuery.data;
+  const isLoading = slug ? productBySlugQuery.isLoading : productByIdQuery.isLoading;
   const addToCartMutation = trpc.cart.add.useMutation({
     onSuccess: () => {
       toast.success(language === 'en' ? 'Added to cart!' : 'Adicionado ao carrinho!');

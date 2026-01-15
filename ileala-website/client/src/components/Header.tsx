@@ -5,7 +5,6 @@ import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/_core/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { trpc } from '@/lib/trpc';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,15 +16,11 @@ import {
 import { Globe, ShoppingCart, Instagram, Facebook, User, LogOut, Package, Shield, Search, Heart } from 'lucide-react';
 
 export default function Header() {
-  const { language, setLanguage, t } = useLanguage();
+  const { language, setLanguage } = useLanguage();
   const { totalItems } = useCart();
   const { user, isAuthenticated, logout } = useAuth();
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
-  const { data: categories = [] } = trpc.categories.listActive.useQuery(undefined, {
-    staleTime: 10 * 60 * 1000, // 10 minutes - categories don't change often
-    refetchOnWindowFocus: false, // Prevent refetch on window focus
-  });
 
   const handleLogout = async () => {
     await logout();
@@ -40,7 +35,7 @@ export default function Header() {
     }
   };
 
-  // Collect all menu items
+  // Fixed menu items - these are always shown
   const menuItems = [
     { href: '/', label: 'Home' },
     { href: '/about', label: 'About' },
@@ -51,18 +46,11 @@ export default function Header() {
     { href: '/accessories', label: 'Accessories' },
     { href: '/pet-collection', label: 'Pet Collection' },
     { href: '/contact', label: 'Contact' },
-    // Additional categories from database
-    ...(categories && categories.length > 0 ? categories
-      .filter((category: any) => {
-        const slug = (category.slug || '').toLowerCase();
-        const fixedSlugs = ['collections', 'napkin-rings', 'table-essentials', 'home-accents', 'accessories', 'pet-collection'];
-        return !fixedSlugs.includes(slug);
-      })
-      .map((category: any) => ({
-        href: `/category/${category.slug}`,
-        label: language === 'en' ? category.nameEN : category.namePT,
-      })) : []),
   ];
+
+  // Note: Additional categories from database are intentionally NOT added here
+  // to prevent menu duplication. If you need to add new categories to the menu,
+  // add them to the fixed list above.
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">

@@ -3,7 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { trpc } from '@/lib/trpc';
-import { Loader2, Search, Package, Calendar, DollarSign, User, Edit } from 'lucide-react';
+import { Loader2, Search, Package, Calendar, DollarSign, User } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import {
@@ -27,23 +27,25 @@ export default function OrdersTab() {
   const [editingStatus, setEditingStatus] = useState<string | null>(null);
 
   const utils = trpc.useUtils();
-  const { data: orders, isLoading } = trpc.orders.list.useQuery();
-  
+  const ordersQuery = trpc.orders.list.useQuery();
+  const orders = ordersQuery.data as any[] | undefined;
+  const isLoading = ordersQuery.isLoading;
+
   const updateStatusMutation = trpc.orders.updateStatus.useMutation({
     onSuccess: () => {
       toast.success(language === 'en' ? 'Order status updated!' : 'Status do pedido atualizado!');
       utils.orders.list.invalidate();
       setEditingStatus(null);
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(error.message);
     },
   });
 
-  const filteredOrders = orders?.filter(order =>
+  const filteredOrders = Array.isArray(orders) ? orders.filter((order: any) =>
     order.id.toString().includes(searchTerm) ||
-    order.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+    (order.customerEmail || '').toLowerCase().includes(searchTerm.toLowerCase())
+  ) : [];
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -73,10 +75,10 @@ export default function OrdersTab() {
   }
 
   const stats = {
-    total: orders?.length || 0,
-    pending: orders?.filter(o => o.status === 'pending').length || 0,
-    completed: orders?.filter(o => o.status === 'completed').length || 0,
-    totalRevenue: orders?.reduce((sum, o) => sum + o.total, 0) || 0,
+    total: Array.isArray(orders) ? orders.length : 0,
+    pending: Array.isArray(orders) ? orders.filter((o: any) => o.status === 'pending').length : 0,
+    completed: Array.isArray(orders) ? orders.filter((o: any) => o.status === 'completed').length : 0,
+    totalRevenue: Array.isArray(orders) ? orders.reduce((sum: number, o: any) => sum + (o.totalAmount || 0), 0) : 0,
   };
 
   return (
@@ -170,7 +172,7 @@ export default function OrdersTab() {
                   <div className="space-y-1 text-sm text-muted-foreground">
                     <div className="flex items-center gap-2">
                       <User className="w-4 h-4" />
-                      {order.email}
+                      {order.customerEmail || order.customerName || 'N/A'}
                     </div>
                     <div className="flex items-center gap-2">
                       <Calendar className="w-4 h-4" />
@@ -190,7 +192,7 @@ export default function OrdersTab() {
                     <p className="text-sm text-muted-foreground mb-1">
                       {language === 'en' ? 'Total' : 'Total'}
                     </p>
-                    <p className="text-2xl font-bold text-primary">{formatPrice(order.total)}</p>
+                    <p className="text-2xl font-bold text-primary">{formatPrice(order.totalAmount || 0)}</p>
                   </div>
                   <Button
                     variant="outline"
@@ -237,7 +239,7 @@ export default function OrdersTab() {
                   {language === 'en' ? 'Customer Information' : 'Informações do Cliente'}
                 </h3>
                 <div className="space-y-2 text-sm">
-                  <p><span className="font-medium">Email:</span> {selectedOrder.email}</p>
+                  <p><span className="font-medium">Email:</span> {selectedOrder.customerEmail || 'N/A'}</p>
                   {selectedOrder.shippingAddress && (
                     <p><span className="font-medium">{language === 'en' ? 'Address' : 'Endereço'}:</span> {selectedOrder.shippingAddress}</p>
                   )}
@@ -277,7 +279,7 @@ export default function OrdersTab() {
                         onClick={() => {
                           updateStatusMutation.mutate({
                             orderId: selectedOrder.id,
-                            status: editingStatus,
+                            status: editingStatus as 'pending' | 'processing' | 'shipped' | 'delivered' | 'completed' | 'cancelled',
                           });
                         }}
                         disabled={updateStatusMutation.isPending}
@@ -291,7 +293,7 @@ export default function OrdersTab() {
                     )}
                   </div>
                   <p><span className="font-medium">{language === 'en' ? 'Date' : 'Data'}:</span> {new Date(selectedOrder.createdAt).toLocaleString()}</p>
-                  <p><span className="font-medium">Total:</span> <span className="text-lg font-bold text-primary">{formatPrice(selectedOrder.total)}</span></p>
+                  <p><span className="font-medium">Total:</span> <span className="text-lg font-bold text-primary">{formatPrice(selectedOrder.totalAmount || 0)}</span></p>
                 </div>
               </div>
 

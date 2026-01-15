@@ -15,13 +15,16 @@ export default function Accessories() {
   const [searchQuery, setSearchQuery] = useState('');
   
   // Fetch all products and filter by category
-  const { data: allProducts = [], isLoading: loading, error: queryError } = trpc.products.list.useQuery(undefined, {
+  const productsQuery = trpc.products.list.useQuery(undefined, {
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false,
   });
-  
+  const allProducts: any[] = Array.isArray(productsQuery.data) ? productsQuery.data : [];
+  const loading = productsQuery.isLoading;
+  const queryError = productsQuery.error;
+
   // Filter products by category "bags-accessories"
-  const products = allProducts.filter(p => p.category === 'bags-accessories' && p.active === 1);
+  const products: any[] = allProducts.filter((p: any) => p.category === 'bags-accessories' && p.active === 1);
 
   // Format price: database stores price in fils (1 AED = 100 fils)
   const formatPrice = (priceInFils: number) => {
@@ -44,7 +47,7 @@ export default function Accessories() {
   };
 
   // Filter products based on search query
-  const filteredProducts = products?.filter((product) => {
+  const filteredProducts = products?.filter((product: any) => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
     const name = getProductName(product).toLowerCase();
@@ -144,7 +147,7 @@ export default function Accessories() {
 
           {filteredProducts && filteredProducts.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-              {filteredProducts.map((product) => {
+              {filteredProducts.map((product: any) => {
                 const productName = getProductName(product);
                 const productDescription = getProductDescription(product);
                 const priceInAED = product.price / 100; // Convert from fils to AED

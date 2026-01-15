@@ -22,14 +22,17 @@ export default function CollectionPage() {
     : '';
   
   // Fetch products by collection from PostgreSQL via tRPC
-  const { data: products = [], isLoading: loading, error: queryError } = trpc.products.byCollection.useQuery(
+  const productsQuery = trpc.products.byCollection.useQuery(
     { collection: collectionName },
-    { 
+    {
       enabled: !!slug && !!collectionName,
       staleTime: 5 * 60 * 1000, // 5 minutes - prevent constant refetching
       refetchOnWindowFocus: false, // Prevent refetch on window focus
     }
   );
+  const products: any[] = Array.isArray(productsQuery.data) ? productsQuery.data : [];
+  const loading = productsQuery.isLoading;
+  const queryError = productsQuery.error;
 
   // Format price: database stores price in fils (1 AED = 100 fils)
   const formatPrice = (priceInFils: number) => {
@@ -38,20 +41,20 @@ export default function CollectionPage() {
   };
 
   // Get product name based on language
-  const getProductName = (product: typeof products[0]) => {
+  const getProductName = (product: any) => {
     if (language === 'pt' && product.namePT) return product.namePT;
     if (language === 'en' && product.nameEN) return product.nameEN;
     return product.name;
   };
 
   // Get product description based on language
-  const getProductDescription = (product: typeof products[0]) => {
+  const getProductDescription = (product: any) => {
     if (language === 'pt' && product.descriptionPT) return product.descriptionPT;
     if (language === 'en' && product.descriptionEN) return product.descriptionEN;
     return '';
   };
 
-  const handleAddToCart = (product: typeof products[0]) => {
+  const handleAddToCart = (product: any) => {
     const productName = getProductName(product);
     const priceInAED = product.price / 100;
     
@@ -126,7 +129,7 @@ export default function CollectionPage() {
       {/* Products Grid */}
       <div className="container py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {products.map((product) => {
+          {products.map((product: any) => {
             const productName = getProductName(product);
             
             return (

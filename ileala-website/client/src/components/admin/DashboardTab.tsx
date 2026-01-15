@@ -1,22 +1,24 @@
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Card } from '@/components/ui/card';
 import { trpc } from '@/lib/trpc';
-import { Loader2, Users, Package, ShoppingCart, Mail, TrendingUp, DollarSign } from 'lucide-react';
+import { Loader2, Package, ShoppingCart, Mail, TrendingUp, DollarSign } from 'lucide-react';
 
 export default function DashboardTab() {
   const { language } = useLanguage();
 
-  const { data: products, isLoading: productsLoading } = trpc.products.list.useQuery();
-  const { data: orders, isLoading: ordersLoading } = trpc.orders.list.useQuery();
+  const productsQuery = trpc.products.list.useQuery();
+  const ordersQuery = trpc.orders.list.useQuery();
   const { data: newsletterStats, isLoading: newsletterLoading } = trpc.newsletter.stats.useQuery();
 
-  const isLoading = productsLoading || ordersLoading || newsletterLoading;
+  const products = productsQuery.data as any[] | undefined;
+  const orders = ordersQuery.data as any[] | undefined;
+  const isLoading = productsQuery.isLoading || ordersQuery.isLoading || newsletterLoading;
 
   // Calculate stats
-  const totalProducts = products?.length || 0;
-  const totalOrders = orders?.length || 0;
-  const totalRevenue = orders?.reduce((sum, order) => sum + order.total, 0) || 0;
-  const pendingOrders = orders?.filter(order => order.status === 'pending').length || 0;
+  const totalProducts = Array.isArray(products) ? products.length : 0;
+  const totalOrders = Array.isArray(orders) ? orders.length : 0;
+  const totalRevenue = Array.isArray(orders) ? orders.reduce((sum: number, order: any) => sum + (order.totalAmount || 0), 0) : 0;
+  const pendingOrders = Array.isArray(orders) ? orders.filter((order: any) => order.status === 'pending').length : 0;
 
   if (isLoading) {
     return (
@@ -113,10 +115,10 @@ export default function DashboardTab() {
               });
               
               const salesByDay = last7Days.map(day => {
-                const dayOrders = orders.filter(o => 
+                const dayOrders = orders.filter((o: any) =>
                   new Date(o.createdAt).toISOString().split('T')[0] === day
                 );
-                const total = dayOrders.reduce((sum, o) => sum + o.total, 0);
+                const total = dayOrders.reduce((sum: number, o: any) => sum + (o.totalAmount || 0), 0);
                 return {
                   date: new Date(day).toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric' }),
                   total: total / 100,
@@ -169,11 +171,11 @@ export default function DashboardTab() {
             // Calculate product sales from orders
             const productSales: Record<number, { name: string, count: number, revenue: number }> = {};
             
-            orders.forEach(order => {
-              if (order.items) {
+            orders.forEach((order: any) => {
+              if (order.items && Array.isArray(order.items)) {
                 order.items.forEach((item: any) => {
                   if (!productSales[item.productId]) {
-                    const product = products?.find(p => p.id === item.productId);
+                    const product = Array.isArray(products) ? products.find((p: any) => p.id === item.productId) : null;
                     productSales[item.productId] = {
                       name: product?.nameEN || 'Unknown',
                       count: 0,
@@ -242,7 +244,7 @@ export default function DashboardTab() {
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold">{(order.total / 100).toFixed(2)} AED</p>
+                    <p className="font-semibold">{((order.totalAmount || 0) / 100).toFixed(2)} AED</p>
                     <span className={`text-xs px-2 py-1 rounded ${
                       order.status === 'completed' ? 'bg-green-100 text-green-700' :
                       order.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
@@ -266,12 +268,12 @@ export default function DashboardTab() {
           <h3 className="text-lg font-semibold mb-4">
             {language === 'en' ? 'Low Stock Alert' : 'Alerta de Estoque Baixo'}
           </h3>
-          {products && products.length > 0 ? (
+          {Array.isArray(products) && products.length > 0 ? (
             <div className="space-y-3">
               {products
-                .filter(p => p.stock < 10)
+                .filter((p: any) => p.stock < 10)
                 .slice(0, 5)
-                .map((product) => (
+                .map((product: any) => (
                   <div key={product.id} className="flex justify-between items-center pb-3 border-b last:border-0">
                     <div className="flex-1 min-w-0">
                       <p className="font-medium truncate">{product.nameEN}</p>
@@ -288,7 +290,7 @@ export default function DashboardTab() {
                     </div>
                   </div>
                 ))}
-              {products.filter(p => p.stock < 10).length === 0 && (
+              {products.filter((p: any) => p.stock < 10).length === 0 && (
                 <p className="text-center text-muted-foreground py-8">
                   {language === 'en' ? 'All products in stock!' : 'Todos os produtos em estoque!'}
                 </p>

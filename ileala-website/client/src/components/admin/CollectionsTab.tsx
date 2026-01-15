@@ -33,7 +33,9 @@ export default function CollectionsTab() {
   });
 
   const utils = trpc.useUtils();
-  const { data: collections, isLoading } = trpc.collections.list.useQuery();
+  const collectionsQuery = trpc.collections.list.useQuery();
+  const collections = collectionsQuery.data as any[] | undefined;
+  const isLoading = collectionsQuery.isLoading;
   
   const createMutation = trpc.collections.create.useMutation({
     onSuccess: () => {
@@ -194,8 +196,8 @@ export default function CollectionsTab() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {collections && collections.length > 0 ? (
-          collections.map((category) => (
+        {Array.isArray(collections) && collections.length > 0 ? (
+          collections.map((category: any) => (
             <Card key={category.id} className="p-6">
               <div className="flex items-start gap-4">
                 {category.imageUrl ? (

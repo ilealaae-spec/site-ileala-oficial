@@ -13,20 +13,23 @@ export default function CategoryPage() {
   const { addItem } = useCart();
 
   // Load products by category slug
-  const { data: products = [], isLoading } = trpc.products.byCategory.useQuery(
+  const productsQuery = trpc.products.byCategory.useQuery(
     { category: slug || '' },
-    { 
+    {
       enabled: !!slug,
       staleTime: 5 * 60 * 1000, // 5 minutes
       refetchOnWindowFocus: false,
     }
   );
+  const products: any[] = Array.isArray(productsQuery.data) ? productsQuery.data : [];
+  const isLoading = productsQuery.isLoading;
 
   // Load all categories to find the current one
-  const { data: categories = [] } = trpc.categories.list.useQuery(undefined, {
+  const categoriesQuery = trpc.categories.list.useQuery(undefined, {
     staleTime: 10 * 60 * 1000, // 10 minutes
     refetchOnWindowFocus: false,
   });
+  const categories: any[] = Array.isArray(categoriesQuery.data) ? categoriesQuery.data : [];
   const currentCategory = categories.find((cat: any) => cat.slug === slug);
 
   if (isLoading) {

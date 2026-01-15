@@ -57,14 +57,15 @@ export default function ProductsTab() {
   });
 
   const utils = trpc.useUtils();
-  const { data: products, isLoading } = trpc.products.list.useQuery();
-  const { data: collections } = trpc.collections.list.useQuery();
-  const { data: categories } = trpc.categories.list.useQuery();
+  const { data: products, isLoading } = trpc.admin.products.list.useQuery();
+  const { data: collections } = trpc.collections.list.useQuery() as { data: any[] | undefined };
+  const { data: categories } = trpc.categories.list.useQuery() as { data: any[] | undefined };
   
-  const createMutation = trpc.products.create.useMutation({
+  const createMutation = trpc.admin.products.create.useMutation({
     onSuccess: () => {
       toast.success(language === 'en' ? 'Product created!' : 'Produto criado!');
       utils.products.list.invalidate();
+      utils.admin.products.list.invalidate();
       resetForm();
       setIsDialogOpen(false);
     },
@@ -73,10 +74,11 @@ export default function ProductsTab() {
     },
   });
 
-  const updateMutation = trpc.products.update.useMutation({
+  const updateMutation = trpc.admin.products.update.useMutation({
     onSuccess: () => {
       toast.success(language === 'en' ? 'Product updated!' : 'Produto atualizado!');
       utils.products.list.invalidate();
+      utils.admin.products.list.invalidate();
       resetForm();
       setIsDialogOpen(false);
     },
@@ -85,10 +87,11 @@ export default function ProductsTab() {
     },
   });
 
-  const deleteMutation = trpc.products.delete.useMutation({
+  const deleteMutation = trpc.admin.products.delete.useMutation({
     onSuccess: () => {
       toast.success(language === 'en' ? 'Product deleted!' : 'Produto excluído!');
       utils.products.list.invalidate();
+      utils.admin.products.list.invalidate();
     },
     onError: (error) => {
       toast.error(error.message);

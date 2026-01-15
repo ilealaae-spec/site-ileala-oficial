@@ -15,13 +15,16 @@ export default function HomeAccents() {
   const [searchQuery, setSearchQuery] = useState('');
   
   // Fetch all products and filter by collections
-  const { data: allProducts = [], isLoading: loading, error: queryError } = trpc.products.list.useQuery(undefined, {
+  const productsQuery = trpc.products.list.useQuery(undefined, {
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false,
   });
-  
+  const allProducts: any[] = Array.isArray(productsQuery.data) ? productsQuery.data : [];
+  const loading = productsQuery.isLoading;
+  const queryError = productsQuery.error;
+
   // Filter products by collections: Cushions, Hand Towels
-  const products = allProducts.filter(p => {
+  const products: any[] = allProducts.filter((p: any) => {
     const collection = p.collection?.toLowerCase() || '';
     return (
       (collection.includes('cushion') ||
@@ -51,7 +54,7 @@ export default function HomeAccents() {
   };
 
   // Filter products based on search query
-  const filteredProducts = products?.filter((product) => {
+  const filteredProducts = products?.filter((product: any) => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
     const name = getProductName(product).toLowerCase();
@@ -145,7 +148,7 @@ export default function HomeAccents() {
 
           {filteredProducts && filteredProducts.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-              {filteredProducts.map((product) => {
+              {filteredProducts.map((product: any) => {
                 const productName = getProductName(product);
                 const productDescription = getProductDescription(product);
                 const priceInAED = product.price / 100; // Convert from fils to AED

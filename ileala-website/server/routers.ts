@@ -1339,19 +1339,38 @@ export const appRouter = router({
       }),
       create: protectedProcedure
         .input(z.object({
-          name: z.string().optional(), // Accept name if provided
-          slug: z.string().optional(), // Accept slug if provided
+          name: z.string().optional(),
+          slug: z.string().optional(),
           nameEN: z.string(),
           namePT: z.string(),
           descriptionEN: z.string().optional(),
           descriptionPT: z.string().optional(),
+          descriptionEN_full: z.string().optional(),
+          descriptionPT_full: z.string().optional(),
           price: z.number(),
+          salePrice: z.number().optional(),
           imageUrl: z.string().optional(),
+          mainImage: z.string().optional(),
+          mainImageAlt: z.string().optional(),
+          images: z.string().optional(),
           collection: z.string().optional(),
           category: z.string().optional(),
           stock: z.number().default(0),
-          featured: z.number().default(0),
-          active: z.number().default(1), // Accept active status
+          material: z.string().optional(),
+          dimensions: z.string().optional(),
+          colors: z.string().optional(),
+          careInstructionsEN: z.string().optional(),
+          careInstructionsPT: z.string().optional(),
+          weight: z.number().optional(),
+          sku: z.string().optional(),
+          inStock: z.boolean().optional(),
+          stockQuantity: z.number().optional(),
+          featured: z.union([z.number(), z.boolean()]).default(0),
+          isNew: z.boolean().optional(),
+          onSale: z.boolean().optional(),
+          seoTitle: z.string().optional(),
+          seoDescription: z.string().optional(),
+          active: z.number().default(1),
         }))
         .mutation(async ({ input, ctx }) => {
           try {
@@ -1395,9 +1414,13 @@ export const appRouter = router({
             ...input,
             name,
             slug,
-            active: input.active ?? 1, // Default to 1 if not provided
-            // Explicitly ensure imageUrl is included
-            imageUrl: input.imageUrl || null, // Use null instead of undefined
+            active: input.active ?? 1,
+            imageUrl: input.imageUrl || null,
+            // Convert boolean fields to integers for database
+            featured: typeof input.featured === 'boolean' ? (input.featured ? 1 : 0) : (input.featured ?? 0),
+            inStock: input.inStock !== undefined ? (input.inStock ? 1 : 0) : 1,
+            isNew: input.isNew !== undefined ? (input.isNew ? 1 : 0) : 0,
+            onSale: input.onSale !== undefined ? (input.onSale ? 1 : 0) : 0,
           };
           
           console.log('[Admin.Products.Create] Product data to save:', {
@@ -1460,22 +1483,52 @@ export const appRouter = router({
       update: protectedProcedure
         .input(z.object({
           id: z.number(),
-          nameEN: z.string().optional(),
-          namePT: z.string().optional(),
-          descriptionEN: z.string().optional(),
-          descriptionPT: z.string().optional(),
-          price: z.number().optional(),
-          imageUrl: z.string().optional(),
-          collection: z.string().optional(),
-          category: z.string().optional(),
-          stock: z.number().optional(),
-          featured: z.number().optional(),
-          active: z.number().optional(),
+          data: z.object({
+            name: z.string().optional(),
+            slug: z.string().optional(),
+            nameEN: z.string().optional(),
+            namePT: z.string().optional(),
+            descriptionEN: z.string().optional(),
+            descriptionPT: z.string().optional(),
+            descriptionEN_full: z.string().optional(),
+            descriptionPT_full: z.string().optional(),
+            price: z.number().optional(),
+            salePrice: z.number().optional(),
+            imageUrl: z.string().nullable().optional(),
+            mainImage: z.string().optional(),
+            mainImageAlt: z.string().optional(),
+            images: z.string().optional(),
+            collection: z.string().optional(),
+            category: z.string().optional(),
+            stock: z.number().optional(),
+            material: z.string().optional(),
+            dimensions: z.string().optional(),
+            colors: z.string().optional(),
+            careInstructionsEN: z.string().optional(),
+            careInstructionsPT: z.string().optional(),
+            weight: z.number().optional(),
+            sku: z.string().optional(),
+            inStock: z.union([z.boolean(), z.number()]).optional(),
+            stockQuantity: z.number().optional(),
+            featured: z.union([z.number(), z.boolean()]).optional(),
+            isNew: z.union([z.boolean(), z.number()]).optional(),
+            onSale: z.union([z.boolean(), z.number()]).optional(),
+            seoTitle: z.string().optional(),
+            seoDescription: z.string().optional(),
+            active: z.number().optional(),
+          }),
         }))
         .mutation(async ({ input, ctx }) => {
           if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
-          const { id, ...updates } = input;
-          
+          const { id, data } = input;
+
+          // Convert boolean fields to integers for database
+          const updates: Record<string, any> = { ...data };
+          if (typeof data.featured === 'boolean') updates.featured = data.featured ? 1 : 0;
+          if (typeof data.inStock === 'boolean') updates.inStock = data.inStock ? 1 : 0;
+          if (typeof data.isNew === 'boolean') updates.isNew = data.isNew ? 1 : 0;
+          if (typeof data.onSale === 'boolean') updates.onSale = data.onSale ? 1 : 0;
+
           console.log('[Admin.Products.Update] Starting update:', {
             id,
             updates: Object.keys(updates),
@@ -1484,7 +1537,7 @@ export const appRouter = router({
             imageUrlLength: updates.imageUrl?.length,
             user: ctx.user?.email,
           });
-          
+
           // Get product before update to check collection/category for cache invalidation
           const productBeforeUpdate = await db.getProductById(id);
           console.log('[Admin.Products.Update] Product before update:', productBeforeUpdate ? {
@@ -1493,11 +1546,11 @@ export const appRouter = router({
             imageUrl: productBeforeUpdate.imageUrl,
             active: productBeforeUpdate.active,
           } : 'PRODUCT NOT FOUND!');
-          
+
           if (!productBeforeUpdate) {
             throw new Error(`Product with id ${id} not found`);
           }
-          
+
           await db.updateProduct(id, updates);
           
           // Verify the update

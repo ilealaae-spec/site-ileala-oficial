@@ -15,13 +15,16 @@ export default function NapkinRings() {
   const [searchQuery, setSearchQuery] = useState('');
   
   // Fetch all products and filter by collection
-  const { data: allProducts = [], isLoading: loading, error: queryError } = trpc.products.list.useQuery(undefined, {
+  const productsQuery = trpc.products.list.useQuery(undefined, {
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false,
   });
-  
+  const allProducts: any[] = Array.isArray(productsQuery.data) ? productsQuery.data : [];
+  const loading = productsQuery.isLoading;
+  const queryError = productsQuery.error;
+
   // Filter products by collection "Napkin Rings" - more flexible matching
-  const products = allProducts.filter(p => {
+  const products: any[] = allProducts.filter((p: any) => {
     if (p.active !== 1) return false;
     const collection = (p.collection || '').toLowerCase();
     return collection.includes('napkin') || collection.includes('napkin ring');
@@ -34,21 +37,21 @@ export default function NapkinRings() {
   };
 
   // Get product name based on language
-  const getProductName = (product: typeof products[0]) => {
+  const getProductName = (product: any) => {
     if (language === 'pt' && product.namePT) return product.namePT;
     if (language === 'en' && product.nameEN) return product.nameEN;
     return product.name;
   };
 
   // Get product description based on language
-  const getProductDescription = (product: typeof products[0]) => {
+  const getProductDescription = (product: any) => {
     if (language === 'pt' && product.descriptionPT) return product.descriptionPT;
     if (language === 'en' && product.descriptionEN) return product.descriptionEN;
     return '';
   };
 
   // Filter products based on search query
-  const filteredProducts = products?.filter((product) => {
+  const filteredProducts = products?.filter((product: any) => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
     const name = getProductName(product).toLowerCase();
@@ -142,7 +145,7 @@ export default function NapkinRings() {
 
           {filteredProducts && filteredProducts.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-              {filteredProducts.map((product) => {
+              {filteredProducts.map((product: any) => {
                 const productName = getProductName(product);
                 const productDescription = getProductDescription(product);
                 const priceInAED = product.price / 100; // Convert from fils to AED
