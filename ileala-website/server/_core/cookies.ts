@@ -54,22 +54,27 @@ function isSecureRequest(req: any): boolean {
 
 export function getSessionCookieOptions(
   req: any
-): Pick<CookieOptions, "httpOnly" | "path" | "sameSite" | "secure"> {
+): Pick<CookieOptions, "httpOnly" | "path" | "sameSite" | "secure" | "domain"> {
   const isSecure = isSecureRequest(req);
-  
+
   // Force secure in production for Railway/Vercel deployments
   const forceSecure = process.env.NODE_ENV === "production";
-  
+
   // Cross-domain cookies require sameSite: "none" and secure: true
-  // This is needed because admin.ileala.ae calls api-ileala.up.railway.app
+  // Cookie domain set to .ileala.ae to share between admin.ileala.ae and api.ileala.ae
   const isCrossDomain = process.env.NODE_ENV === "production";
 
-  const options = {
+  const options: Pick<CookieOptions, "httpOnly" | "path" | "sameSite" | "secure" | "domain"> = {
     httpOnly: true,
     path: "/",
     sameSite: isCrossDomain ? "none" as const : "lax" as const,
     secure: isCrossDomain || forceSecure || isSecure,
   };
+
+  // Set domain to .ileala.ae in production for cross-subdomain cookie sharing
+  if (isCrossDomain) {
+    options.domain = ".ileala.ae";
+  }
 
   return options;
 }

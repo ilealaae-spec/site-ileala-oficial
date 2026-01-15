@@ -1,0 +1,155 @@
+# 🔍 Verificação Profunda: Por que produtos não estão sendo salvos
+
+## 🎯 Problema Confirmado:
+- ✅ Upload para S3 funciona
+- ✅ Frontend recebe URL
+- ❌ Tabela `products` está vazia (`COUNT(*) = 0`)
+- ❌ Não aparecem logs no Railway ao criar/atualizar produtos
+
+---
+
+## 📋 VERIFICAÇÃO 1: Requisição está chegando ao servidor?
+
+### No Console do navegador (F12 → Console):
+1. Limpe o console (Ctrl+L)
+2. No painel admin, **crie um produto NOVO** (não edite, crie novo):
+   - Clique em "+ Add Product"
+   - Preencha os campos básicos
+   - **NÃO faça upload de imagem ainda** (só teste criar produto)
+   - Clique em "Create"
+3. Observe o console e procure por:
+   - `[Admin] Submitting product:`
+   - `[Admin] Product data to save:`
+   - Erros em vermelho
+
+**Me envie:** O que aparece no console?
+
+---
+
+## 📋 VERIFICAÇÃO 2: Requisição está sendo enviada?
+
+### Na aba Network (F12 → Network):
+1. Limpe as requisições
+2. Crie um produto novo (sem imagem)
+3. Procure por requisição `admin.products.create`
+4. Se aparecer, clique nela e veja:
+   - **Status:** Qual é o status? (200, 400, 500, etc.)
+   - **Payload:** O que está sendo enviado?
+   - **Response:** O que o servidor retornou?
+
+**Me envie:**
+- Apareceu a requisição `admin.products.create`?
+- Qual foi o Status?
+- O que aparece na Response?
+
+---
+
+## 📋 VERIFICAÇÃO 3: Logs do Railway ao criar produto
+
+### No Railway:
+1. Railway → `ileala-admin` → Deploy Logs
+2. Limpe o filtro (deixe vazio)
+3. Role até o final (logs mais recentes)
+4. **Crie um produto novo** no painel admin
+5. Observe os logs em tempo real
+6. Procure por estas mensagens (em ordem):
+   - `[Admin.Products.Create] Creating product:`
+   - `[Admin.Products.Create] Product data to save:`
+   - `[DB] Creating product:`
+   - `[DB] Product created successfully with ID:`
+   - `[Admin.Products.Create] Product created with ID:`
+   - `[Admin.Products.Create] Verification - Product in DB:`
+
+**Me envie:**
+- Apareceu alguma dessas mensagens?
+- Se apareceu, qual foi a última mensagem?
+- Se não apareceu nada, me diga qual foi a última mensagem que apareceu nos logs (antes de criar o produto)
+
+---
+
+## 📋 VERIFICAÇÃO 4: Verificar conexão com banco
+
+### No Railway:
+1. Railway → `ileala-admin` → Deploy Logs
+2. Filtre por "database" ou "DB" ou "migration"
+3. Procure por mensagens como:
+   - `[Migration] All database migrations completed successfully!`
+   - `[Database] Connected successfully`
+   - Erros relacionados a "database" ou "connection"
+
+**Me envie:** O que aparece quando filtra por "database"?
+
+---
+
+## 📋 VERIFICAÇÃO 5: Verificar se há erros de autenticação
+
+### No Railway:
+1. Railway → `ileala-admin` → Deploy Logs
+2. Filtre por "Auth" ou "Unauthorized" ou "admin"
+3. Procure por mensagens de erro de autenticação
+
+**Me envie:** Aparecem erros de autenticação?
+
+---
+
+## 📋 VERIFICAÇÃO 6: Testar criação direta no banco
+
+### No Neon SQL Editor:
+Execute esta query para criar um produto de teste diretamente no banco:
+
+```sql
+INSERT INTO products (
+  "slug",
+  "name",
+  "nameEN",
+  "namePT",
+  "price",
+  "active",
+  "stock",
+  "createdAt",
+  "updatedAt"
+) VALUES (
+  'produto-teste-' || EXTRACT(EPOCH FROM NOW())::bigint,
+  'Produto Teste SQL',
+  'Test Product SQL',
+  'Produto Teste SQL',
+  10000, -- 100.00 AED (em fils)
+  1,     -- ativo
+  10,    -- estoque
+  NOW(),
+  NOW()
+) RETURNING id, name, "nameEN", "createdAt";
+```
+
+**Me envie:**
+- A query funcionou?
+- Se funcionou, qual foi o ID retornado?
+- Depois execute `SELECT COUNT(*) FROM products;` e me diga o resultado
+
+---
+
+## 📋 VERIFICAÇÃO 7: Verificar variável DATABASE_URL
+
+### No Railway:
+1. Railway → `ileala-admin` → Variables
+2. Procure por `DATABASE_URL`
+3. Verifique se o valor está correto:
+   - Deve começar com `postgresql://`
+   - Deve conter `ep-square-sound-adqymq6y-pooler` (endpoint correto)
+   - Deve conter `neondb` (nome do banco)
+
+**Me envie:** A `DATABASE_URL` está correta? (pode mascarar a senha)
+
+---
+
+## 🎯 Resumo do que preciso:
+
+1. ✅ Console do navegador ao criar produto
+2. ✅ Aba Network - requisição `admin.products.create`
+3. ✅ Logs do Railway ao criar produto
+4. ✅ Logs do Railway filtrados por "database"
+5. ✅ Resultado da query SQL de teste (criar produto direto no banco)
+6. ✅ Verificação da `DATABASE_URL`
+
+Com essas informações, identifico exatamente onde está o problema!
+

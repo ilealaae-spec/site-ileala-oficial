@@ -54,9 +54,9 @@ const getApiUrl = () => {
   if (typeof window !== 'undefined') {
     const isAdminDomain = window.location.hostname === 'admin.ileala.ae' ||
                          window.location.hostname.includes('admin');
-    // Admin domain should use the backend API directly
+    // Admin domain should use the API subdomain for cookie sharing
     if (isAdminDomain) {
-      return 'https://api-ileala.up.railway.app/api/trpc';
+      return 'https://api.ileala.ae/api/trpc';
     }
   }
   // Default to relative URL (works for CLIENT service)

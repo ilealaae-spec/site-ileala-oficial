@@ -66,6 +66,7 @@ export function setupCORS(app: Express) {
       'https://www.ileala.ae',
       'https://ileala.ae',
       'https://admin.ileala.ae',
+      'https://api.ileala.ae',
       'https://ileala-admin.up.railway.app',
       'https://api-ileala.up.railway.app',
       ...(ENV.isProduction ? [] : ['http://localhost:5173', 'http://localhost:3000']),

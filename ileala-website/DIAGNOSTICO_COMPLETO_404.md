@@ -191,3 +191,5 @@ O caminho `/app/ileala-website/dist/public` está **correto** para o Dockerfile!
 **Última atualização:** 23 de Novembro de 2025
 
 
+
+

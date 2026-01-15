@@ -141,3 +141,5 @@ O ErrorFallback agora:
 **Commit:** `90f7c3727` - fix: tornar ErrorBoundary independente do LanguageProvider
 
 
+
+

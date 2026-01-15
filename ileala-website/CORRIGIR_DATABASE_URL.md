@@ -108,3 +108,5 @@ O app **continua rodando** mesmo se a migração falhar (código linha 46 do `in
 **Última atualização:** 23 de Novembro de 2025
 
 
+
+

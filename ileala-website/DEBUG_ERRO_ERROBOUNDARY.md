@@ -138,3 +138,5 @@ Mas ainda há um erro sendo causado por algum componente.
 **Status atual:** ErrorBoundary funcionando ✅ | Erro sendo capturado ⚠️ | Preciso identificar erro específico 🔍
 
 
+
+

@@ -1,0 +1,35 @@
+-- ============================================================================
+-- COLE ESTE SQL COMPLETO NO RAILWAY OU DBEAVER
+-- ============================================================================
+
+-- Gerar códigos de backup do 2FA
+DO $$
+DECLARE
+  codes_array text[];
+  code_text text;
+  i integer;
+BEGIN
+  codes_array := ARRAY[]::text[];
+  FOR i IN 1..10 LOOP
+    code_text := upper(
+      substring(md5(random()::text || clock_timestamp()::text || i::text), 1, 4) || '-' ||
+      substring(md5(random()::text || clock_timestamp()::text || i::text), 5, 4)
+    );
+    codes_array := array_append(codes_array, code_text);
+  END LOOP;
+  
+  UPDATE users 
+  SET 
+    "twoFactorBackupCodes" = array_to_json(codes_array)::text,
+    "updatedAt" = NOW()
+  WHERE email = 'ceo@ileala.ae'
+    AND "twoFactorEnabled" = 1;
+END $$;
+
+-- Ver os códigos gerados (COPIE ESTA COLUNA!)
+SELECT 
+  email,
+  "twoFactorBackupCodes" as codigos_backup
+FROM users 
+WHERE email = 'ceo@ileala.ae';
+

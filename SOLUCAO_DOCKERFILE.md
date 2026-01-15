@@ -95,3 +95,5 @@ site-ileala-oficial/          ← Raiz do repositório
 **Última atualização:** 23 de Novembro de 2025
 
 
+
+

@@ -100,3 +100,5 @@ Depois de limpar cache (ou fazer redeploy):
 **Última atualização:** 23 de Novembro de 2025
 
 
+
+

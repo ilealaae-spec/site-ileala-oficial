@@ -242,3 +242,5 @@ Mas isso é uma solução temporária. O ideal é corrigir a causa raiz.
 **AÇÃO IMEDIATA:** Verifique as variáveis de ambiente e me diga quais estão faltando!
 
 
+
+

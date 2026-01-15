@@ -131,3 +131,5 @@
 **Status atual:** ErrorBoundary funcionando ✅ | Erro sendo capturado ⚠️ | Preciso ver erro específico no Console 🔍
 
 
+
+

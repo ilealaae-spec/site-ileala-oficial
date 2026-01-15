@@ -122,3 +122,5 @@ Se após seguir esses passos o problema ainda persistir:
 Um deploy travado em "Initializing" por mais de 15 minutos geralmente indica um problema que precisa ser resolvido antes de tentar um novo deploy. Sempre verifique os logs primeiro!
 
 
+
+

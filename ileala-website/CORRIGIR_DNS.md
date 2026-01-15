@@ -190,3 +190,5 @@
 **PRÓXIMO PASSO:** Clique em "Show setup issues" no Railway para ver as instruções de DNS!
 
 
+
+
