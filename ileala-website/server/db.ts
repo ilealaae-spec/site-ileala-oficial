@@ -159,63 +159,35 @@ export async function createProduct(product: InsertProduct) {
     console.error('[DB] Database not available for createProduct');
     throw new Error("Database not available");
   }
-  
-  // Log DATABASE_URL (first 50 chars only for security)
-  const dbUrl = process.env.DATABASE_URL || 'NOT SET';
-  const dbUrlPreview = dbUrl.length > 50 ? dbUrl.substring(0, 50) + '...' : dbUrl;
-  console.log('[DB] DATABASE_URL preview:', dbUrlPreview);
-  
-  console.log('[DB] Creating product:', {
-    name: product.name,
-    nameEN: product.nameEN,
-    slug: product.slug,
-    imageUrl: product.imageUrl,
-    active: product.active,
-    price: product.price,
-    stock: product.stock,
-    collection: product.collection,
-    category: product.category,
-  });
-  
+
+  // Clean up the product data - only include fields that exist in the schema
+  // and exclude auto-generated fields like id, createdAt, updatedAt
+  const cleanProduct: Record<string, any> = {};
+  const allowedFields = [
+    'slug', 'name', 'nameEN', 'namePT', 'descriptionEN', 'descriptionPT',
+    'price', 'imageUrl', 'mainImage', 'mainImageAlt', 'images', 'salePrice',
+    'descriptionEN_full', 'descriptionPT_full', 'material', 'dimensions',
+    'colors', 'careInstructionsEN', 'careInstructionsPT', 'weight', 'sku',
+    'inStock', 'stockQuantity', 'isNew', 'onSale', 'seoTitle', 'seoDescription',
+    'collection', 'category', 'stock', 'featured', 'active'
+  ];
+
+  for (const key of allowedFields) {
+    if (key in product && (product as any)[key] !== undefined) {
+      cleanProduct[key] = (product as any)[key];
+    }
+  }
+
   try {
-    console.log('[DB] Executing INSERT query...');
-    const result = await db.insert(products).values(product).returning({ id: products.id });
-    
+    const result = await db.insert(products).values(cleanProduct as InsertProduct).returning({ id: products.id });
+
     if (!result || result.length === 0) {
-      console.error('[DB] CRITICAL: INSERT returned no result!');
       throw new Error('Product insertion returned no ID');
     }
-    
-    const productId = result[0].id;
-    console.log('[DB] Product created successfully with ID:', productId);
-    
-    // Verify the product was actually saved
-    const verification = await db.select().from(products).where(eq(products.id, productId)).limit(1);
-    if (verification.length === 0) {
-      console.error('[DB] CRITICAL: Product was not found after creation!', {
-        productId,
-        slug: product.slug,
-      });
-      throw new Error('Product was created but could not be verified in database');
-    }
-    
-    console.log('[DB] Product verification successful:', {
-      id: verification[0].id,
-      name: verification[0].name,
-      slug: verification[0].slug,
-    });
-    
-    return productId;
+
+    return result[0].id;
   } catch (error) {
-    console.error('[DB] Error creating product:', error);
-    console.error('[DB] Error details:', {
-      name: error instanceof Error ? error.name : 'Unknown',
-      message: error instanceof Error ? error.message : 'Unknown error',
-      code: (error as any)?.code,
-      constraint: (error as any)?.constraint,
-      detail: (error as any)?.detail,
-      stack: error instanceof Error ? error.stack : undefined,
-    });
+    console.error('[DB] Error creating product:', error instanceof Error ? error.message : error);
     throw error;
   }
 }
