@@ -70,9 +70,10 @@ import {
 } from "./_core/validation";
 import { getCached, setCached, invalidateCache, CacheKeys } from "./_core/cache";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2025-10-29.clover',
-});
+// Initialize Stripe only if API key is provided
+const stripe = process.env.STRIPE_SECRET_KEY
+  ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2025-10-29.clover' })
+  : null;
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -1647,6 +1648,10 @@ export const appRouter = router({
         
         const baseUrl = process.env.VITE_FRONTEND_FORGE_API_URL || 'http://localhost:3000';
         
+        if (!stripe) {
+          throw new Error('Stripe is not configured. Please set STRIPE_SECRET_KEY environment variable.');
+        }
+
         const session = await stripe.checkout.sessions.create({
           line_items: lineItems,
           mode: 'payment',
@@ -1656,7 +1661,7 @@ export const appRouter = router({
             orderId: input.orderId.toString(),
           },
         });
-        
+
         return { sessionId: session.id, url: session.url || '' };
       }),
     verifyPayment: protectedProcedure
@@ -1664,6 +1669,10 @@ export const appRouter = router({
         sessionId: z.string(),
       }))
       .query(async ({ input }) => {
+        if (!stripe) {
+          throw new Error('Stripe is not configured. Please set STRIPE_SECRET_KEY environment variable.');
+        }
+
         const session = await stripe.checkout.sessions.retrieve(input.sessionId);
         
         if (session.payment_status === 'paid' && session.metadata?.orderId) {
