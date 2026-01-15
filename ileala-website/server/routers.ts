@@ -5,7 +5,50 @@ import { publicProcedure, router, protectedProcedure } from "./_core/trpc";
 import { z } from "zod";
 import * as db from "./db";
 import Stripe from 'stripe';
-import { storagePut } from './storage';
+// Use Cloudinary if configured, otherwise fall back to AWS S3
+import { storagePut as cloudinaryPut } from './storage-cloudinary';
+import { storagePut as s3Put } from './storage';
+
+// Smart storage selection based on available credentials
+async function storagePut(
+  relKey: string,
+  data: Buffer | Uint8Array | string,
+  contentType = 'application/octet-stream'
+): Promise<{ key: string; url: string }> {
+  // Check if Cloudinary is configured
+  const hasCloudinary = !!(
+    process.env.CLOUDINARY_CLOUD_NAME &&
+    process.env.CLOUDINARY_API_KEY &&
+    process.env.CLOUDINARY_API_SECRET
+  );
+
+  // Check if AWS is configured
+  const hasAWS = !!(
+    process.env.AWS_ACCESS_KEY_ID &&
+    process.env.AWS_SECRET_ACCESS_KEY &&
+    process.env.AWS_S3_BUCKET
+  );
+
+  console.log('[Storage] Selecting storage provider:', {
+    hasCloudinary,
+    hasAWS,
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME ? 'SET' : 'NOT SET',
+  });
+
+  // Prefer Cloudinary if configured
+  if (hasCloudinary) {
+    console.log('[Storage] Using Cloudinary');
+    return cloudinaryPut(relKey, data, contentType);
+  }
+
+  // Fall back to AWS S3
+  if (hasAWS) {
+    console.log('[Storage] Using AWS S3');
+    return s3Put(relKey, data, contentType);
+  }
+
+  throw new Error('No storage provider configured. Please set either CLOUDINARY_CLOUD_NAME/CLOUDINARY_API_KEY/CLOUDINARY_API_SECRET or AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY/AWS_S3_BUCKET in your environment variables.');
+}
 import { checkRateLimit, recordFailedAttempt, clearRateLimit, getClientIp } from './rate-limiter';
 import { createAuditLogger } from './audit-logger';
 import { recordLoginAttempt } from './login-notifications';
