@@ -206,7 +206,7 @@ export async function createProduct(product: InsertProduct) {
         ${p.colors || null},
         ${p.careInstructionsEN || null},
         ${p.careInstructionsPT || null},
-        ${p.weight || null},
+        ${p.weight != null ? Math.round(Number(p.weight)) : null},
         ${p.sku || null},
         ${convertValue('inStock', p.inStock) ?? 1},
         ${convertValue('stockQuantity', p.stockQuantity) ?? 0},
