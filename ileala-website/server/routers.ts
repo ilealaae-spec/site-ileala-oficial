@@ -170,12 +170,21 @@ export const appRouter = router({
   auth: router({
     me: publicProcedure.query(async ({ ctx }) => {
       if (!ctx.user) return null;
-      
-      // Fetch full user data including 2FA status
-      const userData = await db.getUserById(ctx.user.id);
-      
+
+      // For emergency login sessions, the id might be a string like "emergency-admin-001"
+      // In that case, use email to fetch user data instead
+      let userData = null;
+      if (typeof ctx.user.id === 'number') {
+        userData = await db.getUserById(ctx.user.id);
+      } else if (ctx.user.email) {
+        // Emergency login or session with string ID - use email
+        userData = await db.getUserByEmail(ctx.user.email);
+      }
+
       return {
         ...ctx.user,
+        // Use userData if available, otherwise fall back to ctx.user data
+        id: userData?.id ?? ctx.user.id,
         twoFactorEnabled: userData?.twoFactorEnabled === 1,
       };
     }),
