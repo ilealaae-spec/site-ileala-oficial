@@ -9,6 +9,10 @@ import Stripe from 'stripe';
 import { storagePut as cloudinaryPut } from './storage-cloudinary';
 import { storagePut as s3Put } from './storage';
 
+// Debug logging - only log in development or when DEBUG=true
+const DEBUG = process.env.NODE_ENV === 'development' || process.env.DEBUG === 'true';
+const debugLog = (...args: any[]) => DEBUG && console.log(...args);
+
 // Smart storage selection based on available credentials
 async function storagePut(
   relKey: string,
@@ -29,21 +33,15 @@ async function storagePut(
     process.env.AWS_S3_BUCKET
   );
 
-  console.log('[Storage] Selecting storage provider:', {
-    hasCloudinary,
-    hasAWS,
-    cloudName: process.env.CLOUDINARY_CLOUD_NAME ? 'SET' : 'NOT SET',
-  });
+  debugLog('[Storage] Selecting storage provider:', { hasCloudinary, hasAWS });
 
   // Prefer Cloudinary if configured
   if (hasCloudinary) {
-    console.log('[Storage] Using Cloudinary');
     return cloudinaryPut(relKey, data, contentType);
   }
 
   // Fall back to AWS S3
   if (hasAWS) {
-    console.log('[Storage] Using AWS S3');
     return s3Put(relKey, data, contentType);
   }
 
@@ -890,48 +888,13 @@ export const appRouter = router({
       const cacheKey = CacheKeys.products();
       const cached = getCached(cacheKey);
       if (cached) {
-        console.log('[Products API] Returning cached products:', cached.length, 'products');
-        // Log first product's imageUrl for debugging
-        if (cached.length > 0) {
-          console.log('[Products API] First product imageUrl:', cached[0].imageUrl);
-        }
+        debugLog('[Products API] Returning cached products:', cached.length);
         return cached;
       }
-      
+
       const products = await db.getAllProducts();
-      console.log('[Products API] Fetched from database:', products.length, 'products');
-      
-      // Log products with images for debugging
-      const productsWithImages = products.filter(p => p.imageUrl);
-      const productsWithoutImages = products.filter(p => !p.imageUrl);
-      console.log('[Products API] Products with images:', productsWithImages.length);
-      console.log('[Products API] Products without images:', productsWithoutImages.length);
-      
-      // Log first product's imageUrl for debugging
-      if (products.length > 0) {
-        console.log('[Products API] First product from DB:', {
-          id: products[0].id,
-          name: products[0].name,
-          imageUrl: products[0].imageUrl,
-          imageUrlType: typeof products[0].imageUrl,
-          imageUrlLength: products[0].imageUrl?.length,
-        });
-      }
-      
-      // Log products with "dress" in name (Pet Collection)
-      const dressProducts = products.filter(p => 
-        p.nameEN?.toLowerCase().includes('dress') || 
-        p.category === 'Pet Collection'
-      );
-      if (dressProducts.length > 0) {
-        console.log('[Products API] Pet Collection products:', dressProducts.map(p => ({
-          id: p.id,
-          name: p.nameEN,
-          imageUrl: p.imageUrl,
-          hasImage: !!p.imageUrl,
-        })));
-      }
-      
+      debugLog('[Products API] Fetched from database:', products.length);
+
       setCached(cacheKey, products, 5 * 60 * 1000); // 5 minutes
       return products;
     }),
@@ -1019,19 +982,10 @@ export const appRouter = router({
           active: input.active ?? 1, // Default to 1 if not provided
         };
         
-        console.log('[Admin] Creating product:', {
-          name: productData.name,
-          slug: productData.slug,
-          nameEN: productData.nameEN,
-          active: productData.active,
-          collection: productData.collection,
-          category: productData.category,
-        });
-        
+        debugLog('[Admin] Creating product:', productData.name);
+
         const productId = await db.createProduct(productData);
-        
-        console.log('[Admin] Product created with ID:', productId);
-        
+
         // Invalidate product caches to ensure new product appears immediately
         invalidateCache(CacheKeys.products());
         invalidateCache(CacheKeys.featuredProducts());
@@ -1041,15 +995,9 @@ export const appRouter = router({
         if (input.category) {
           invalidateCache(CacheKeys.products(`category:${input.category}`));
         }
-        
+
         // Return the created product for confirmation
         const createdProduct = await db.getProductById(productId);
-        console.log('[Admin] Created product details:', createdProduct ? {
-          id: createdProduct.id,
-          name: createdProduct.name,
-          slug: createdProduct.slug,
-          active: createdProduct.active,
-        } : 'Product not found after creation');
         
         return createdProduct || { id: productId };
       }),
@@ -1097,15 +1045,8 @@ export const appRouter = router({
             throw new Error('Unauthorized');
           }
           
-          console.log('[Admin] Updating product:', {
-            id: input.id,
-            data: input.data,
-            imageUrl: input.data.imageUrl,
-            imageUrlType: typeof input.data.imageUrl,
-            imageUrlLength: input.data.imageUrl?.length,
-            dataKeys: Object.keys(input.data),
-          });
-          
+          debugLog('[Admin] Updating product:', input.id);
+
           // Clean up the data - remove undefined values
           const cleanData: Record<string, any> = {};
           for (const [key, value] of Object.entries(input.data)) {
@@ -1114,34 +1055,9 @@ export const appRouter = router({
             }
           }
           
-          console.log('[Admin] Cleaned data for update:', {
-            keys: Object.keys(cleanData),
-            imageUrl: cleanData.imageUrl,
-          });
-          
           await db.updateProduct(input.id, cleanData);
-          
-          // Verify the update
-          const updatedProduct = await db.getProductById(input.id);
-          console.log('[Admin] Product updated, verification:', {
-            id: updatedProduct?.id,
-            name: updatedProduct?.name,
-            imageUrl: updatedProduct?.imageUrl,
-            imageUrlType: typeof updatedProduct?.imageUrl,
-            imageUrlLength: updatedProduct?.imageUrl?.length,
-            active: updatedProduct?.active,
-          });
-          
-          // Log if imageUrl is missing or different
-          if (input.data.imageUrl && updatedProduct?.imageUrl !== input.data.imageUrl) {
-            console.error('[Admin] WARNING: imageUrl mismatch!', {
-              sent: input.data.imageUrl,
-              saved: updatedProduct?.imageUrl,
-            });
-          }
-          
+
           // Invalidate product caches
-          console.log('[Admin] Invalidating caches for product:', input.id);
           invalidateCache(CacheKeys.product(input.id));
           invalidateCache(CacheKeys.products());
           invalidateCache(CacheKeys.featuredProducts());
@@ -1152,20 +1068,9 @@ export const appRouter = router({
             invalidateCache(CacheKeys.products(`category:${input.data.category}`));
           }
           
-          console.log('[Admin] Cache invalidated. Next products.list request will fetch fresh data from DB.');
-          
           return { success: true };
         } catch (error) {
-          console.error('[Admin] Error updating product:', error);
-          console.error('[Admin] Error details:', {
-            message: error instanceof Error ? error.message : 'Unknown error',
-            stack: error instanceof Error ? error.stack : undefined,
-            input: {
-              id: input.id,
-              dataKeys: Object.keys(input.data),
-              imageUrl: input.data.imageUrl,
-            },
-          });
+          console.error('[Admin] Error updating product:', error instanceof Error ? error.message : error);
           throw error;
         }
       }),
@@ -1427,32 +1332,14 @@ export const appRouter = router({
             // Use provided name or default to nameEN
             const name = input.name || input.nameEN;
             
-          console.log('[Admin.Products.Create] Starting product creation:', {
-            name,
-            slug,
-            nameEN: input.nameEN,
-            namePT: input.namePT,
-            price: input.price,
-            imageUrl: input.imageUrl,
-            imageUrlType: typeof input.imageUrl,
-            imageUrlLength: input.imageUrl?.length,
-            imageUrlIsEmpty: input.imageUrl === '' || input.imageUrl === null || input.imageUrl === undefined,
-            active: input.active ?? 1,
-            collection: input.collection,
-            category: input.category,
-            stock: input.stock,
-            featured: input.featured,
-            user: ctx.user?.email,
-            fullInput: JSON.stringify(input, null, 2), // Log full input for debugging
-          });
-            
-            // Check if slug already exists
-            const existingProduct = await db.getProductBySlug(slug);
-            if (existingProduct) {
-              console.error('[Admin.Products.Create] ERROR: Slug already exists:', slug);
-              throw new Error(`Product with slug "${slug}" already exists. Please use a different name.`);
-            }
-            
+          debugLog('[Admin.Products.Create] Creating product:', name);
+
+          // Check if slug already exists
+          const existingProduct = await db.getProductBySlug(slug);
+          if (existingProduct) {
+            throw new Error(`Product with slug "${slug}" already exists. Please use a different name.`);
+          }
+
           const productData = {
             ...input,
             name,
@@ -1465,37 +1352,15 @@ export const appRouter = router({
             isNew: input.isNew !== undefined ? (input.isNew ? 1 : 0) : 0,
             onSale: input.onSale !== undefined ? (input.onSale ? 1 : 0) : 0,
           };
-          
-          console.log('[Admin.Products.Create] Product data to save:', {
-            ...productData,
-            imageUrl: productData.imageUrl,
-            imageUrlType: typeof productData.imageUrl,
-            imageUrlLength: productData.imageUrl?.length,
-            imageUrlIncluded: 'imageUrl' in productData,
-          });
-            
-            const productId = await db.createProduct(productData);
-            
-            console.log('[Admin.Products.Create] Product created successfully with ID:', productId);
-            
-            // Verify the product was created
-            const createdProduct = await db.getProductById(productId);
-            console.log('[Admin.Products.Create] Verification - Product in DB:', createdProduct ? {
-              id: createdProduct.id,
-              name: createdProduct.name,
-              nameEN: createdProduct.nameEN,
-              slug: createdProduct.slug,
-              imageUrl: createdProduct.imageUrl,
-              active: createdProduct.active,
-            } : 'PRODUCT NOT FOUND IN DATABASE!');
-            
-            if (!createdProduct) {
-              console.error('[Admin.Products.Create] CRITICAL ERROR: Product was not found after creation!', {
-                productId,
-                slug,
-              });
-              throw new Error('Product was created but could not be verified. Please check the database.');
-            }
+
+          const productId = await db.createProduct(productData);
+
+          // Verify the product was created
+          const createdProduct = await db.getProductById(productId);
+
+          if (!createdProduct) {
+            throw new Error('Product was created but could not be verified. Please check the database.');
+          }
             
             // Invalidate all product caches
             invalidateCache(CacheKeys.products());
@@ -1510,16 +1375,7 @@ export const appRouter = router({
             // Return the created product (already verified above)
             return createdProduct || { id: productId };
           } catch (error) {
-            console.error('[Admin.Products.Create] ERROR creating product:', error);
-            console.error('[Admin.Products.Create] Error details:', {
-              message: error instanceof Error ? error.message : 'Unknown error',
-              stack: error instanceof Error ? error.stack : undefined,
-              input: {
-                name: input.name,
-                nameEN: input.nameEN,
-                slug: input.slug,
-              },
-            });
+            console.error('[Admin.Products.Create] Error:', error instanceof Error ? error.message : error);
             throw error;
           }
         }),
@@ -1572,49 +1428,17 @@ export const appRouter = router({
           if (typeof data.isNew === 'boolean') updates.isNew = data.isNew ? 1 : 0;
           if (typeof data.onSale === 'boolean') updates.onSale = data.onSale ? 1 : 0;
 
-          console.log('[Admin.Products.Update] Starting update:', {
-            id,
-            updates: Object.keys(updates),
-            imageUrl: updates.imageUrl,
-            imageUrlType: typeof updates.imageUrl,
-            imageUrlLength: updates.imageUrl?.length,
-            user: ctx.user?.email,
-          });
+          debugLog('[Admin.Products.Update] Updating product:', id);
 
           // Get product before update to check collection/category for cache invalidation
           const productBeforeUpdate = await db.getProductById(id);
-          console.log('[Admin.Products.Update] Product before update:', productBeforeUpdate ? {
-            id: productBeforeUpdate.id,
-            name: productBeforeUpdate.name,
-            imageUrl: productBeforeUpdate.imageUrl,
-            active: productBeforeUpdate.active,
-          } : 'PRODUCT NOT FOUND!');
 
           if (!productBeforeUpdate) {
             throw new Error(`Product with id ${id} not found`);
           }
 
           await db.updateProduct(id, updates);
-          
-          // Verify the update
-          const updatedProduct = await db.getProductById(id);
-          console.log('[Admin.Products.Update] Product updated, verification:', {
-            id: updatedProduct?.id,
-            name: updatedProduct?.name,
-            imageUrl: updatedProduct?.imageUrl,
-            imageUrlType: typeof updatedProduct?.imageUrl,
-            imageUrlLength: updatedProduct?.imageUrl?.length,
-            active: updatedProduct?.active,
-          });
-          
-          // Log if imageUrl is missing or different
-          if (updates.imageUrl && updatedProduct?.imageUrl !== updates.imageUrl) {
-            console.error('[Admin.Products.Update] WARNING: imageUrl mismatch!', {
-              sent: updates.imageUrl,
-              saved: updatedProduct?.imageUrl,
-            });
-          }
-          
+
           // Invalidate all product caches
           invalidateCache(CacheKeys.product(id));
           invalidateCache(CacheKeys.products());
@@ -1639,11 +1463,6 @@ export const appRouter = router({
             const oldSlug = productBeforeUpdate.slug;
             invalidateCache(CacheKeys.productBySlug(oldSlug));
           }
-          
-          console.log('[Admin.Products.Update] Product updated and cache invalidated:', {
-            productId: id,
-            updates: Object.keys(updates),
-          });
           
           return { success: true };
         }),
@@ -1672,10 +1491,6 @@ export const appRouter = router({
           if (productBeforeDelete?.slug) {
             invalidateCache(CacheKeys.productBySlug(productBeforeDelete.slug));
           }
-          
-          console.log('[Admin.Products.Delete] Product deleted and cache invalidated:', {
-            productId: input.id,
-          });
           
           return { success: true };
         }),
