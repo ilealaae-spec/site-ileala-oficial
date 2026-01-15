@@ -48,10 +48,25 @@ queryClient.getMutationCache().subscribe(event => {
   }
 });
 
+// Determine API URL based on environment
+const getApiUrl = () => {
+  // In browser, check if we're on admin domain
+  if (typeof window !== 'undefined') {
+    const isAdminDomain = window.location.hostname === 'admin.ileala.ae' ||
+                         window.location.hostname.includes('admin');
+    // Admin domain should use the backend API directly
+    if (isAdminDomain) {
+      return 'https://api-ileala.up.railway.app/api/trpc';
+    }
+  }
+  // Default to relative URL (works for CLIENT service)
+  return '/api/trpc';
+};
+
 const trpcClient = trpc.createClient({
   links: [
     httpBatchLink({
-      url: "/api/trpc",
+      url: getApiUrl(),
       transformer: superjson,
       fetch(input, init) {
         console.log('[tRPC Client] ===== FETCH CALLED =====');
