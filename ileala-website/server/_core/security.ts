@@ -65,6 +65,7 @@ export function setupCORS(app: Express) {
     const allowedOrigins = [
       'https://www.ileala.ae',
       'https://ileala.ae',
+      'https://admin.ileala.ae',
       ...(ENV.isProduction ? [] : ['http://localhost:5173', 'http://localhost:3000']),
     ];
     
@@ -98,4 +99,6 @@ export function setupRequestId(app: Express) {
     next();
   });
 }
+
+
 

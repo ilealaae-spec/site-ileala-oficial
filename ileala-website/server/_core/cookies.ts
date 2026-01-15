@@ -60,23 +60,16 @@ export function getSessionCookieOptions(
   // Force secure in production for Railway/Vercel deployments
   const forceSecure = process.env.NODE_ENV === "production";
   
+  // Cross-domain cookies require sameSite: "none" and secure: true
+  // This is needed because admin.ileala.ae calls api-ileala.up.railway.app
+  const isCrossDomain = process.env.NODE_ENV === "production";
+
   const options = {
     httpOnly: true,
     path: "/",
-    sameSite: "lax" as const,
-    secure: forceSecure || isSecure,
+    sameSite: isCrossDomain ? "none" as const : "lax" as const,
+    secure: isCrossDomain || forceSecure || isSecure,
   };
-  
-  // Debug logging
-  console.log('[Cookie] Options:', {
-    isSecure,
-    forceSecure,
-    nodeEnv: process.env.NODE_ENV,
-    hostname: req?.hostname,
-    protocol: req?.protocol,
-    forwardedProto: getHeaderValue(req, "x-forwarded-proto"),
-    finalOptions: options,
-  });
-  
+
   return options;
 }
