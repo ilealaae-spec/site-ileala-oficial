@@ -69,79 +69,72 @@ const trpcClient = trpc.createClient({
       url: getApiUrl(),
       transformer: superjson,
       fetch(input, init) {
-        console.log('[tRPC Client] ===== FETCH CALLED =====');
-        console.log('[tRPC Client] URL:', input);
-        console.log('[tRPC Client] Init:', init);
+        const url = typeof input === 'string' ? input : input.url;
+        console.log('[tRPC] Request:', url);
         return globalThis.fetch(input, {
           ...(init ?? {}),
           credentials: "include",
         }).then(async (response) => {
-          console.log('[tRPC Client] ===== RESPONSE RECEIVED =====');
-          console.log('[tRPC Client] Status:', response.status);
-          console.log('[tRPC Client] Status text:', response.statusText);
-          console.log('[tRPC Client] Content-Type:', response.headers.get('content-type'));
-          // Check if response is JSON, if not, convert to JSON error
+          console.log('[tRPC] Response:', response.status, response.statusText);
+
+          // Clone response to read body for debugging if needed
+          const clonedResponse = response.clone();
           const contentType = response.headers.get('content-type') || '';
-          const isErrorStatus = response.status >= 400;
-          
-          if (isErrorStatus && !contentType.includes('application/json')) {
-            // Clone the response before reading to avoid consuming the body
-            const clonedResponse = response.clone();
-            const text = await clonedResponse.text().catch(() => 'Unknown error');
-            console.error('[Client] Non-JSON error response:', text.substring(0, 200));
-            
-            // Create a new Response with JSON error that tRPC can parse
-            // tRPC expects a specific format for errors
+
+          // Check for CORS error (no body, status 0)
+          if (response.status === 0) {
+            console.error('[tRPC] CORS error - request blocked');
             return new Response(
-              JSON.stringify([
-                {
-                  error: {
-                    message: text.includes('server error') || text.includes('Server Error')
-                      ? 'A server error occurred. Please try again later.'
-                      : 'An unexpected error occurred',
-                    code: 'INTERNAL_SERVER_ERROR',
-                    data: {
-                      code: 'INTERNAL_SERVER_ERROR',
-                      httpStatus: response.status,
-                    },
-                  },
+              JSON.stringify([{
+                error: {
+                  message: 'CORS error: Request was blocked. Please check server configuration.',
+                  code: 'CORS_ERROR',
+                  data: { code: 'CORS_ERROR', httpStatus: 0 },
                 },
-              ]),
-              {
-                status: response.status,
-                statusText: response.statusText,
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-              }
+              }]),
+              { status: 500, headers: { 'Content-Type': 'application/json' } }
             );
           }
-          
-          console.log('[tRPC Client] Returning response (no error conversion)');
+
+          // If response is not JSON, try to get the text for debugging
+          if (!contentType.includes('application/json')) {
+            const text = await clonedResponse.text().catch(() => 'Unable to read response');
+            console.error('[tRPC] Non-JSON response:', text.substring(0, 500));
+
+            return new Response(
+              JSON.stringify([{
+                error: {
+                  message: 'Server returned non-JSON response. Please try again.',
+                  code: 'PARSE_ERROR',
+                  data: { code: 'PARSE_ERROR', httpStatus: response.status },
+                },
+              }]),
+              { status: response.status, headers: { 'Content-Type': 'application/json' } }
+            );
+          }
+
+          // Log successful response body for debugging
+          if (response.ok) {
+            try {
+              const bodyText = await clonedResponse.text();
+              console.log('[tRPC] Response body preview:', bodyText.substring(0, 200));
+            } catch (e) {
+              console.log('[tRPC] Could not read response body for logging');
+            }
+          }
+
           return response;
         }).catch((error) => {
-          console.error('[tRPC Client] ===== FETCH CATCH =====');
-          console.error('[Client] Fetch error:', error);
-          // Return a JSON error response for network errors in tRPC format
+          console.error('[tRPC] Fetch error:', error.message || error);
           return new Response(
-            JSON.stringify([
-              {
-                error: {
-                  message: 'Network error. Please check your connection and try again.',
-                  code: 'NETWORK_ERROR',
-                  data: {
-                    code: 'NETWORK_ERROR',
-                    httpStatus: 500,
-                  },
-                },
+            JSON.stringify([{
+              error: {
+                message: error.message || 'Network error. Please check your connection.',
+                code: 'NETWORK_ERROR',
+                data: { code: 'NETWORK_ERROR', httpStatus: 500 },
               },
-            ]),
-            {
-              status: 500,
-              headers: {
-                'Content-Type': 'application/json',
-              },
-            }
+            }]),
+            { status: 500, headers: { 'Content-Type': 'application/json' } }
           );
         });
       },

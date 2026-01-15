@@ -66,24 +66,35 @@ export function setupCORS(app: Express) {
       'https://www.ileala.ae',
       'https://ileala.ae',
       'https://admin.ileala.ae',
+      'https://ileala-admin.up.railway.app',
+      'https://api-ileala.up.railway.app',
       ...(ENV.isProduction ? [] : ['http://localhost:5173', 'http://localhost:3000']),
     ];
-    
+
+    // Log CORS for debugging (only for /api routes)
+    if (req.path.startsWith('/api')) {
+      console.log(`[CORS] Origin: ${origin || 'none'}, Path: ${req.path}, Method: ${req.method}`);
+    }
+
     if (origin && allowedOrigins.includes(origin)) {
       res.setHeader('Access-Control-Allow-Origin', origin);
+    } else if (origin && origin.includes('ileala')) {
+      // Fallback: allow any ileala domain for flexibility during setup
+      console.log(`[CORS] Allowing ileala origin not in list: ${origin}`);
+      res.setHeader('Access-Control-Allow-Origin', origin);
     }
-    
+
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, Cache-Control');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, Cache-Control, content-type');
     res.setHeader('Access-Control-Allow-Credentials', 'true');
     res.setHeader('Access-Control-Expose-Headers', 'Set-Cookie');
     res.setHeader('Access-Control-Max-Age', '86400'); // 24 hours
-    
+
     // Handle preflight requests
     if (req.method === 'OPTIONS') {
       return res.sendStatus(204);
     }
-    
+
     next();
   });
 }
