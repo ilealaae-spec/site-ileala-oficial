@@ -4,6 +4,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, protectedProcedure } from "./_core/trpc";
 import { z } from "zod";
 import * as db from "./db";
+import { products } from "../drizzle/schema";
 import Stripe from 'stripe';
 // Use Cloudinary if configured, otherwise fall back to AWS S3
 import { storagePut as cloudinaryPut } from './storage-cloudinary';

@@ -154,48 +154,73 @@ export async function getProductsByCategory(category: string) {
 }
 
 export async function createProduct(product: InsertProduct) {
-  const db = await getDb();
-  if (!db) {
+  const sqlClient = await getSql();
+  if (!sqlClient) {
     console.error('[DB] Database not available for createProduct');
     throw new Error("Database not available");
   }
 
-  // Clean up the product data - only include fields that exist in the schema
-  // and exclude auto-generated fields like id, createdAt, updatedAt
-  const cleanProduct: Record<string, any> = {};
-  const allowedFields = [
-    'slug', 'name', 'nameEN', 'namePT', 'descriptionEN', 'descriptionPT',
-    'price', 'imageUrl', 'mainImage', 'mainImageAlt', 'images', 'salePrice',
-    'descriptionEN_full', 'descriptionPT_full', 'material', 'dimensions',
-    'colors', 'careInstructionsEN', 'careInstructionsPT', 'weight', 'sku',
-    'inStock', 'stockQuantity', 'isNew', 'onSale', 'seoTitle', 'seoDescription',
-    'collection', 'category', 'stock', 'featured', 'active'
-  ];
-
   // Integer fields that need conversion from boolean
-  const integerFields = ['inStock', 'stockQuantity', 'isNew', 'onSale', 'stock', 'featured', 'active', 'price', 'salePrice', 'weight'];
+  const integerFields = ['inStock', 'stockQuantity', 'isNew', 'onSale', 'stock', 'featured', 'active'];
 
-  for (const key of allowedFields) {
-    if (key in product && (product as any)[key] !== undefined) {
-      let value = (product as any)[key];
-
-      // Convert booleans to integers for integer fields
-      if (integerFields.includes(key) && typeof value === 'boolean') {
-        value = value ? 1 : 0;
-      }
-
-      cleanProduct[key] = value;
+  // Helper to convert value
+  const convertValue = (key: string, value: any) => {
+    if (value === undefined || value === null) return null;
+    if (integerFields.includes(key) && typeof value === 'boolean') {
+      return value ? 1 : 0;
     }
-  }
+    return value;
+  };
 
-  console.log('[DB] Creating product with clean data:', {
-    fields: Object.keys(cleanProduct),
-    slug: cleanProduct.slug,
-    name: cleanProduct.name
-  });
+  // Build clean product object
+  const p = product as any;
+
+  console.log('[DB] Creating product:', p.name || p.nameEN);
 
   try {
-    const result = await db.insert(products).values(cleanProduct as InsertProduct).returning({ id: products.id });
+    const result = await sqlClient`
+      INSERT INTO products (
+        slug, name, "nameEN", "namePT", "descriptionEN", "descriptionPT",
+        price, "imageUrl", "mainImage", "mainImageAlt", images, "salePrice",
+        "descriptionEN_full", "descriptionPT_full", material, dimensions,
+        colors, "careInstructionsEN", "careInstructionsPT", weight, sku,
+        "inStock", "stockQuantity", "isNew", "onSale", "seoTitle", "seoDescription",
+        collection, category, stock, featured, active
+      ) VALUES (
+        ${p.slug},
+        ${p.name || p.nameEN},
+        ${p.nameEN},
+        ${p.namePT},
+        ${p.descriptionEN || null},
+        ${p.descriptionPT || null},
+        ${p.price},
+        ${p.imageUrl || null},
+        ${p.mainImage || null},
+        ${p.mainImageAlt || null},
+        ${p.images || null},
+        ${p.salePrice || null},
+        ${p.descriptionEN_full || null},
+        ${p.descriptionPT_full || null},
+        ${p.material || null},
+        ${p.dimensions || null},
+        ${p.colors || null},
+        ${p.careInstructionsEN || null},
+        ${p.careInstructionsPT || null},
+        ${p.weight || null},
+        ${p.sku || null},
+        ${convertValue('inStock', p.inStock) ?? 1},
+        ${convertValue('stockQuantity', p.stockQuantity) ?? 0},
+        ${convertValue('isNew', p.isNew) ?? 0},
+        ${convertValue('onSale', p.onSale) ?? 0},
+        ${p.seoTitle || null},
+        ${p.seoDescription || null},
+        ${p.collection || null},
+        ${p.category || null},
+        ${convertValue('stock', p.stock) ?? 0},
+        ${convertValue('featured', p.featured) ?? 0},
+        ${convertValue('active', p.active) ?? 1}
+      ) RETURNING id
+    `;
 
     if (!result || result.length === 0) {
       throw new Error('Product insertion returned no ID');
@@ -205,7 +230,6 @@ export async function createProduct(product: InsertProduct) {
     return result[0].id;
   } catch (error) {
     console.error('[DB] Error creating product:', error instanceof Error ? error.message : error);
-    console.error('[DB] Clean product data was:', JSON.stringify(cleanProduct, null, 2));
     throw error;
   }
 }
