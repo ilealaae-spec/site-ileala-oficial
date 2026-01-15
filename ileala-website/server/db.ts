@@ -172,11 +172,27 @@ export async function createProduct(product: InsertProduct) {
     'collection', 'category', 'stock', 'featured', 'active'
   ];
 
+  // Integer fields that need conversion from boolean
+  const integerFields = ['inStock', 'stockQuantity', 'isNew', 'onSale', 'stock', 'featured', 'active', 'price', 'salePrice', 'weight'];
+
   for (const key of allowedFields) {
     if (key in product && (product as any)[key] !== undefined) {
-      cleanProduct[key] = (product as any)[key];
+      let value = (product as any)[key];
+
+      // Convert booleans to integers for integer fields
+      if (integerFields.includes(key) && typeof value === 'boolean') {
+        value = value ? 1 : 0;
+      }
+
+      cleanProduct[key] = value;
     }
   }
+
+  console.log('[DB] Creating product with clean data:', {
+    fields: Object.keys(cleanProduct),
+    slug: cleanProduct.slug,
+    name: cleanProduct.name
+  });
 
   try {
     const result = await db.insert(products).values(cleanProduct as InsertProduct).returning({ id: products.id });
@@ -185,9 +201,11 @@ export async function createProduct(product: InsertProduct) {
       throw new Error('Product insertion returned no ID');
     }
 
+    console.log('[DB] Product created successfully with ID:', result[0].id);
     return result[0].id;
   } catch (error) {
     console.error('[DB] Error creating product:', error instanceof Error ? error.message : error);
+    console.error('[DB] Clean product data was:', JSON.stringify(cleanProduct, null, 2));
     throw error;
   }
 }
