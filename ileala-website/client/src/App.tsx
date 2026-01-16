@@ -22,6 +22,7 @@ const ProductDetail = lazy(() => import("./pages/ProductDetail"));
 // Removed Sanity pages - migrated to independent backend
 const PaymentSuccess = lazy(() => import("./pages/PaymentSuccess"));
 const Checkout = lazy(() => import("./pages/Checkout"));
+const Cart = lazy(() => import("./pages/Cart"));
 const Login = lazy(() => import("./pages/Login"));
 const Register = lazy(() => import("./pages/Register"));
 const Profile = lazy(() => import("./pages/Profile"));
@@ -90,7 +91,7 @@ function Router() {
             {/* Removed Sanity routes - migrated to independent backend */}
             <Route path="/payment-success" component={PaymentSuccess} />
             <Route path="/product/:id" component={ProductDetail} />
-            {/* Cart route removed - using new cart system */}
+            <Route path="/cart" component={Cart} />
             <Route path="/checkout" component={Checkout} />
             <Route path="/login" component={Login} />
             <Route path="/register" component={Register} />
