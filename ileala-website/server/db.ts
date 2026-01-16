@@ -222,16 +222,16 @@ export async function createProduct(product: InsertProduct) {
       stock: boolToInt(p.stock, 0),
       featured: boolToInt(p.featured, 0),
       active: boolToInt(p.active, 1),
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      // Don't include createdAt/updatedAt - let database use defaults
     };
 
-    // Filter to only include columns that exist in the database (except id)
-    const columnsToInsert = dbColumns.filter((col: string) => col !== 'id' && allData[col] !== undefined);
+    // Filter to only include columns that exist in the database (except id, createdAt, updatedAt - let DB use defaults)
+    const excludeCols = ['id', 'createdAt', 'updatedAt'];
+    const columnsToInsert = dbColumns.filter((col: string) => !excludeCols.includes(col) && allData[col] !== undefined);
     const values = columnsToInsert.map((col: string) => allData[col]);
 
     // For columns in DB but not in our data, we need to provide null or defaults
-    const missingCols = dbColumns.filter((col: string) => col !== 'id' && allData[col] === undefined);
+    const missingCols = dbColumns.filter((col: string) => !excludeCols.includes(col) && allData[col] === undefined);
     if (missingCols.length > 0) {
       console.log('[DB] v8: Columns in DB but not in our data:', missingCols.join(', '));
       // Add null for missing columns
