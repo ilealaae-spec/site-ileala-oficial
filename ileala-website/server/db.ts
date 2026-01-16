@@ -153,6 +153,7 @@ export async function getProductsByCategory(category: string) {
     ));
 }
 
+// v2: Product creation using raw SQL - fixes id auto-increment issue
 export async function createProduct(product: InsertProduct) {
   const sqlClient = await getSql();
   if (!sqlClient) {
