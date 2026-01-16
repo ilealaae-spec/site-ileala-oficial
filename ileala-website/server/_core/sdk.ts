@@ -270,7 +270,13 @@ class SDKServer {
     
     const cookies = this.parseCookies(cookieHeader);
     const sessionCookie = cookies.get(COOKIE_NAME);
-    
+
+    console.log('[SDK Auth] Cookie header present:', !!cookieHeader);
+    console.log('[SDK Auth] Session cookie found:', !!sessionCookie);
+    if (sessionCookie) {
+      console.log('[SDK Auth] Session cookie value (first 50 chars):', sessionCookie.substring(0, 50));
+    }
+
     if (!sessionCookie) {
       throw ForbiddenError("No session cookie found");
     }
