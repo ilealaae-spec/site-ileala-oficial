@@ -54,7 +54,7 @@ const tabs = [
 ];
 
 export default function Admin() {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, loading: authLoading, logout } = useAuth();
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [emergencyUser, setEmergencyUser] = useState<any>(null);
@@ -189,10 +189,10 @@ export default function Admin() {
     try {
       // Clear emergency session if exists
       localStorage.removeItem('emergency_admin_session');
-      
-      // Logout via API
-      await utils.auth.logout.mutate();
-      
+
+      // Logout via API using the logout function from useAuth hook
+      await logout();
+
       // Redirect to login page
       window.location.href = '/login';
     } catch (error) {
