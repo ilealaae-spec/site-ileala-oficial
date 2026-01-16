@@ -500,8 +500,35 @@ export const appRouter = router({
       }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
-      ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
-      console.log('[Auth] User logged out');
+
+      // Clear cookie with all necessary options to ensure it's properly removed
+      // Must match the options used when setting the cookie
+      ctx.res.clearCookie(COOKIE_NAME, {
+        ...cookieOptions,
+        maxAge: 0,
+      });
+
+      // Also try to clear with explicit domain for cross-subdomain cookies
+      if (process.env.NODE_ENV === 'production') {
+        ctx.res.clearCookie(COOKIE_NAME, {
+          httpOnly: true,
+          path: '/',
+          sameSite: 'none',
+          secure: true,
+          domain: '.ileala.ae',
+          maxAge: 0,
+        });
+        // Also try without domain in case cookie was set differently
+        ctx.res.clearCookie(COOKIE_NAME, {
+          httpOnly: true,
+          path: '/',
+          sameSite: 'lax',
+          secure: true,
+          maxAge: 0,
+        });
+      }
+
+      console.log('[Auth] User logged out - cookies cleared');
       return {
         success: true,
       } as const;
