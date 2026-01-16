@@ -1,6 +1,6 @@
 [build]
 builder = "dockerfile"
-dockerfilePath = "ileala-website/Dockerfile"
+dockerfilePath = "Dockerfile"
 
 [deploy]
 restartPolicyType = "on_failure"
