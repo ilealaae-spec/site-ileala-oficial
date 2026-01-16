@@ -231,7 +231,7 @@ export default function ProductsTab() {
 
     if (editingProduct) {
       updateMutation.mutate({
-        id: editingProduct.id,
+        id: Number(editingProduct.id),
         data: productData,
       });
     } else {
@@ -239,9 +239,9 @@ export default function ProductsTab() {
     }
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = (id: number | string) => {
     if (confirm(language === 'en' ? 'Delete this product?' : 'Excluir este produto?')) {
-      deleteMutation.mutate({ id });
+      deleteMutation.mutate({ id: Number(id) });
     }
   };
 
