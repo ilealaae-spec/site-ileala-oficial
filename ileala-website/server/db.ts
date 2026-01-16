@@ -153,11 +153,12 @@ export async function getProductsByCategory(category: string) {
     ));
 }
 
-// v2: Product creation using raw SQL - fixes id auto-increment issue
+// v3: Product creation using raw SQL - fixes id auto-increment issue
+// Updated: 2026-01-16 - Force rebuild to ensure latest code is deployed
 export async function createProduct(product: InsertProduct) {
   const sqlClient = await getSql();
   if (!sqlClient) {
-    console.error('[DB] Database not available for createProduct');
+    console.error('[DB] v3: Database not available for createProduct');
     throw new Error("Database not available");
   }
 
@@ -176,7 +177,7 @@ export async function createProduct(product: InsertProduct) {
   // Build clean product object
   const p = product as any;
 
-  console.log('[DB] Creating product:', p.name || p.nameEN);
+  console.log('[DB] v3: Creating product with raw SQL:', p.name || p.nameEN);
 
   try {
     const result = await sqlClient`
