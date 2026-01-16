@@ -18,8 +18,9 @@ import { Globe, ShoppingCart, Instagram, Facebook, User, LogOut, Package, Shield
 export default function Header() {
   const { language, setLanguage } = useLanguage();
   const { data: cartItems } = trpc.cart.items.useQuery(undefined, {
-    refetchOnWindowFocus: true,
-    staleTime: 0,
+    refetchOnWindowFocus: false,
+    staleTime: 30000, // 30 seconds
+    retry: false,
   });
   const totalItems = cartItems?.reduce((sum, item) => sum + item.quantity, 0) ?? 0;
   const { user, isAuthenticated, logout } = useAuth();
