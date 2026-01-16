@@ -153,8 +153,8 @@ export async function getProductsByCategory(category: string) {
     ));
 }
 
-// v3: Product creation using raw SQL - fixes id auto-increment issue
-// Updated: 2026-01-16 - Force rebuild to ensure latest code is deployed
+// v4: Product creation using raw SQL - explicitly removes id field
+// Updated: 2026-01-16 - Debug version to find id issue
 export async function createProduct(product: InsertProduct) {
   const sqlClient = await getSql();
   if (!sqlClient) {
@@ -174,10 +174,15 @@ export async function createProduct(product: InsertProduct) {
     return value;
   };
 
-  // Build clean product object
-  const p = product as any;
+  // Build clean product object - explicitly remove id if present
+  const { id, createdAt, updatedAt, ...cleanProduct } = product as any;
+  const p = cleanProduct;
 
-  console.log('[DB] v3: Creating product with raw SQL:', p.name || p.nameEN);
+  console.log('[DB] v4: Creating product with raw SQL:', p.name || p.nameEN);
+  console.log('[DB] v4: Product keys:', Object.keys(p).join(', '));
+  if (id !== undefined) {
+    console.log('[DB] v4: WARNING - id was present in input and removed:', id);
+  }
 
   try {
     const result = await sqlClient`
