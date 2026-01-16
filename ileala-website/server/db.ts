@@ -153,89 +153,102 @@ export async function getProductsByCategory(category: string) {
     ));
 }
 
-// v5: Product creation using raw SQL with explicit DEFAULT for id
-// Updated: 2026-01-16 - Using sql.unsafe with DEFAULT keyword
+// v8: Product creation using raw SQL that queries actual columns first
+// Updated: 2026-01-16 - Dynamically get columns from database
 export async function createProduct(product: InsertProduct) {
   const sqlClient = await getSql();
   if (!sqlClient) {
-    console.error('[DB] v3: Database not available for createProduct');
+    console.error('[DB] v8: Database not available for createProduct');
     throw new Error("Database not available");
   }
 
-  // Integer fields that need conversion from boolean
-  const integerFields = ['inStock', 'stockQuantity', 'isNew', 'onSale', 'stock', 'featured', 'active'];
-
-  // Helper to convert value
-  const convertValue = (key: string, value: any) => {
-    if (value === undefined || value === null) return null;
-    if (integerFields.includes(key) && typeof value === 'boolean') {
-      return value ? 1 : 0;
-    }
-    return value;
+  // Helper to convert boolean to integer
+  const boolToInt = (val: any, defaultVal: number = 0): number => {
+    if (val === undefined || val === null) return defaultVal;
+    if (typeof val === 'boolean') return val ? 1 : 0;
+    return Number(val) || defaultVal;
   };
 
   // Build clean product object - explicitly remove id if present
-  const { id, createdAt, updatedAt, ...cleanProduct } = product as any;
-  const p = cleanProduct;
+  const { id, createdAt, updatedAt, ...inputProduct } = product as any;
+  const p = inputProduct;
 
-  console.log('[DB] v4: Creating product with raw SQL:', p.name || p.nameEN);
-  console.log('[DB] v4: Product keys:', Object.keys(p).join(', '));
-  if (id !== undefined) {
-    console.log('[DB] v4: WARNING - id was present in input and removed:', id);
-  }
+  console.log('[DB] v8: Creating product:', p.name || p.nameEN);
 
   try {
-    // v5: Use sql.unsafe to construct the query with DEFAULT keyword
-    const query = `
-      INSERT INTO products (
-        id, slug, name, "nameEN", "namePT", "descriptionEN", "descriptionPT",
-        price, "imageUrl", "mainImage", "mainImageAlt", images, "salePrice",
-        "descriptionEN_full", "descriptionPT_full", material, dimensions,
-        colors, "careInstructionsEN", "careInstructionsPT", weight, sku,
-        "inStock", "stockQuantity", "isNew", "onSale", "seoTitle", "seoDescription",
-        collection, category, stock, featured, active
-      ) VALUES (
-        DEFAULT,
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31
-      ) RETURNING id
+    // First, get the actual columns from the database
+    const columnsResult = await sqlClient`
+      SELECT column_name
+      FROM information_schema.columns
+      WHERE table_name = 'products'
+      ORDER BY ordinal_position
     `;
 
-    const values = [
-      p.slug,
-      p.name || p.nameEN,
-      p.nameEN,
-      p.namePT,
-      p.descriptionEN || null,
-      p.descriptionPT || null,
-      p.price,
-      p.imageUrl || null,
-      p.mainImage || null,
-      p.mainImageAlt || null,
-      p.images || null,
-      p.salePrice || null,
-      p.descriptionEN_full || null,
-      p.descriptionPT_full || null,
-      p.material || null,
-      p.dimensions || null,
-      p.colors || null,
-      p.careInstructionsEN || null,
-      p.careInstructionsPT || null,
-      p.weight != null ? Math.round(Number(p.weight)) : null,
-      p.sku || null,
-      convertValue('inStock', p.inStock) ?? 1,
-      convertValue('stockQuantity', p.stockQuantity) ?? 0,
-      convertValue('isNew', p.isNew) ?? 0,
-      convertValue('onSale', p.onSale) ?? 0,
-      p.seoTitle || null,
-      p.seoDescription || null,
-      p.collection || null,
-      p.category || null,
-      convertValue('stock', p.stock) ?? 0,
-      convertValue('featured', p.featured) ?? 0,
-      convertValue('active', p.active) ?? 1
-    ];
+    const dbColumns = columnsResult.map((r: any) => r.column_name);
+    console.log('[DB] v8: Database columns:', dbColumns.join(', '));
+    console.log('[DB] v8: Total columns in DB:', dbColumns.length);
 
-    console.log('[DB] v5: Executing INSERT with DEFAULT for id');
+    // Build the data object with all possible values
+    const allData: Record<string, any> = {
+      slug: p.slug,
+      name: p.name || p.nameEN,
+      nameEN: p.nameEN,
+      namePT: p.namePT,
+      descriptionEN: p.descriptionEN || null,
+      descriptionPT: p.descriptionPT || null,
+      price: p.price,
+      imageUrl: p.imageUrl || null,
+      mainImage: p.mainImage || null,
+      mainImageAlt: p.mainImageAlt || null,
+      images: p.images || null,
+      salePrice: p.salePrice || null,
+      descriptionEN_full: p.descriptionEN_full || null,
+      descriptionPT_full: p.descriptionPT_full || null,
+      material: p.material || null,
+      dimensions: p.dimensions || null,
+      colors: p.colors || null,
+      careInstructionsEN: p.careInstructionsEN || null,
+      careInstructionsPT: p.careInstructionsPT || null,
+      weight: p.weight != null ? Math.round(Number(p.weight)) : null,
+      sku: p.sku || null,
+      inStock: boolToInt(p.inStock, 1),
+      stockQuantity: boolToInt(p.stockQuantity, 0),
+      isNew: boolToInt(p.isNew, 0),
+      onSale: boolToInt(p.onSale, 0),
+      seoTitle: p.seoTitle || null,
+      seoDescription: p.seoDescription || null,
+      collection: p.collection || null,
+      category: p.category || null,
+      stock: boolToInt(p.stock, 0),
+      featured: boolToInt(p.featured, 0),
+      active: boolToInt(p.active, 1),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    // Filter to only include columns that exist in the database (except id)
+    const columnsToInsert = dbColumns.filter((col: string) => col !== 'id' && allData[col] !== undefined);
+    const values = columnsToInsert.map((col: string) => allData[col]);
+
+    // For columns in DB but not in our data, we need to provide null or defaults
+    const missingCols = dbColumns.filter((col: string) => col !== 'id' && allData[col] === undefined);
+    if (missingCols.length > 0) {
+      console.log('[DB] v8: Columns in DB but not in our data:', missingCols.join(', '));
+      // Add null for missing columns
+      missingCols.forEach((col: string) => {
+        columnsToInsert.push(col);
+        values.push(null);
+      });
+    }
+
+    // Build the INSERT query dynamically
+    const columnNames = columnsToInsert.map((col: string) => `"${col}"`).join(', ');
+    const placeholders = columnsToInsert.map((_: string, i: number) => `$${i + 1}`).join(', ');
+
+    const query = `INSERT INTO products (${columnNames}) VALUES (${placeholders}) RETURNING id`;
+
+    console.log('[DB] v8: Inserting with', columnsToInsert.length, 'columns');
+
     const result = await sqlClient.unsafe(query, values);
 
     if (!result || result.length === 0) {
