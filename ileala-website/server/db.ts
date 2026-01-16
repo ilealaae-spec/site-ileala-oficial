@@ -153,8 +153,8 @@ export async function getProductsByCategory(category: string) {
     ));
 }
 
-// v4: Product creation using raw SQL - explicitly removes id field
-// Updated: 2026-01-16 - Debug version to find id issue
+// v5: Product creation using raw SQL with explicit DEFAULT for id
+// Updated: 2026-01-16 - Using sql.unsafe with DEFAULT keyword
 export async function createProduct(product: InsertProduct) {
   const sqlClient = await getSql();
   if (!sqlClient) {
@@ -185,49 +185,58 @@ export async function createProduct(product: InsertProduct) {
   }
 
   try {
-    const result = await sqlClient`
+    // v5: Use sql.unsafe to construct the query with DEFAULT keyword
+    const query = `
       INSERT INTO products (
-        slug, name, "nameEN", "namePT", "descriptionEN", "descriptionPT",
+        id, slug, name, "nameEN", "namePT", "descriptionEN", "descriptionPT",
         price, "imageUrl", "mainImage", "mainImageAlt", images, "salePrice",
         "descriptionEN_full", "descriptionPT_full", material, dimensions,
         colors, "careInstructionsEN", "careInstructionsPT", weight, sku,
         "inStock", "stockQuantity", "isNew", "onSale", "seoTitle", "seoDescription",
         collection, category, stock, featured, active
       ) VALUES (
-        ${p.slug},
-        ${p.name || p.nameEN},
-        ${p.nameEN},
-        ${p.namePT},
-        ${p.descriptionEN || null},
-        ${p.descriptionPT || null},
-        ${p.price},
-        ${p.imageUrl || null},
-        ${p.mainImage || null},
-        ${p.mainImageAlt || null},
-        ${p.images || null},
-        ${p.salePrice || null},
-        ${p.descriptionEN_full || null},
-        ${p.descriptionPT_full || null},
-        ${p.material || null},
-        ${p.dimensions || null},
-        ${p.colors || null},
-        ${p.careInstructionsEN || null},
-        ${p.careInstructionsPT || null},
-        ${p.weight != null ? Math.round(Number(p.weight)) : null},
-        ${p.sku || null},
-        ${convertValue('inStock', p.inStock) ?? 1},
-        ${convertValue('stockQuantity', p.stockQuantity) ?? 0},
-        ${convertValue('isNew', p.isNew) ?? 0},
-        ${convertValue('onSale', p.onSale) ?? 0},
-        ${p.seoTitle || null},
-        ${p.seoDescription || null},
-        ${p.collection || null},
-        ${p.category || null},
-        ${convertValue('stock', p.stock) ?? 0},
-        ${convertValue('featured', p.featured) ?? 0},
-        ${convertValue('active', p.active) ?? 1}
+        DEFAULT,
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31
       ) RETURNING id
     `;
+
+    const values = [
+      p.slug,
+      p.name || p.nameEN,
+      p.nameEN,
+      p.namePT,
+      p.descriptionEN || null,
+      p.descriptionPT || null,
+      p.price,
+      p.imageUrl || null,
+      p.mainImage || null,
+      p.mainImageAlt || null,
+      p.images || null,
+      p.salePrice || null,
+      p.descriptionEN_full || null,
+      p.descriptionPT_full || null,
+      p.material || null,
+      p.dimensions || null,
+      p.colors || null,
+      p.careInstructionsEN || null,
+      p.careInstructionsPT || null,
+      p.weight != null ? Math.round(Number(p.weight)) : null,
+      p.sku || null,
+      convertValue('inStock', p.inStock) ?? 1,
+      convertValue('stockQuantity', p.stockQuantity) ?? 0,
+      convertValue('isNew', p.isNew) ?? 0,
+      convertValue('onSale', p.onSale) ?? 0,
+      p.seoTitle || null,
+      p.seoDescription || null,
+      p.collection || null,
+      p.category || null,
+      convertValue('stock', p.stock) ?? 0,
+      convertValue('featured', p.featured) ?? 0,
+      convertValue('active', p.active) ?? 1
+    ];
+
+    console.log('[DB] v5: Executing INSERT with DEFAULT for id');
+    const result = await sqlClient.unsafe(query, values);
 
     if (!result || result.length === 0) {
       throw new Error('Product insertion returned no ID');
