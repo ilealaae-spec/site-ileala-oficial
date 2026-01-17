@@ -1,66 +1,25 @@
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useCart } from '@/contexts/CartContext';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { trpc } from '@/lib/trpc';
 import { Link } from 'wouter';
 import { Loader2, Trash2, Plus, Minus, ShoppingBag } from 'lucide-react';
-import { toast } from 'sonner';
 
 export default function Cart() {
   const { language } = useLanguage();
-  const utils = trpc.useUtils();
-
-  const { data: cartItems, isLoading } = trpc.cart.items.useQuery();
-  
-  const updateMutation = trpc.cart.update.useMutation({
-    onSuccess: () => {
-      utils.cart.items.invalidate();
-    },
-    onError: () => {
-      toast.error(language === 'en' ? 'Failed to update cart' : 'Falha ao atualizar carrinho');
-    },
-  });
-
-  const removeMutation = trpc.cart.remove.useMutation({
-    onSuccess: () => {
-      utils.cart.items.invalidate();
-      toast.success(language === 'en' ? 'Item removed' : 'Item removido');
-    },
-    onError: () => {
-      toast.error(language === 'en' ? 'Failed to remove item' : 'Falha ao remover item');
-    },
-  });
+  const { items: cartItems, removeItem, updateQuantity, totalPrice, isLoading } = useCart();
 
   const formatPrice = (price: number) => {
     const aed = price / 100;
     return `${aed.toFixed(2)} AED`;
   };
 
-  const updateQuantity = (id: number, newQuantity: number) => {
-    updateMutation.mutate({ id, quantity: newQuantity });
-  };
-
-  const removeItem = (id: number) => {
-    removeMutation.mutate({ id });
-  };
-
-  const calculateTotal = () => {
-    if (!cartItems) return 0;
-    return cartItems.reduce((sum, item) => {
-      if (item.product) {
-        return sum + (item.product.price * item.quantity);
-      }
-      return sum;
-    }, 0);
-  };
-
   const calculateVAT = () => {
-    const total = calculateTotal();
-    return total * 0.05; // 5% VAT
+    return totalPrice * 0.05; // 5% VAT
   };
 
   const calculateGrandTotal = () => {
-    return calculateTotal() + calculateVAT();
+    return totalPrice + calculateVAT();
   };
 
   if (isLoading) {
@@ -80,8 +39,8 @@ export default function Cart() {
             {language === 'en' ? 'Your cart is empty' : 'Seu carrinho está vazio'}
           </h2>
           <p className="text-muted-foreground mb-8">
-            {language === 'en' 
-              ? 'Add some products to get started' 
+            {language === 'en'
+              ? 'Add some products to get started'
               : 'Adicione alguns produtos para começar'}
           </p>
           <Link href="/shop">
@@ -104,85 +63,74 @@ export default function Cart() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Cart Items */}
           <div className="lg:col-span-2 space-y-4">
-            {cartItems.map((item) => {
-              if (!item.product) return null;
-              
-              return (
-                <Card key={item.id} className="p-6">
-                  <div className="flex gap-6">
-                    {/* Product Image */}
-                    <div className="w-24 h-24 flex-shrink-0 overflow-hidden rounded-md bg-muted">
-                      {item.product.imageUrl ? (
-                        <img
-                          src={item.product.imageUrl}
-                          alt={language === 'en' ? item.product.nameEN : item.product.namePT}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
-                          No image
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Product Info */}
-                    <div className="flex-1">
-                      <Link href={`/product/${item.product.id}`}>
-                        <h3 className="font-semibold text-lg hover:text-primary cursor-pointer">
-                          {language === 'en' ? item.product.nameEN : item.product.namePT}
-                        </h3>
-                      </Link>
-                      {item.product.collection && (
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {item.product.collection}
-                        </p>
-                      )}
-                      <p className="text-lg font-bold text-primary mt-2">
-                        {formatPrice(item.product.price)}
-                      </p>
-                    </div>
-
-                    {/* Quantity Controls */}
-                    <div className="flex flex-col items-end gap-4">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeItem(item.id)}
-                        disabled={removeMutation.isPending}
-                      >
-                        <Trash2 className="w-4 h-4 text-destructive" />
-                      </Button>
-
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                          disabled={item.quantity <= 1 || updateMutation.isPending}
-                        >
-                          <Minus className="w-3 h-3" />
-                        </Button>
-                        <span className="w-8 text-center font-semibold">{item.quantity}</span>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                          disabled={item.quantity >= (item.product.stock || 0) || updateMutation.isPending}
-                        >
-                          <Plus className="w-3 h-3" />
-                        </Button>
+            {cartItems.map((item) => (
+              <Card key={item.id} className="p-6">
+                <div className="flex gap-6">
+                  {/* Product Image */}
+                  <div className="w-24 h-24 flex-shrink-0 overflow-hidden rounded-md bg-muted">
+                    {item.imageUrl ? (
+                      <img
+                        src={item.imageUrl}
+                        alt={item.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
+                        No image
                       </div>
-
-                      <p className="text-sm font-semibold">
-                        {formatPrice(item.product.price * item.quantity)}
-                      </p>
-                    </div>
+                    )}
                   </div>
-                </Card>
-              );
-            })}
+
+                  {/* Product Info */}
+                  <div className="flex-1">
+                    <Link href={`/product/${item.slug || item.id}`}>
+                      <h3 className="font-semibold text-lg hover:text-primary cursor-pointer">
+                        {item.name}
+                      </h3>
+                    </Link>
+                    <p className="text-lg font-bold text-primary mt-2">
+                      {formatPrice(item.price)}
+                    </p>
+                  </div>
+
+                  {/* Quantity Controls */}
+                  <div className="flex flex-col items-end gap-4">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeItem(item.id)}
+                    >
+                      <Trash2 className="w-4 h-4 text-destructive" />
+                    </Button>
+
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                        disabled={item.quantity <= 1}
+                      >
+                        <Minus className="w-3 h-3" />
+                      </Button>
+                      <span className="w-8 text-center font-semibold">{item.quantity}</span>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                      >
+                        <Plus className="w-3 h-3" />
+                      </Button>
+                    </div>
+
+                    <p className="text-sm font-semibold">
+                      {formatPrice(item.price * item.quantity)}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            ))}
           </div>
 
           {/* Order Summary */}
@@ -197,7 +145,7 @@ export default function Cart() {
                   <span className="text-muted-foreground">
                     {language === 'en' ? 'Subtotal' : 'Subtotal'}
                   </span>
-                  <span className="font-semibold">{formatPrice(calculateTotal())}</span>
+                  <span className="font-semibold">{formatPrice(totalPrice)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">
