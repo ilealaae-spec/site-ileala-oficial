@@ -377,13 +377,18 @@ export default function Home() {
               {t.home.subscribeText}
             </p>
             <form onSubmit={handleNewsletterSubmit} className="flex gap-4 max-w-md mx-auto">
-              <input 
-                type="email" 
+              <input
+                type="email"
                 placeholder={language === 'en' ? 'Your email address' : 'Seu endereço de email'}
                 value={newsletterEmail}
                 onChange={(e) => setNewsletterEmail(e.target.value)}
                 disabled={subscribeMutation.isPending}
-                className="flex-1 px-4 py-3 rounded-md text-foreground"
+                className="flex-1 px-4 py-3 rounded-md"
+                style={{
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #d1d5db',
+                  color: '#1f2937',
+                }}
               />
               <Button 
                 type="submit" 
