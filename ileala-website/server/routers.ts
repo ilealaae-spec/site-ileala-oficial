@@ -533,7 +533,41 @@ export const appRouter = router({
         success: true,
       } as const;
     }),
-    
+
+    // Change password
+    changePassword: protectedProcedure
+      .input(z.object({
+        currentPassword: z.string().min(1, 'Current password is required'),
+        newPassword: z.string().min(6, 'Password must be at least 6 characters'),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user) {
+          throw new Error('Not authenticated');
+        }
+
+        // Get user with password
+        const user = await db.getUserById(ctx.user.id);
+        if (!user || !user.password) {
+          throw new Error('User not found or no password set');
+        }
+
+        // Verify current password
+        const bcrypt = await import('bcrypt');
+        const isValidPassword = await bcrypt.compare(input.currentPassword, user.password);
+        if (!isValidPassword) {
+          throw new Error('Current password is incorrect');
+        }
+
+        // Hash new password
+        const hashedPassword = await bcrypt.hash(input.newPassword, 10);
+
+        // Update password in database
+        await db.updateUserPassword(ctx.user.id, hashedPassword);
+
+        console.log('[Auth] Password changed for user:', ctx.user.email);
+        return { success: true };
+      }),
+
     // Verify 2FA during login
     verify2FALogin: publicProcedure
       .input(z.object({
