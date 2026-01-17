@@ -400,9 +400,14 @@ export default function Profile() {
 
             <Button
               type="submit"
-              className="w-full bg-sage-600 hover:bg-sage-700"
               size="lg"
               disabled={changePasswordMutation.isPending}
+              style={{
+                width: '100%',
+                backgroundColor: '#4A7C59',
+                color: '#ffffff',
+                marginTop: '16px',
+              }}
             >
               {changePasswordMutation.isPending ? (
                 <>

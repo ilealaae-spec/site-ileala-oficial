@@ -534,6 +534,38 @@ export const appRouter = router({
       } as const;
     }),
 
+    // Update profile
+    updateProfile: protectedProcedure
+      .input(z.object({
+        name: nameSchema.optional(),
+        phone: phoneSchema.optional(),
+        address: addressSchema.optional(),
+        city: citySchema.optional(),
+        state: stateSchema.optional(),
+        poBox: poBoxSchema.optional(),
+        country: countrySchema.optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user) {
+          throw new Error('Not authenticated');
+        }
+
+        // Filter out undefined values
+        const updates: Record<string, any> = {};
+        if (input.name !== undefined) updates.name = input.name;
+        if (input.phone !== undefined) updates.phone = input.phone;
+        if (input.address !== undefined) updates.address = input.address;
+        if (input.city !== undefined) updates.city = input.city;
+        if (input.state !== undefined) updates.state = input.state;
+        if (input.poBox !== undefined) updates.poBox = input.poBox;
+        if (input.country !== undefined) updates.country = input.country;
+
+        await db.updateUser(ctx.user.id, updates);
+
+        console.log('[Auth] Profile updated for user:', ctx.user.email);
+        return { success: true };
+      }),
+
     // Change password
     changePassword: protectedProcedure
       .input(z.object({
