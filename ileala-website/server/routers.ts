@@ -1798,12 +1798,12 @@ export const appRouter = router({
               description: item.product?.descriptionEN || undefined,
               images: item.product?.imageUrl ? [item.product.imageUrl] : [],
             },
-            unit_amount: Math.round(item.priceAtPurchase * 100), // Convert to fils (cents)
+            unit_amount: Math.round(item.priceAtPurchase), // Price is already in fils (smallest currency unit)
           },
           quantity: item.quantity,
         }));
         
-        const baseUrl = process.env.VITE_FRONTEND_FORGE_API_URL || 'http://localhost:3000';
+        const baseUrl = process.env.SITE_URL || process.env.VITE_FRONTEND_FORGE_API_URL || 'https://ileala.ae';
         
         if (!stripe) {
           throw new Error('Stripe is not configured. Please set STRIPE_SECRET_KEY environment variable.');
