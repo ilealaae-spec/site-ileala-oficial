@@ -18,6 +18,7 @@ export default function ProductDetail() {
   const productId = paramsById?.id ? parseInt(paramsById.id) : 0;
   const [quantity, setQuantity] = useState(1);
   const [isAdding, setIsAdding] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   // Try to fetch by slug first, fallback to ID
   const productBySlugQuery = trpc.products.bySlug.useQuery(
@@ -152,19 +153,65 @@ export default function ProductDetail() {
         </Link>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          {/* Product Image */}
-          <div className="aspect-square overflow-hidden rounded-lg bg-muted">
-            {product.imageUrl ? (
-              <LazyImage
-                src={product.imageUrl}
-                alt={language === 'en' ? product.nameEN : product.namePT}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                No image available
-              </div>
-            )}
+          {/* Product Images */}
+          <div className="space-y-4">
+            {/* Main Image */}
+            <div className="aspect-square overflow-hidden rounded-lg bg-muted">
+              {(selectedImage || product.imageUrl || product.mainImage) ? (
+                <LazyImage
+                  src={selectedImage || product.imageUrl || product.mainImage}
+                  alt={language === 'en' ? product.nameEN : product.namePT}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                  No image available
+                </div>
+              )}
+            </div>
+
+            {/* Thumbnail Gallery */}
+            {(() => {
+              const mainImg = product.imageUrl || product.mainImage;
+              let additionalImages: { url: string; alt?: string }[] = [];
+              try {
+                if (product.images) {
+                  const parsed = JSON.parse(product.images);
+                  additionalImages = Array.isArray(parsed) ? parsed : [];
+                }
+              } catch (e) {
+                additionalImages = [];
+              }
+
+              const allImages = mainImg
+                ? [{ url: mainImg, alt: product.mainImageAlt || product.nameEN }, ...additionalImages]
+                : additionalImages;
+
+              if (allImages.length > 1) {
+                return (
+                  <div className="grid grid-cols-4 gap-2">
+                    {allImages.map((img, index) => (
+                      <button
+                        key={index}
+                        onClick={() => setSelectedImage(img.url)}
+                        className={`aspect-square overflow-hidden rounded-md border-2 transition-all ${
+                          (selectedImage || mainImg) === img.url
+                            ? 'border-primary ring-2 ring-primary/20'
+                            : 'border-transparent hover:border-gray-300'
+                        }`}
+                      >
+                        <img
+                          src={img.url}
+                          alt={img.alt || `Product image ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      </button>
+                    ))}
+                  </div>
+                );
+              }
+              return null;
+            })()}
           </div>
 
           {/* Product Info */}
@@ -251,7 +298,13 @@ export default function ProductDetail() {
               <h3 className="font-semibold mb-4">
                 {language === 'en' ? 'Product Details' : 'Detalhes do Produto'}
               </h3>
-              <dl className="space-y-2">
+              <dl className="space-y-3">
+                {product.sku && (
+                  <div className="flex justify-between">
+                    <dt className="text-muted-foreground">SKU</dt>
+                    <dd className="font-medium font-mono text-sm">{product.sku}</dd>
+                  </div>
+                )}
                 {product.category && (
                   <div className="flex justify-between">
                     <dt className="text-muted-foreground">
@@ -268,8 +321,75 @@ export default function ProductDetail() {
                     <dd className="font-medium">{product.collection}</dd>
                   </div>
                 )}
+                {product.material && (
+                  <div className="flex justify-between">
+                    <dt className="text-muted-foreground">
+                      {language === 'en' ? 'Material' : 'Material'}
+                    </dt>
+                    <dd className="font-medium">{product.material}</dd>
+                  </div>
+                )}
+                {product.dimensions && (
+                  <div className="flex justify-between">
+                    <dt className="text-muted-foreground">
+                      {language === 'en' ? 'Dimensions' : 'Dimensões'}
+                    </dt>
+                    <dd className="font-medium">{product.dimensions}</dd>
+                  </div>
+                )}
+                {product.weight && (
+                  <div className="flex justify-between">
+                    <dt className="text-muted-foreground">
+                      {language === 'en' ? 'Weight' : 'Peso'}
+                    </dt>
+                    <dd className="font-medium">{product.weight} kg</dd>
+                  </div>
+                )}
+                {product.colors && (
+                  <div className="flex justify-between">
+                    <dt className="text-muted-foreground">
+                      {language === 'en' ? 'Colors' : 'Cores'}
+                    </dt>
+                    <dd className="font-medium">
+                      {(() => {
+                        try {
+                          const colors = JSON.parse(product.colors);
+                          return Array.isArray(colors) ? colors.join(', ') : product.colors;
+                        } catch {
+                          return product.colors;
+                        }
+                      })()}
+                    </dd>
+                  </div>
+                )}
               </dl>
             </div>
+
+            {/* Care Instructions */}
+            {(product.careInstructionsEN || product.careInstructionsPT) && (
+              <div className="mt-8 border-t pt-8">
+                <h3 className="font-semibold mb-4">
+                  {language === 'en' ? 'Care Instructions' : 'Instruções de Cuidado'}
+                </h3>
+                <p className="text-muted-foreground whitespace-pre-line">
+                  {language === 'en' ? product.careInstructionsEN : product.careInstructionsPT}
+                </p>
+              </div>
+            )}
+
+            {/* Full Description */}
+            {(product.descriptionEN_full || product.descriptionPT_full) && (
+              <div className="mt-8 border-t pt-8">
+                <h3 className="font-semibold mb-4">
+                  {language === 'en' ? 'Full Description' : 'Descrição Completa'}
+                </h3>
+                <div className="prose prose-sm max-w-none text-muted-foreground">
+                  <p className="whitespace-pre-line">
+                    {language === 'en' ? product.descriptionEN_full : product.descriptionPT_full}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
