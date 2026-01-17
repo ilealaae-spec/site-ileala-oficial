@@ -39,8 +39,7 @@ export default function Wishlist() {
       name: language === 'en' ? product.nameEN : product.namePT,
       price: product.price,
       imageUrl: product.imageUrl || product.mainImage || '',
-      quantity: 1,
-    });
+    }, 1);
     toast.success(language === 'en' ? 'Added to cart' : 'Adicionado ao carrinho');
   };
 
@@ -144,7 +143,7 @@ export default function Wishlist() {
                   </h3>
                 </Link>
                 <p className="text-sage-600 font-medium mb-4">
-                  AED {((item.product?.price || 0) / 100).toFixed(2)}
+                  AED {(item.product?.price || 0).toFixed(2)}
                 </p>
                 <div className="flex gap-2">
                   <Button

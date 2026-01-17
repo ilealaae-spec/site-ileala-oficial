@@ -934,13 +934,83 @@ export const appRouter = router({
       }))
       .query(async ({ ctx, input }) => {
         if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
-        
+
         if (input.userId) {
           return await db.getRecentLoginHistory(input.userId, input.days);
         }
-        
+
         // Get all login history (last N days)
         return await db.getAllLoginHistory(input.days);
+      }),
+
+    // Forgot password - request password reset
+    forgotPassword: publicProcedure
+      .input(z.object({
+        email: z.string().email(),
+      }))
+      .mutation(async ({ input }) => {
+        const user = await db.getUserByEmail(input.email);
+
+        if (!user) {
+          // Por segurança, não revelamos se o email existe ou não
+          // Retornamos sucesso de qualquer forma
+          console.log('[Auth] Password reset requested for non-existent email:', input.email);
+          return {
+            success: true,
+            message: 'If an account exists with this email, you will receive a password reset link.'
+          };
+        }
+
+        try {
+          // Gerar token de reset de senha
+          const token = await db.generatePasswordResetToken(user.id);
+
+          // Enviar email de reset
+          const { sendPasswordResetEmail } = await import('./email');
+          await sendPasswordResetEmail(user.email, token, user.name || 'Customer');
+
+          console.log('[Auth] Password reset email sent to:', user.email);
+          return {
+            success: true,
+            message: 'If an account exists with this email, you will receive a password reset link.'
+          };
+        } catch (error) {
+          console.error('[Auth] Failed to send password reset email:', error);
+          throw new Error('Failed to send password reset email. Please try again later.');
+        }
+      }),
+
+    // Reset password with token
+    resetPassword: publicProcedure
+      .input(z.object({
+        token: z.string(),
+        newPassword: z.string().min(6, 'Password must be at least 6 characters'),
+      }))
+      .mutation(async ({ input }) => {
+        // Verificar token e obter usuário
+        const user = await db.verifyPasswordResetToken(input.token);
+
+        if (!user) {
+          throw new Error('Invalid or expired reset link. Please request a new password reset.');
+        }
+
+        try {
+          // Hash nova senha
+          const bcrypt = await import('bcrypt');
+          const hashedPassword = await bcrypt.hash(input.newPassword, 10);
+
+          // Atualizar senha no banco
+          await db.updateUserPassword(user.id, hashedPassword);
+
+          // Invalidar o token
+          await db.invalidatePasswordResetToken(input.token);
+
+          console.log('[Auth] Password reset successful for user:', user.email);
+          return { success: true, message: 'Password updated successfully. You can now sign in with your new password.' };
+        } catch (error) {
+          console.error('[Auth] Failed to reset password:', error);
+          throw new Error('Failed to reset password. Please try again.');
+        }
       }),
   }),
 
@@ -1367,6 +1437,7 @@ export const appRouter = router({
         
         // Create order items
         for (const item of input.items) {
+          console.log('[Order] Creating order item - productId:', item.productId, 'price:', item.price, 'quantity:', item.quantity);
           await db.createOrderItem({
             orderId,
             productId: item.productId,
@@ -1789,25 +1860,41 @@ export const appRouter = router({
         }
         
         const items = await db.getOrderItems(input.orderId);
-        
-        const lineItems = items.map(item => ({
-          price_data: {
-            currency: 'aed',
-            product_data: {
-              name: item.product?.nameEN || 'Product',
-              description: item.product?.descriptionEN || undefined,
-              images: item.product?.imageUrl ? [item.product.imageUrl] : [],
-            },
-            unit_amount: Math.round(item.priceAtPurchase), // Price is already in fils (smallest currency unit)
-          },
-          quantity: item.quantity,
-        }));
-        
         const baseUrl = process.env.SITE_URL || process.env.VITE_FRONTEND_FORGE_API_URL || 'https://ileala.ae';
-        
+
+        const lineItems = items.map(item => {
+          // Price is stored in AED in the database
+          // Stripe requires the smallest currency unit (fils for AED), so multiply by 100
+          const unitAmount = Math.round(item.priceAtPurchase * 100);
+          console.log(`[Stripe] Converting price ${item.priceAtPurchase} AED to ${unitAmount} fils`);
+
+          // Ensure image URL is absolute
+          let imageUrl = item.product?.imageUrl || item.product?.mainImage;
+          if (imageUrl && !imageUrl.startsWith('http')) {
+            imageUrl = imageUrl.startsWith('/') ? `${baseUrl}${imageUrl}` : `${baseUrl}/${imageUrl}`;
+          }
+
+          return {
+            price_data: {
+              currency: 'aed',
+              product_data: {
+                name: item.product?.nameEN || 'Product',
+                description: item.product?.descriptionEN || undefined,
+                images: imageUrl ? [imageUrl] : [],
+              },
+              unit_amount: unitAmount,
+            },
+            quantity: item.quantity,
+          };
+        });
+
         if (!stripe) {
           throw new Error('Stripe is not configured. Please set STRIPE_SECRET_KEY environment variable.');
         }
+
+        console.log('[Stripe] Creating checkout session for order:', input.orderId);
+        console.log('[Stripe] Line items:', JSON.stringify(lineItems, null, 2));
+        console.log('[Stripe] URLs - success:', `${baseUrl}/order-confirmation/${input.orderId}`, 'cancel:', `${baseUrl}/checkout`);
 
         const session = await stripe.checkout.sessions.create({
           line_items: lineItems,
@@ -1819,7 +1906,14 @@ export const appRouter = router({
           },
         });
 
-        return { sessionId: session.id, url: session.url || '' };
+        console.log('[Stripe] Session created:', session.id, 'URL:', session.url);
+
+        if (!session.url) {
+          console.error('[Stripe] Session created but no URL returned!');
+          throw new Error('Stripe session created but no checkout URL was returned');
+        }
+
+        return { sessionId: session.id, url: session.url };
       }),
     verifyPayment: protectedProcedure
       .input(z.object({

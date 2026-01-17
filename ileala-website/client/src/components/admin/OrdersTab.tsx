@@ -63,7 +63,8 @@ export default function OrdersTab() {
   };
 
   const formatPrice = (price: number) => {
-    return `${(price / 100).toFixed(2)} AED`;
+    // Price is stored directly in AED (not fils)
+    return `${price.toFixed(2)} AED`;
   };
 
   if (isLoading) {

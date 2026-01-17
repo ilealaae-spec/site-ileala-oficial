@@ -152,8 +152,8 @@ export default function ProductsTab() {
       descriptionPT: product.descriptionPT || '',
       descriptionEN_full: product.descriptionEN_full || '',
       descriptionPT_full: product.descriptionPT_full || '',
-      price: (product.price / 100).toString(),
-      salePrice: product.salePrice ? (product.salePrice / 100).toString() : '',
+      price: product.price.toString(),
+      salePrice: product.salePrice ? product.salePrice.toString() : '',
       imageUrl: product.imageUrl || '',
       mainImage: product.mainImage || '',
       mainImageAlt: product.mainImageAlt || '',
@@ -189,8 +189,9 @@ export default function ProductsTab() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const priceInFils = Math.round(parseFloat(formData.price) * 100);
-    const salePriceInFils = formData.salePrice ? Math.round(parseFloat(formData.salePrice) * 100) : undefined;
+    // Price is stored directly in AED (not fils)
+    const priceInAED = parseFloat(formData.price);
+    const salePriceInAED = formData.salePrice ? parseFloat(formData.salePrice) : undefined;
     
     // Generate slug from nameEN
     const slug = formData.nameEN.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Date.now();
@@ -204,8 +205,8 @@ export default function ProductsTab() {
       descriptionPT: formData.descriptionPT || undefined,
       descriptionEN_full: formData.descriptionEN_full || undefined,
       descriptionPT_full: formData.descriptionPT_full || undefined,
-      price: priceInFils,
-      salePrice: salePriceInFils,
+      price: priceInAED,
+      salePrice: salePriceInAED,
       imageUrl: formData.imageUrl || undefined,
       mainImage: formData.mainImage || undefined,
       mainImageAlt: formData.mainImageAlt || undefined,
@@ -246,8 +247,8 @@ export default function ProductsTab() {
   };
 
   const formatPrice = (price: number) => {
-    const aed = price / 100;
-    return `${aed.toFixed(2)} AED`;
+    // Price is stored directly in AED
+    return `${price.toFixed(2)} AED`;
   };
 
   if (isLoading) {

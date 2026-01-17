@@ -31,7 +31,7 @@ export default function DashboardTab() {
   const stats = [
     {
       title: language === 'en' ? 'Total Revenue' : 'Receita Total',
-      value: `${(totalRevenue / 100).toFixed(2)} AED`,
+      value: `${totalRevenue.toFixed(2)} AED`,
       icon: DollarSign,
       color: 'text-green-600',
       bgColor: 'bg-green-100',
@@ -208,7 +208,7 @@ export default function DashboardTab() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold">{(data.revenue / 100).toFixed(2)} AED</p>
+                      <p className="font-semibold">{data.revenue.toFixed(2)} AED</p>
                     </div>
                   </div>
                 ))}
@@ -244,7 +244,7 @@ export default function DashboardTab() {
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold">{((order.totalAmount || 0) / 100).toFixed(2)} AED</p>
+                    <p className="font-semibold">{(order.totalAmount || 0).toFixed(2)} AED</p>
                     <span className={`text-xs px-2 py-1 rounded ${
                       order.status === 'completed' ? 'bg-green-100 text-green-700' :
                       order.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :

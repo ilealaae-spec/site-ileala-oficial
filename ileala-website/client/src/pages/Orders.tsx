@@ -68,9 +68,9 @@ export default function Orders() {
     });
   };
 
-  const formatPrice = (priceInFils: number) => {
-    const aed = priceInFils / 100;
-    return `AED ${aed.toFixed(2)}`;
+  const formatPrice = (price: number) => {
+    // Price is stored directly in AED (not fils)
+    return `AED ${price.toFixed(2)}`;
   };
 
   if (!isAuthenticated || !user) {

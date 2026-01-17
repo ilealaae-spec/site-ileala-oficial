@@ -66,19 +66,17 @@ export default function CategoryPage() {
     );
   }
 
-  // Format price: database stores price in fils (1 AED = 100 fils)
-  const formatPrice = (priceInFils: number) => {
-    const priceInAED = priceInFils / 100;
-    return `${priceInAED.toFixed(2)} AED`;
+  // Format price: database stores price directly in AED
+  const formatPrice = (price: number) => {
+    return `${price.toFixed(2)} AED`;
   };
 
   const handleAddToCart = (product: any) => {
-    const priceInAED = product.price / 100; // Convert from fils to AED
     addItem({
-      id: String(product.id),
+      id: product.id,
       name: language === 'en' ? product.nameEN : product.namePT,
-      price: priceInAED,
-      image: product.imageUrl || undefined,
+      price: product.price,
+      imageUrl: product.imageUrl || undefined,
       slug: product.slug,
     });
   };

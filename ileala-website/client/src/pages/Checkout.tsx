@@ -1,4 +1,5 @@
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/_core/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -6,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { trpc } from '@/lib/trpc';
 import { useLocation } from 'wouter';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Lock, UserPlus, LogIn } from 'lucide-react';
 import { toast } from 'sonner';
 import { useState } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
@@ -15,6 +16,7 @@ const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 
 
 export default function Checkout() {
   const { language } = useLanguage();
+  const { isAuthenticated, user } = useAuth();
   const [, setLocation] = useLocation();
   const [customerName, setCustomerName] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
@@ -50,8 +52,8 @@ export default function Checkout() {
   const createCheckoutMutation = trpc.payment.createCheckoutSession.useMutation();
 
   const formatPrice = (price: number) => {
-    const aed = price / 100;
-    return `${aed.toFixed(2)} AED`;
+    // Price is stored directly in AED (not fils)
+    return `${price.toFixed(2)} AED`;
   };
 
   const calculateTotal = () => {
@@ -64,22 +66,20 @@ export default function Checkout() {
     }, 0);
   };
 
-  const calculateVAT = () => {
+  // VAT is already included in the price (5%)
+  // To show the VAT amount from an inclusive price: VAT = price * 5 / 105
+  const calculateIncludedVAT = () => {
     const total = calculateTotal();
-    return total * 0.05; // 5% VAT
+    return total * 5 / 105;
   };
 
   const calculateGrandTotal = () => {
     const subtotal = calculateTotal();
-    const vat = calculateVAT();
     const discount = appliedCoupon?.discount || 0;
-    return subtotal + vat - discount;
+    return subtotal - discount; // VAT already included, no need to add
   };
 
-  const validateCouponMutation = trpc.coupons.validate.useQuery(
-    { code: couponCode, orderTotal: calculateTotal() },
-    { enabled: false }
-  );
+  const validateCouponMutation = trpc.coupons.validate.useMutation();
 
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) {
@@ -88,13 +88,16 @@ export default function Checkout() {
     }
 
     try {
-      const result = await validateCouponMutation.refetch();
-      if (result.data?.valid) {
-        setAppliedCoupon({ code: couponCode, discount: result.data.discount || 0 });
+      const result = await validateCouponMutation.mutateAsync({
+        code: couponCode,
+        orderTotal: calculateTotal(),
+      });
+      if (result.valid) {
+        setAppliedCoupon({ code: couponCode, discount: result.discount || 0 });
         setCouponError('');
         toast.success(language === 'en' ? 'Coupon applied!' : 'Cupom aplicado!');
       } else {
-        setCouponError(result.data?.message || (language === 'en' ? 'Invalid coupon' : 'Cupom inválido'));
+        setCouponError(result.message || (language === 'en' ? 'Invalid coupon' : 'Cupom inválido'));
         setAppliedCoupon(null);
       }
     } catch (error) {
@@ -146,6 +149,54 @@ export default function Checkout() {
   if (!cartItems || cartItems.length === 0) {
     setLocation('/cart');
     return null;
+  }
+
+  // Verificar autenticação - login obrigatório para checkout
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-sage-50 flex items-center justify-center px-4 py-12">
+        <Card className="max-w-md w-full p-8 text-center">
+          <div className="w-16 h-16 mx-auto bg-primary/10 rounded-full flex items-center justify-center mb-6">
+            <Lock className="w-8 h-8 text-primary" />
+          </div>
+          <h1 className="text-2xl font-display text-sage-900 mb-3">
+            {language === 'en' ? 'Account Required' : 'Conta Necessária'}
+          </h1>
+          <p className="text-sage-600 mb-6">
+            {language === 'en'
+              ? 'To complete your purchase, please sign in to your account or create a new one. This helps us track your order and provide better support.'
+              : 'Para finalizar sua compra, por favor entre na sua conta ou crie uma nova. Isso nos ajuda a rastrear seu pedido e oferecer melhor suporte.'}
+          </p>
+
+          <div className="space-y-3">
+            <Button
+              onClick={() => setLocation('/login?redirect=/checkout')}
+              className="w-full"
+              style={{ backgroundColor: '#4A7C59', color: '#ffffff' }}
+            >
+              <LogIn className="w-4 h-4 mr-2" />
+              {language === 'en' ? 'Sign In' : 'Entrar'}
+            </Button>
+            <Button
+              onClick={() => setLocation('/register?redirect=/checkout')}
+              variant="outline"
+              className="w-full"
+            >
+              <UserPlus className="w-4 h-4 mr-2" />
+              {language === 'en' ? 'Create Account' : 'Criar Conta'}
+            </Button>
+          </div>
+
+          <div className="mt-6 pt-6 border-t">
+            <p className="text-sm text-sage-500">
+              {language === 'en'
+                ? 'Your cart items will be saved while you sign in.'
+                : 'Os itens do seu carrinho serão salvos enquanto você faz login.'}
+            </p>
+          </div>
+        </Card>
+      </div>
+    );
   }
 
   return (
@@ -312,9 +363,9 @@ export default function Checkout() {
                           type="button"
                           variant="outline"
                           onClick={handleApplyCoupon}
-                          disabled={validateCouponMutation.isFetching}
+                          disabled={validateCouponMutation.isPending}
                         >
-                          {validateCouponMutation.isFetching ? (
+                          {validateCouponMutation.isPending ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
                           ) : (
                             language === 'en' ? 'Apply' : 'Aplicar'
@@ -351,18 +402,6 @@ export default function Checkout() {
                 </div>
 
                 <div className="space-y-2 border-t pt-4 mb-6">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">
-                      {language === 'en' ? 'Subtotal' : 'Subtotal'}
-                    </span>
-                    <span className="font-semibold">{formatPrice(calculateTotal())}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">
-                      {language === 'en' ? 'VAT (5%)' : 'IVA (5%)'}
-                    </span>
-                    <span className="font-semibold">{formatPrice(calculateVAT())}</span>
-                  </div>
                   {appliedCoupon && (
                     <div className="flex justify-between text-green-600">
                       <span className="font-medium">
@@ -371,15 +410,18 @@ export default function Checkout() {
                       <span className="font-semibold">-{formatPrice(appliedCoupon.discount)}</span>
                     </div>
                   )}
-                  <div className="border-t pt-2">
-                    <div className="flex justify-between text-lg">
-                      <span className="font-bold">
-                        {language === 'en' ? 'Total' : 'Total'}
-                      </span>
-                      <span className="font-bold text-primary text-xl">
-                        {formatPrice(calculateGrandTotal())}
-                      </span>
-                    </div>
+                  <div className="flex justify-between text-lg">
+                    <span className="font-bold">
+                      {language === 'en' ? 'Total' : 'Total'}
+                    </span>
+                    <span className="font-bold text-primary text-xl">
+                      {formatPrice(calculateGrandTotal())}
+                    </span>
+                  </div>
+                  <div className="text-sm text-muted-foreground text-right">
+                    {language === 'en'
+                      ? `(Includes VAT 5%: ${formatPrice(calculateIncludedVAT())})`
+                      : `(Inclui IVA 5%: ${formatPrice(calculateIncludedVAT())})`}
                   </div>
                 </div>
 

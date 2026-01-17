@@ -164,7 +164,7 @@ export default function AdminProducts() {
       namePT: product.namePT,
       descriptionEN: product.descriptionEN || '',
       descriptionPT: product.descriptionPT || '',
-      price: (product.price / 100).toString(),
+      price: product.price.toString(),
       imageUrl: product.imageUrl || '',
       collection: product.collection || '',
       category: product.category || '',
@@ -624,7 +624,7 @@ export default function AdminProducts() {
                 {product.collection}
               </p>
               <p className="text-lg font-bold text-primary mb-2">
-                {(product.price / 100).toFixed(2)} AED
+                {product.price.toFixed(2)} AED
               </p>
               <p className="text-sm text-muted-foreground mb-4">
                 {language === 'en' ? 'Stock' : 'Estoque'}: {product.stock}

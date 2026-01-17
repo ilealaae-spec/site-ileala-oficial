@@ -103,18 +103,41 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [isAuthenticated, serverCart, localItems]);
 
   const addItem = useCallback((item: Omit<CartItem, 'quantity'>, quantity: number = 1) => {
+    console.log('[Cart] Adding item:', item.id, 'isAuthenticated:', isAuthenticated, 'authLoading:', authLoading);
+
+    // If auth is still loading, add to local cart temporarily
+    if (authLoading) {
+      console.log('[Cart] Auth loading, adding to local cart');
+      setLocalItems((prevItems) => {
+        const existingItem = prevItems.find((i) => i.id === item.id);
+        if (existingItem) {
+          return prevItems.map((i) =>
+            i.id === item.id ? { ...i, quantity: i.quantity + quantity } : i
+          );
+        } else {
+          return [...prevItems, { ...item, quantity }];
+        }
+      });
+      toast.success('Item added to cart');
+      return;
+    }
+
     if (isAuthenticated) {
       // Add to server cart
+      console.log('[Cart] Adding to server cart');
       addMutation.mutate({ productId: item.id, quantity }, {
         onSuccess: () => {
+          console.log('[Cart] Successfully added to server cart');
           toast.success('Item added to cart');
         },
-        onError: () => {
+        onError: (error) => {
+          console.error('[Cart] Failed to add to server cart:', error);
           toast.error('Failed to add item');
         },
       });
     } else {
       // Add to local cart
+      console.log('[Cart] Adding to local cart (not authenticated)');
       setLocalItems((prevItems) => {
         const existingItem = prevItems.find((i) => i.id === item.id);
 
@@ -130,7 +153,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       });
       toast.success('Item added to cart');
     }
-  }, [isAuthenticated, addMutation]);
+  }, [isAuthenticated, authLoading, addMutation]);
 
   const removeItem = useCallback((id: number) => {
     if (isAuthenticated && serverCart) {

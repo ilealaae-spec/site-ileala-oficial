@@ -1,25 +1,26 @@
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/_core/hooks/useAuth';
 import { useCart } from '@/contexts/CartContext';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Link } from 'wouter';
-import { Loader2, Trash2, Plus, Minus, ShoppingBag } from 'lucide-react';
+import { Loader2, Trash2, Plus, Minus, ShoppingBag, Info } from 'lucide-react';
 
 export default function Cart() {
   const { language } = useLanguage();
+  const { isAuthenticated } = useAuth();
   const { items: cartItems, removeItem, updateQuantity, totalPrice, isLoading } = useCart();
 
   const formatPrice = (price: number) => {
-    const aed = price / 100;
-    return `${aed.toFixed(2)} AED`;
+    // Price is stored directly in AED (not fils)
+    return `${price.toFixed(2)} AED`;
   };
 
-  const calculateVAT = () => {
-    return totalPrice * 0.05; // 5% VAT
-  };
-
-  const calculateGrandTotal = () => {
-    return totalPrice + calculateVAT();
+  // VAT is already included in the price (5%)
+  // To show the VAT amount from an inclusive price: VAT = price * 5 / 105
+  const calculateIncludedVAT = () => {
+    // Price is in AED directly
+    return totalPrice * 5 / 105;
   };
 
   if (isLoading) {
@@ -141,29 +142,31 @@ export default function Cart() {
               </h2>
 
               <div className="space-y-4 mb-6">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">
-                    {language === 'en' ? 'Subtotal' : 'Subtotal'}
+                <div className="flex justify-between text-lg">
+                  <span className="font-bold">
+                    {language === 'en' ? 'Total' : 'Total'}
                   </span>
-                  <span className="font-semibold">{formatPrice(totalPrice)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">
-                    {language === 'en' ? 'VAT (5%)' : 'IVA (5%)'}
+                  <span className="font-bold text-primary text-xl">
+                    {formatPrice(totalPrice)}
                   </span>
-                  <span className="font-semibold">{formatPrice(calculateVAT())}</span>
                 </div>
-                <div className="border-t pt-4">
-                  <div className="flex justify-between text-lg">
-                    <span className="font-bold">
-                      {language === 'en' ? 'Total' : 'Total'}
-                    </span>
-                    <span className="font-bold text-primary text-xl">
-                      {formatPrice(calculateGrandTotal())}
-                    </span>
-                  </div>
+                <div className="text-sm text-muted-foreground text-right">
+                  {language === 'en'
+                    ? `(Includes VAT 5%: ${formatPrice(calculateIncludedVAT())})`
+                    : `(Inclui IVA 5%: ${formatPrice(calculateIncludedVAT())})`}
                 </div>
               </div>
+
+              {!isAuthenticated && (
+                <div className="flex items-start gap-2 p-3 mb-4 bg-amber-50 border border-amber-200 rounded-lg">
+                  <Info className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-amber-800">
+                    {language === 'en'
+                      ? 'You will need to sign in or create an account to complete your purchase.'
+                      : 'Você precisará entrar ou criar uma conta para finalizar sua compra.'}
+                  </p>
+                </div>
+              )}
 
               <Link href="/checkout">
                 <Button size="lg" className="w-full mb-4">

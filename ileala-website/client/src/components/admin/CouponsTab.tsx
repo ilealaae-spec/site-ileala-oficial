@@ -143,7 +143,8 @@ export default function CouponsTab() {
     if (coupon.discountType === 'percentage') {
       return `${coupon.discountValue}%`;
     } else {
-      return `${(coupon.discountValue / 100).toFixed(2)} AED`;
+      // Fixed discount is stored directly in AED
+      return `${coupon.discountValue.toFixed(2)} AED`;
     }
   };
 
@@ -200,7 +201,7 @@ export default function CouponsTab() {
                     
                     {coupon.minPurchaseAmount > 0 && (
                       <p className="text-muted-foreground">
-                        {language === 'en' ? 'Min:' : 'Mín:'} {(coupon.minPurchaseAmount / 100).toFixed(2)} AED
+                        {language === 'en' ? 'Min:' : 'Mín:'} {coupon.minPurchaseAmount.toFixed(2)} AED
                       </p>
                     )}
                     

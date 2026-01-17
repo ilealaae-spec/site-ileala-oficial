@@ -310,7 +310,7 @@ export default function AdminCoupons() {
                 <p className="text-sm text-muted-foreground">
                   {coupon.discountType === 'percentage'
                     ? `${coupon.discountValue}% ${language === 'en' ? 'OFF' : 'DE DESCONTO'}`
-                    : `${(coupon.discountValue / 100).toFixed(2)} AED ${language === 'en' ? 'OFF' : 'DE DESCONTO'}`}
+                    : `${coupon.discountValue.toFixed(2)} AED ${language === 'en' ? 'OFF' : 'DE DESCONTO'}`}
                 </p>
               </div>
               <Button
@@ -330,7 +330,7 @@ export default function AdminCoupons() {
               {coupon.minPurchaseAmount > 0 && (
                 <p>
                   <strong>{language === 'en' ? 'Min. Purchase:' : 'Compra Mín.:'}</strong>{' '}
-                  {(coupon.minPurchaseAmount / 100).toFixed(2)} AED
+                  {coupon.minPurchaseAmount.toFixed(2)} AED
                 </p>
               )}
               <p>

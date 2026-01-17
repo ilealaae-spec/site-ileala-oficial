@@ -114,7 +114,9 @@ export default function ForgotPassword() {
 
           {forgotPasswordMutation.error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-              {forgotPasswordMutation.error.message}
+              {language === 'en'
+                ? 'Failed to send reset link. Please try again later.'
+                : 'Falha ao enviar link de recuperação. Tente novamente mais tarde.'}
             </div>
           )}
 

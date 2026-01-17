@@ -34,10 +34,9 @@ export default function CollectionPage() {
   const loading = productsQuery.isLoading;
   const queryError = productsQuery.error;
 
-  // Format price: database stores price in fils (1 AED = 100 fils)
-  const formatPrice = (priceInFils: number) => {
-    const priceInAED = priceInFils / 100;
-    return `${priceInAED.toFixed(2)} AED`;
+  // Format price: database stores price directly in AED
+  const formatPrice = (price: number) => {
+    return `${price.toFixed(2)} AED`;
   };
 
   // Get product name based on language
@@ -56,16 +55,15 @@ export default function CollectionPage() {
 
   const handleAddToCart = (product: any) => {
     const productName = getProductName(product);
-    const priceInAED = product.price / 100;
-    
+
     addItem({
-      id: String(product.id),
+      id: product.id,
       name: productName,
-      price: priceInAED,
-      image: product.imageUrl || undefined,
+      price: product.price,
+      imageUrl: product.imageUrl || undefined,
       slug: product.slug,
     });
-    
+
     toast.success(
       language === "en"
         ? `${productName} added to cart!`

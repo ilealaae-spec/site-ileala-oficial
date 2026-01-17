@@ -13,8 +13,8 @@ export default function OrderConfirmation() {
   const { data: order, isLoading } = trpc.orders.byId.useQuery({ id: orderId });
 
   const formatPrice = (price: number) => {
-    const aed = price / 100;
-    return `${aed.toFixed(2)} AED`;
+    // Price is stored directly in AED (not fils)
+    return `${price.toFixed(2)} AED`;
   };
 
   if (isLoading) {

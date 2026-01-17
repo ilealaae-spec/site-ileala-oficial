@@ -33,10 +33,9 @@ export default function HomeAccents() {
     );
   });
 
-  // Format price: database stores price in fils (1 AED = 100 fils)
-  const formatPrice = (priceInFils: number) => {
-    const priceInAED = priceInFils / 100;
-    return `${priceInAED.toFixed(2)} AED`;
+  // Format price: database stores price directly in AED
+  const formatPrice = (price: number) => {
+    return `${price.toFixed(2)} AED`;
   };
 
   // Get product name based on language
@@ -151,8 +150,6 @@ export default function HomeAccents() {
               {filteredProducts.map((product: any) => {
                 const productName = getProductName(product);
                 const productDescription = getProductDescription(product);
-                const priceInAED = product.price / 100; // Convert from fils to AED
-                
                 return (
                   <Card key={product.id} className="overflow-hidden group">
                     <Link href={`/shop/${product.slug}`}>
@@ -204,10 +201,10 @@ export default function HomeAccents() {
                           disabled={product.stock === 0}
                           onClick={() => {
                             addItem({
-                              id: String(product.id),
+                              id: product.id,
                               name: productName,
-                              price: priceInAED,
-                              image: product.imageUrl || undefined,
+                              price: product.price,
+                              imageUrl: product.imageUrl || undefined,
                               slug: product.slug,
                             });
                             toast.success(

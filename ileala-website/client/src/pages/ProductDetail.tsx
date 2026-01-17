@@ -1,21 +1,23 @@
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useCart } from '@/contexts/CartContext';
 import { Button } from '@/components/ui/button';
 import { trpc } from '@/lib/trpc';
 import { useRoute, Link } from 'wouter';
 import { ShoppingCart, Loader2, ArrowLeft, Plus, Minus } from 'lucide-react';
-import { toast } from 'sonner';
 import { useState, useEffect } from 'react';
 import SEO from '@/components/SEO';
 import LazyImage from '@/components/LazyImage';
 
 export default function ProductDetail() {
   const { language } = useLanguage();
+  const { addItem } = useCart();
   const [, paramsById] = useRoute('/product/:id');
   const [, paramsBySlug] = useRoute('/shop/:slug');
-  
+
   const slug = paramsBySlug?.slug;
   const productId = paramsById?.id ? parseInt(paramsById.id) : 0;
   const [quantity, setQuantity] = useState(1);
+  const [isAdding, setIsAdding] = useState(false);
 
   // Try to fetch by slug first, fallback to ID
   const productBySlugQuery = trpc.products.bySlug.useQuery(
@@ -29,29 +31,25 @@ export default function ProductDetail() {
 
   const product: any = slug ? productBySlugQuery.data : productByIdQuery.data;
   const isLoading = slug ? productBySlugQuery.isLoading : productByIdQuery.isLoading;
-  const addToCartMutation = trpc.cart.add.useMutation({
-    onSuccess: () => {
-      toast.success(language === 'en' ? 'Added to cart!' : 'Adicionado ao carrinho!');
-      setQuantity(1);
-    },
-    onError: (error) => {
-      if (error.message.includes('Not authenticated')) {
-        toast.error(language === 'en' ? 'Please login to add items to cart' : 'Faça login para adicionar itens ao carrinho');
-      } else {
-        toast.error(language === 'en' ? 'Failed to add to cart' : 'Falha ao adicionar ao carrinho');
-      }
-    },
-  });
 
   const handleAddToCart = () => {
     if (product) {
-      addToCartMutation.mutate({ productId: product.id, quantity });
+      setIsAdding(true);
+      addItem({
+        id: product.id,
+        name: language === 'en' ? product.nameEN : product.namePT,
+        price: product.price,
+        imageUrl: product.imageUrl || product.mainImage || '',
+        slug: product.slug,
+      }, quantity);
+      setQuantity(1);
+      setTimeout(() => setIsAdding(false), 500);
     }
   };
 
   const formatPrice = (price: number) => {
-    const aed = price / 100;
-    return `${aed.toFixed(2)} AED`;
+    // Price is stored directly in AED (not fils)
+    return `${price.toFixed(2)} AED`;
   };
 
   const incrementQuantity = () => {
@@ -84,7 +82,7 @@ export default function ProductDetail() {
         '@type': 'Offer',
         url: typeof window !== 'undefined' ? window.location.href : '',
         priceCurrency: 'AED',
-        price: (product.price / 100).toFixed(2),
+        price: product.price.toFixed(2),
         availability: product.stock > 0 
           ? 'https://schema.org/InStock' 
           : 'https://schema.org/OutOfStock',
@@ -239,7 +237,7 @@ export default function ProductDetail() {
               size="lg"
               className="w-full mb-4"
               onClick={handleAddToCart}
-              disabled={addToCartMutation.isPending || product.stock === 0}
+              disabled={isAdding || product.stock === 0}
             >
               <ShoppingCart className="w-5 h-5 mr-2" />
               {product.stock === 0

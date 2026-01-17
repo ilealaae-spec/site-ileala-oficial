@@ -27,7 +27,8 @@ export default function AdminOrders() {
   });
 
   const formatPrice = (price: number) => {
-    return `${(price / 100).toFixed(2)} AED`;
+    // Price is stored directly in AED
+    return `${price.toFixed(2)} AED`;
   };
 
   const formatDate = (date: Date) => {
