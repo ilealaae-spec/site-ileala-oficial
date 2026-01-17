@@ -1935,12 +1935,36 @@ export const appRouter = router({
         }
 
         const session = await stripe.checkout.sessions.retrieve(input.sessionId);
-        
+
         if (session.payment_status === 'paid' && session.metadata?.orderId) {
           const orderId = parseInt(session.metadata.orderId);
           await db.updateOrderPaymentStatus(orderId, 'paid');
+
+          // Send order confirmation email
+          try {
+            const order = await db.getOrderById(orderId);
+            if (order && order.customerEmail) {
+              const orderItems = await db.getOrderItems(orderId);
+              const { sendOrderConfirmationEmail } = await import('./email');
+              await sendOrderConfirmationEmail(
+                order.customerEmail,
+                order.customerName || 'Customer',
+                orderId,
+                order.total,
+                orderItems.map((item: any) => ({
+                  name: item.product?.nameEN || 'Product',
+                  quantity: item.quantity,
+                  price: item.priceAtPurchase,
+                }))
+              );
+              console.log('[Payment] Order confirmation email sent for order:', orderId);
+            }
+          } catch (emailError) {
+            // Don't fail payment verification if email fails
+            console.error('[Payment] Failed to send order confirmation email:', emailError);
+          }
         }
-        
+
         return {
           paymentStatus: session.payment_status,
           orderId: session.metadata?.orderId,
