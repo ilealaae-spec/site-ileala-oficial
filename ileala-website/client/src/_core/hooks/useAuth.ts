@@ -56,13 +56,6 @@ export function useAuth(options?: UseAuthOptions) {
     logoutMutation.isPending,
   ]);
 
-  // Store user info in localStorage (outside of useMemo to avoid side effects)
-  useEffect(() => {
-    if (meQuery.data !== undefined) {
-      localStorage.setItem("manus-runtime-user-info", JSON.stringify(meQuery.data));
-    }
-  }, [meQuery.data]);
-
   useEffect(() => {
     if (!redirectOnUnauthenticated) return;
     if (meQuery.isLoading || logoutMutation.isPending) return;

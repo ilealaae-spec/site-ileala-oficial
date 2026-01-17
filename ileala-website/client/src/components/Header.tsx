@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/_core/hooks/useAuth';
-import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -17,12 +17,7 @@ import { Globe, ShoppingCart, Instagram, Facebook, User, LogOut, Package, Shield
 
 export default function Header() {
   const { language, setLanguage } = useLanguage();
-  const { data: cartItems } = trpc.cart.items.useQuery(undefined, {
-    refetchOnWindowFocus: false,
-    staleTime: 30000, // 30 seconds
-    retry: false,
-  });
-  const totalItems = cartItems?.reduce((sum, item) => sum + item.quantity, 0) ?? 0;
+  const { totalItems } = useCart();
   const { user, isAuthenticated, logout } = useAuth();
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
