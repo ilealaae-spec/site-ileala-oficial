@@ -1,10 +1,10 @@
 import { useAuth } from '@/_core/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { useLocation } from 'wouter';
-import { 
+import {
   Loader2, Mail, Shield, Lock, Eye, EyeOff,
   LayoutDashboard, Users, Package, ShoppingCart, Palette, FileText, Image,
-  LogOut, Search, Bell, User, FolderOpen, Ticket, Settings
+  LogOut, Search, Bell, User, FolderOpen, Ticket, Settings, Send
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
@@ -36,10 +36,12 @@ import CollectionsTab from '@/components/admin/CollectionsTab';
 import CouponsTab from '@/components/admin/CouponsTab';
 import SettingsTab from '@/components/admin/SettingsTab';
 import SecurityTab from '@/components/admin/SecurityTab';
+import EmailMarketingTab from '@/components/admin/EmailMarketingTab';
 
 const tabs = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { id: "newsletter", label: "Newsletter", icon: Mail },
+  { id: "email-marketing", label: "Email Marketing", icon: Send },
   { id: "users", label: "Users", icon: Users },
   { id: "products", label: "Products", icon: Package },
   { id: "categories", label: "Categories", icon: FolderOpen },
@@ -214,6 +216,12 @@ export default function Admin() {
         return (
           <ErrorBoundary>
             <NewsletterTab />
+          </ErrorBoundary>
+        );
+      case 'email-marketing':
+        return (
+          <ErrorBoundary>
+            <EmailMarketingTab />
           </ErrorBoundary>
         );
       case 'users':

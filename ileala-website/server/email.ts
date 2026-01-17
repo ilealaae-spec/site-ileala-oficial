@@ -480,7 +480,7 @@ export async function sendEmail(to: string, subject: string, html: string) {
   logger.debug(`[Email] Subject: ${subject}`);
   logger.debug(`[Email] FROM: ${FROM_EMAIL}`);
   logger.debug(`[Email] Resend API Key configured: ${!!process.env.RESEND_API_KEY}`);
-  
+
   try {
     const result = await getResend().emails.send({
       from: FROM_EMAIL,
@@ -488,7 +488,7 @@ export async function sendEmail(to: string, subject: string, html: string) {
       subject,
       html,
     });
-    
+
     logger.info(`[Email] Email sent successfully to ${to}`);
     logger.debug(`[Email] Resend API response:`, JSON.stringify(result));
     return true;
@@ -497,6 +497,79 @@ export async function sendEmail(to: string, subject: string, html: string) {
     if (error instanceof Error) {
       logger.error('[Email] Error details:', { message: error.message, stack: error.stack });
     }
+    return false;
+  }
+}
+
+/**
+ * Send a marketing campaign email
+ * Returns success/failure for tracking
+ */
+export async function sendCampaignEmail(
+  to: string,
+  recipientName: string | null,
+  subject: string,
+  content: string
+): Promise<boolean> {
+  const siteUrl = getSiteUrl();
+  const displayName = recipientName || 'Valued Customer';
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>${subject}</title>
+      </head>
+      <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
+        <div style="background: linear-gradient(135deg, #8B9D83 0%, #6B7D63 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+          <h1 style="color: white; margin: 0; font-size: 28px;">ILE ALA</h1>
+        </div>
+
+        <div style="background: #ffffff; padding: 40px; border: 1px solid #e0e0e0; border-top: none;">
+          <p style="color: #666; font-size: 14px; margin-bottom: 20px;">Hello ${displayName},</p>
+
+          <div style="color: #333; font-size: 15px; line-height: 1.8;">
+            ${content}
+          </div>
+
+          <div style="text-align: center; margin: 30px 0;">
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">
+              <tr>
+                <td style="background: #8B9D83; border-radius: 5px; text-align: center;">
+                  <a href="${siteUrl}/shop" style="display: block; padding: 14px 30px; color: #ffffff; text-decoration: none; font-weight: bold; font-size: 16px; border-radius: 5px;">
+                    Shop Now
+                  </a>
+                </td>
+              </tr>
+            </table>
+          </div>
+        </div>
+
+        <div style="background: #f9f9f9; padding: 20px; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 10px 10px;">
+          <p style="color: #999; font-size: 12px; margin: 0; text-align: center;">
+            You're receiving this email because you subscribed to ILE ALA updates.
+          </p>
+          <p style="color: #999; font-size: 12px; margin: 10px 0 0; text-align: center;">
+            © ${new Date().getFullYear()} ILE ALA. All rights reserved.
+          </p>
+        </div>
+      </body>
+    </html>
+  `;
+
+  try {
+    await getResend().emails.send({
+      from: FROM_EMAIL,
+      to,
+      subject,
+      html,
+    });
+    logger.info(`[Campaign] Email sent to ${to}`);
+    return true;
+  } catch (error) {
+    logger.error(`[Campaign] Failed to send email to ${to}:`, error);
     return false;
   }
 }

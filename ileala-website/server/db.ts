@@ -2,7 +2,7 @@ import { eq, sql, and } from 'drizzle-orm';
 // Newsletter fix: omit name field if undefined - Build v2
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import { InsertUser, users, products, Product, InsertProduct, orders, Order, InsertOrder, orderItems, OrderItem, InsertOrderItem, cartItems, CartItem, InsertCartItem, coupons, Coupon, InsertCoupon, newsletter, Newsletter, InsertNewsletter, categories, Category, InsertCategory, collections, Collection, InsertCollection, siteSettings, SiteSetting, InsertSiteSetting, auditLogs, AuditLog, InsertAuditLog, wishlist, WishlistItem, InsertWishlistItem } from "../drizzle/schema";
+import { InsertUser, users, products, Product, InsertProduct, orders, Order, InsertOrder, orderItems, OrderItem, InsertOrderItem, cartItems, CartItem, InsertCartItem, coupons, Coupon, InsertCoupon, newsletter, Newsletter, InsertNewsletter, categories, Category, InsertCategory, collections, Collection, InsertCollection, siteSettings, SiteSetting, InsertSiteSetting, auditLogs, AuditLog, InsertAuditLog, wishlist, WishlistItem, InsertWishlistItem, emailCampaigns, EmailCampaign, InsertEmailCampaign } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { logger } from './_core/logger';
 
@@ -1814,4 +1814,77 @@ export async function clearWishlist(userId: number) {
   if (!db) throw new Error("Database not available");
 
   await db.delete(wishlist).where(eq(wishlist.userId, userId));
+}
+
+// ===== EMAIL CAMPAIGNS =====
+
+export async function createEmailCampaign(campaign: InsertEmailCampaign) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const result = await db.insert(emailCampaigns)
+    .values(campaign)
+    .returning();
+
+  return result[0];
+}
+
+export async function updateEmailCampaign(id: number, updates: Partial<InsertEmailCampaign>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const result = await db.update(emailCampaigns)
+    .set({ ...updates, updatedAt: new Date() })
+    .where(eq(emailCampaigns.id, id))
+    .returning();
+
+  return result[0];
+}
+
+export async function getEmailCampaigns() {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return await db.select()
+    .from(emailCampaigns)
+    .orderBy(sql`${emailCampaigns.createdAt} DESC`);
+}
+
+export async function getEmailCampaignById(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const result = await db.select()
+    .from(emailCampaigns)
+    .where(eq(emailCampaigns.id, id));
+
+  return result[0] || null;
+}
+
+export async function deleteEmailCampaign(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db.delete(emailCampaigns).where(eq(emailCampaigns.id, id));
+}
+
+export async function getEmailRecipients(type: string): Promise<Array<{ email: string; name: string | null }>> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  if (type === 'newsletter') {
+    // Get active newsletter subscribers
+    const subscribers = await db.select({ email: newsletter.email, name: newsletter.name })
+      .from(newsletter)
+      .where(eq(newsletter.active, 1));
+    return subscribers;
+  } else if (type === 'all_customers') {
+    // Get all users with verified emails
+    const customers = await db.select({ email: users.email, name: users.name })
+      .from(users)
+      .where(eq(users.emailVerified, 1));
+    return customers;
+  }
+
+  return [];
 }

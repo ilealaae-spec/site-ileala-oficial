@@ -336,3 +336,22 @@ export const wishlist = pgTable("wishlist", {
 
 export type WishlistItem = typeof wishlist.$inferSelect;
 export type InsertWishlistItem = typeof wishlist.$inferInsert;
+
+// Email Campaigns table - for marketing emails
+export const emailCampaigns = pgTable("email_campaigns", {
+  id: serial("id").primaryKey(),
+  subject: varchar("subject", { length: 255 }).notNull(),
+  content: text("content").notNull(), // HTML content
+  recipientType: varchar("recipientType", { length: 50 }).notNull(), // 'newsletter', 'all_customers', 'specific'
+  recipientCount: integer("recipientCount").default(0).notNull(),
+  sentCount: integer("sentCount").default(0).notNull(),
+  failedCount: integer("failedCount").default(0).notNull(),
+  status: varchar("status", { length: 20 }).default("draft").notNull(), // draft, sending, sent, failed
+  sentBy: integer("sentBy").references(() => users.id),
+  sentAt: timestamp("sentAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+
+export type EmailCampaign = typeof emailCampaigns.$inferSelect;
+export type InsertEmailCampaign = typeof emailCampaigns.$inferInsert;

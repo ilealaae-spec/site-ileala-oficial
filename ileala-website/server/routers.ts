@@ -1066,6 +1066,141 @@ export const appRouter = router({
       }),
   }),
 
+  // Email Campaigns router (Marketing)
+  emailCampaigns: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+      return await db.getEmailCampaigns();
+    }),
+
+    getById: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input, ctx }) => {
+        if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+        return await db.getEmailCampaignById(input.id);
+      }),
+
+    create: protectedProcedure
+      .input(z.object({
+        subject: z.string().min(1, 'Subject is required'),
+        content: z.string().min(1, 'Content is required'),
+        recipientType: z.enum(['newsletter', 'all_customers', 'specific']),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+
+        const campaign = await db.createEmailCampaign({
+          subject: input.subject,
+          content: input.content,
+          recipientType: input.recipientType,
+          status: 'draft',
+          sentBy: ctx.user.id,
+        });
+
+        return campaign;
+      }),
+
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        subject: z.string().min(1).optional(),
+        content: z.string().min(1).optional(),
+        recipientType: z.enum(['newsletter', 'all_customers', 'specific']).optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+
+        const { id, ...updates } = input;
+        return await db.updateEmailCampaign(id, updates);
+      }),
+
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+        await db.deleteEmailCampaign(input.id);
+        return { success: true };
+      }),
+
+    getRecipientCount: protectedProcedure
+      .input(z.object({
+        recipientType: z.enum(['newsletter', 'all_customers']),
+      }))
+      .query(async ({ input, ctx }) => {
+        if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+        const recipients = await db.getEmailRecipients(input.recipientType);
+        return { count: recipients.length };
+      }),
+
+    send: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+
+        const campaign = await db.getEmailCampaignById(input.id);
+        if (!campaign) throw new Error('Campaign not found');
+        if (campaign.status === 'sent') throw new Error('Campaign already sent');
+
+        // Get recipients
+        const recipients = await db.getEmailRecipients(campaign.recipientType);
+        if (recipients.length === 0) {
+          throw new Error('No recipients found for this campaign');
+        }
+
+        // Update campaign status to sending
+        await db.updateEmailCampaign(input.id, {
+          status: 'sending',
+          recipientCount: recipients.length,
+        });
+
+        // Send emails (in background-style, but we'll track progress)
+        const { sendCampaignEmail } = await import('./email');
+        let sentCount = 0;
+        let failedCount = 0;
+
+        for (const recipient of recipients) {
+          try {
+            const success = await sendCampaignEmail(
+              recipient.email,
+              recipient.name,
+              campaign.subject,
+              campaign.content
+            );
+            if (success) {
+              sentCount++;
+            } else {
+              failedCount++;
+            }
+          } catch (error) {
+            failedCount++;
+            console.error(`[Campaign] Failed to send to ${recipient.email}:`, error);
+          }
+
+          // Small delay to avoid rate limiting (100ms between emails)
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+
+        // Update campaign with final stats
+        await db.updateEmailCampaign(input.id, {
+          status: 'sent',
+          sentCount,
+          failedCount,
+          sentAt: new Date(),
+        });
+
+        console.log(`[Campaign] Campaign ${input.id} completed: ${sentCount} sent, ${failedCount} failed`);
+
+        return {
+          success: true,
+          sentCount,
+          failedCount,
+          totalRecipients: recipients.length,
+        };
+      }),
+  }),
+
   // Products router
   products: router({
     list: publicProcedure.query(async () => {
