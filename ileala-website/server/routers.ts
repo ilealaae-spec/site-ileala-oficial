@@ -491,11 +491,21 @@ export const appRouter = router({
       }))
       .mutation(async ({ input }) => {
         const user = await db.verifyEmailToken(input.token);
-        
+
         if (!user) {
           throw new Error('Invalid or expired verification token');
         }
-        
+
+        // Send welcome email after successful verification
+        try {
+          const { sendWelcomeEmail } = await import('./email');
+          await sendWelcomeEmail(user.email, user.name || 'Customer');
+          console.log('[Auth] Welcome email sent to:', user.email);
+        } catch (error) {
+          // Don't fail verification if welcome email fails
+          console.error('[Auth] Failed to send welcome email:', error);
+        }
+
         return { success: true, user: { id: user.id, email: user.email } };
       }),
     logout: publicProcedure.mutation(({ ctx }) => {
