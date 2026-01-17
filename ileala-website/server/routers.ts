@@ -1234,6 +1234,60 @@ export const appRouter = router({
     }),
   }),
 
+  // Wishlist router
+  wishlist: router({
+    items: protectedProcedure.query(async ({ ctx }) => {
+      if (!ctx.user) throw new Error('Not authenticated');
+      return await db.getWishlistItems(ctx.user.id);
+    }),
+    add: protectedProcedure
+      .input(z.object({
+        productId: z.number().int().positive('Product ID must be a positive number'),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user) throw new Error('Not authenticated');
+        return await db.addToWishlist(ctx.user.id, input.productId);
+      }),
+    remove: protectedProcedure
+      .input(z.object({
+        productId: z.number().int().positive('Product ID must be a positive number'),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user) throw new Error('Not authenticated');
+        await db.removeFromWishlist(ctx.user.id, input.productId);
+        return { success: true };
+      }),
+    toggle: protectedProcedure
+      .input(z.object({
+        productId: z.number().int().positive('Product ID must be a positive number'),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user) throw new Error('Not authenticated');
+        const isInWishlist = await db.isInWishlist(ctx.user.id, input.productId);
+        if (isInWishlist) {
+          await db.removeFromWishlist(ctx.user.id, input.productId);
+          return { added: false };
+        } else {
+          await db.addToWishlist(ctx.user.id, input.productId);
+          return { added: true };
+        }
+      }),
+    check: protectedProcedure
+      .input(z.object({
+        productId: z.number().int().positive('Product ID must be a positive number'),
+      }))
+      .query(async ({ input, ctx }) => {
+        if (!ctx.user) return { isInWishlist: false };
+        const isInWishlist = await db.isInWishlist(ctx.user.id, input.productId);
+        return { isInWishlist };
+      }),
+    clear: protectedProcedure.mutation(async ({ ctx }) => {
+      if (!ctx.user) throw new Error('Not authenticated');
+      await db.clearWishlist(ctx.user.id);
+      return { success: true };
+    }),
+  }),
+
   // Coupons router
   coupons: router({
     validate: publicProcedure

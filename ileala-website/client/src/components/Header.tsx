@@ -3,6 +3,7 @@ import { Link, useLocation } from 'wouter';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/_core/hooks/useAuth';
+import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -21,6 +22,12 @@ export default function Header() {
   const { user, isAuthenticated, logout } = useAuth();
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Get wishlist count
+  const { data: wishlistItems } = trpc.wishlist.items.useQuery(undefined, {
+    enabled: isAuthenticated,
+  });
+  const wishlistCount = wishlistItems?.length || 0;
 
   const handleLogout = async () => {
     await logout();
@@ -170,9 +177,18 @@ export default function Header() {
             )}
 
             {/* Wishlist Icon */}
-            <Button variant="ghost" size="sm" className="h-9 w-9 p-0 hidden lg:flex">
-              <Heart className="h-4 w-4" />
-            </Button>
+            <Link href="/wishlist" className="inline-flex">
+              <Button variant="ghost" size="sm" className="relative h-9 w-9 p-0 hidden lg:flex" asChild>
+                <span>
+                  <Heart className="h-4 w-4" />
+                  {wishlistCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                      {wishlistCount}
+                    </span>
+                  )}
+                </span>
+              </Button>
+            </Link>
 
             {/* Cart */}
             <Link href="/cart" className="inline-flex">

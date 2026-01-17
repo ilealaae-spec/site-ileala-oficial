@@ -325,3 +325,14 @@ export const userSessions = pgTable("user_sessions", {
 
 export type UserSession = typeof userSessions.$inferSelect;
 export type InsertUserSession = typeof userSessions.$inferInsert;
+
+// Wishlist table - for user favorite products
+export const wishlist = pgTable("wishlist", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  productId: integer("productId").notNull().references(() => products.id, { onDelete: 'cascade' }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type WishlistItem = typeof wishlist.$inferSelect;
+export type InsertWishlistItem = typeof wishlist.$inferInsert;

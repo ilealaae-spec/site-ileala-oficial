@@ -2,7 +2,7 @@ import { eq, sql, and } from 'drizzle-orm';
 // Newsletter fix: omit name field if undefined - Build v2
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import { InsertUser, users, products, Product, InsertProduct, orders, Order, InsertOrder, orderItems, OrderItem, InsertOrderItem, cartItems, CartItem, InsertCartItem, coupons, Coupon, InsertCoupon, newsletter, Newsletter, InsertNewsletter, categories, Category, InsertCategory, collections, Collection, InsertCollection, siteSettings, SiteSetting, InsertSiteSetting, auditLogs, AuditLog, InsertAuditLog } from "../drizzle/schema";
+import { InsertUser, users, products, Product, InsertProduct, orders, Order, InsertOrder, orderItems, OrderItem, InsertOrderItem, cartItems, CartItem, InsertCartItem, coupons, Coupon, InsertCoupon, newsletter, Newsletter, InsertNewsletter, categories, Category, InsertCategory, collections, Collection, InsertCollection, siteSettings, SiteSetting, InsertSiteSetting, auditLogs, AuditLog, InsertAuditLog, wishlist, WishlistItem, InsertWishlistItem } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { logger } from './_core/logger';
 
@@ -1742,4 +1742,75 @@ export async function getAllLoginHistory(days: number = 30) {
     logger.error("[Database] Failed to get all login history:", error);
     return [];
   }
+}
+
+// ===== WISHLIST =====
+
+export async function getWishlistItems(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const items = await db.select()
+    .from(wishlist)
+    .where(eq(wishlist.userId, userId))
+    .orderBy(sql`${wishlist.createdAt} DESC`);
+
+  // Get product details for each wishlist item
+  const itemsWithProducts = await Promise.all(
+    items.map(async (item) => {
+      const product = await getProductById(item.productId);
+      return {
+        ...item,
+        product,
+      };
+    })
+  );
+
+  return itemsWithProducts;
+}
+
+export async function addToWishlist(userId: number, productId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // Check if already in wishlist
+  const existing = await db.select()
+    .from(wishlist)
+    .where(and(eq(wishlist.userId, userId), eq(wishlist.productId, productId)));
+
+  if (existing.length > 0) {
+    return existing[0]; // Already in wishlist
+  }
+
+  const result = await db.insert(wishlist)
+    .values({ userId, productId })
+    .returning();
+
+  return result[0];
+}
+
+export async function removeFromWishlist(userId: number, productId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db.delete(wishlist)
+    .where(and(eq(wishlist.userId, userId), eq(wishlist.productId, productId)));
+}
+
+export async function isInWishlist(userId: number, productId: number): Promise<boolean> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const existing = await db.select()
+    .from(wishlist)
+    .where(and(eq(wishlist.userId, userId), eq(wishlist.productId, productId)));
+
+  return existing.length > 0;
+}
+
+export async function clearWishlist(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db.delete(wishlist).where(eq(wishlist.userId, userId));
 }
