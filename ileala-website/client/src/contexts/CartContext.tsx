@@ -28,7 +28,7 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 const CART_STORAGE_KEY = 'ileala_cart';
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, loading: authLoading } = useAuth();
   const utils = trpc.useUtils();
 
   // Local state for guest cart
@@ -47,10 +47,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return [];
   });
 
-  // Server cart for authenticated users
+  // Server cart for authenticated users - only query when auth is confirmed
   const { data: serverCart, isLoading: isLoadingServer } = trpc.cart.items.useQuery(undefined, {
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && !authLoading,
     staleTime: 0,
+    retry: false,
   });
 
   // Mutations for server cart

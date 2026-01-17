@@ -303,17 +303,18 @@ export async function deleteProduct(id: number) {
 export async function getCartItems(userId: number) {
   const db = await getDb();
   if (!db) return [];
-  
+
   const items = await db
     .select({
       id: cartItems.id,
+      productId: cartItems.productId,
       quantity: cartItems.quantity,
       product: products,
     })
     .from(cartItems)
     .leftJoin(products, eq(cartItems.productId, products.id))
     .where(eq(cartItems.userId, userId));
-  
+
   return items;
 }
 
