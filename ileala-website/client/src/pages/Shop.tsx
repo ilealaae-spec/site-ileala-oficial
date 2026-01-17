@@ -9,6 +9,7 @@ import { ShoppingCart, Loader2, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { trpc } from '@/lib/trpc';
 import LazyImage from '@/components/LazyImage';
+import WishlistButton from '@/components/WishlistButton';
 
 export default function Shop() {
   const { language } = useLanguage();
@@ -157,26 +158,33 @@ export default function Shop() {
                 
                 return (
                   <Card key={product.id} className="overflow-hidden group">
-                    <Link href={`/shop/${product.slug}`}>
-                      <div className="aspect-square overflow-hidden bg-muted cursor-pointer relative">
-                        {product.imageUrl ? (
-                          <LazyImage
-                            src={product.imageUrl}
-                            alt={productName}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                            No image
-                          </div>
-                        )}
-                        {product.featured === 1 && (
-                          <div className="absolute top-2 left-2 bg-green-500 text-white px-2 py-1 text-xs font-semibold rounded">
-                            FEATURED
-                          </div>
-                        )}
-                      </div>
-                    </Link>
+                    <div className="aspect-square overflow-hidden bg-muted relative">
+                      {/* Wishlist Button */}
+                      <WishlistButton
+                        productId={product.id}
+                        className="absolute top-2 right-2 z-10 bg-white/80 hover:bg-white rounded-full shadow-sm"
+                      />
+                      <Link href={`/shop/${product.slug}`}>
+                        <div className="w-full h-full cursor-pointer">
+                          {product.imageUrl ? (
+                            <LazyImage
+                              src={product.imageUrl}
+                              alt={productName}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                              No image
+                            </div>
+                          )}
+                        </div>
+                      </Link>
+                      {product.featured === 1 && (
+                        <div className="absolute top-2 left-2 bg-green-500 text-white px-2 py-1 text-xs font-semibold rounded">
+                          FEATURED
+                        </div>
+                      )}
+                    </div>
                     <div className="p-4">
                       <Link href={`/shop/${product.slug}`}>
                         <h3 className="text-lg font-semibold mb-2 hover:text-primary cursor-pointer">

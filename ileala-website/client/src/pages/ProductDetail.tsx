@@ -7,6 +7,7 @@ import { ShoppingCart, Loader2, ArrowLeft, Plus, Minus } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import SEO from '@/components/SEO';
 import LazyImage from '@/components/LazyImage';
+import WishlistButton from '@/components/WishlistButton';
 
 export default function ProductDetail() {
   const { language } = useLanguage();
@@ -279,19 +280,27 @@ export default function ProductDetail() {
               </div>
             )}
 
-            {/* Add to Cart Button */}
-            <Button
-              size="lg"
-              className="w-full mb-4"
-              onClick={handleAddToCart}
-              disabled={isAdding || product.stock === 0}
-            >
-              <ShoppingCart className="w-5 h-5 mr-2" />
-              {product.stock === 0
-                ? (language === 'en' ? 'Out of Stock' : 'Esgotado')
-                : (language === 'en' ? 'Add to Cart' : 'Adicionar ao Carrinho')
-              }
-            </Button>
+            {/* Add to Cart and Wishlist Buttons */}
+            <div className="flex gap-4 mb-4">
+              <Button
+                size="lg"
+                className="flex-1"
+                onClick={handleAddToCart}
+                disabled={isAdding || product.stock === 0}
+              >
+                <ShoppingCart className="w-5 h-5 mr-2" />
+                {product.stock === 0
+                  ? (language === 'en' ? 'Out of Stock' : 'Esgotado')
+                  : (language === 'en' ? 'Add to Cart' : 'Adicionar ao Carrinho')
+                }
+              </Button>
+              <WishlistButton
+                productId={product.id}
+                size="lg"
+                variant="outline"
+                className="px-4"
+              />
+            </div>
 
             {/* Product Details */}
             <div className="mt-12 border-t pt-8">
