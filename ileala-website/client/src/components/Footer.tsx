@@ -107,7 +107,12 @@ export default function Footer() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder={language === 'en' ? 'Enter your email' : 'Digite seu email'}
-                className="flex-1 bg-white border-gray-300"
+                style={{
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #d1d5db',
+                  color: '#1f2937',
+                }}
+                className="flex-1"
                 required
                 disabled={subscribeMutation.isPending}
               />
