@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { trpc } from '@/lib/trpc';
-import { Loader2, Plus, Edit, Trash2, Settings, Save, Phone, Mail, MapPin, Instagram, Facebook, Globe, Zap } from 'lucide-react';
+import { Loader2, Plus, Edit, Trash2, Settings, Save, Zap, Wrench, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useState } from 'react';
 import {
@@ -34,6 +34,9 @@ export default function SettingsTab() {
     category: 'general',
   });
 
+  const [isFixingPrices, setIsFixingPrices] = useState(false);
+  const [fixResult, setFixResult] = useState<any>(null);
+
   const utils = trpc.useUtils();
   const { data: settings, isLoading } = trpc.settings.list.useQuery();
   
@@ -53,6 +56,18 @@ export default function SettingsTab() {
     onSuccess: () => {
       toast.success(language === 'en' ? 'Setting deleted!' : 'Configuração excluída!');
       utils.settings.list.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const fixPricesMutation = trpc.admin.products.fixPricesAndImages.useMutation({
+    onSuccess: (data) => {
+      setFixResult(data);
+      toast.success(language === 'en' ? `Fixed ${data.fixedCount} products!` : `${data.fixedCount} produtos corrigidos!`);
+      utils.admin.products.list.invalidate();
+      utils.products.list.invalidate();
     },
     onError: (error) => {
       toast.error(error.message);
@@ -253,6 +268,74 @@ export default function SettingsTab() {
           </div>
         </Card>
       )}
+
+      {/* Database Maintenance Section */}
+      <div className="mt-8 pt-6 border-t">
+        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <Wrench className="w-5 h-5" />
+          {language === 'en' ? 'Database Maintenance' : 'Manutenção do Banco de Dados'}
+        </h3>
+
+        <Card className="p-4">
+          <div className="space-y-4">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-amber-500 mt-0.5" />
+              <div className="flex-1">
+                <h4 className="font-medium">
+                  {language === 'en' ? 'Fix Product Prices & Images' : 'Corrigir Preços e Imagens dos Produtos'}
+                </h4>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {language === 'en'
+                    ? 'This will convert prices from fils to AED (divide by 100) for products with prices > 1000, and sync imageUrl with mainImage.'
+                    : 'Isso converterá preços de fils para AED (dividir por 100) para produtos com preços > 1000, e sincronizará imageUrl com mainImage.'}
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-3"
+                  onClick={() => {
+                    if (window.confirm(language === 'en'
+                      ? 'Are you sure you want to fix prices and images? This action cannot be undone.'
+                      : 'Tem certeza que deseja corrigir preços e imagens? Esta ação não pode ser desfeita.'
+                    )) {
+                      setIsFixingPrices(true);
+                      fixPricesMutation.mutate(undefined, {
+                        onSettled: () => setIsFixingPrices(false),
+                      });
+                    }
+                  }}
+                  disabled={isFixingPrices || fixPricesMutation.isPending}
+                >
+                  {(isFixingPrices || fixPricesMutation.isPending) ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Wrench className="w-4 h-4 mr-2" />
+                  )}
+                  {language === 'en' ? 'Run Fix' : 'Executar Correção'}
+                </Button>
+
+                {fixResult && fixResult.changes && fixResult.changes.length > 0 && (
+                  <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
+                    <p className="text-sm font-medium text-green-800 mb-2">
+                      {language === 'en'
+                        ? `Successfully fixed ${fixResult.fixedCount} products:`
+                        : `${fixResult.fixedCount} produtos corrigidos com sucesso:`}
+                    </p>
+                    <ul className="text-xs text-green-700 space-y-1 max-h-40 overflow-y-auto">
+                      {fixResult.changes.map((change: any) => (
+                        <li key={change.id}>
+                          <strong>{change.name}</strong>: {change.oldPrice} → {change.newPrice} AED
+                          {change.imageFixed && ' (image synced)'}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </Card>
+      </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-2xl">

@@ -188,17 +188,17 @@ export default function ProductsTab() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Price is stored directly in AED (not fils)
     const priceInAED = parseFloat(formData.price);
     const salePriceInAED = formData.salePrice ? parseFloat(formData.salePrice) : undefined;
-    
-    // Generate slug from nameEN
-    const slug = formData.nameEN.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Date.now();
-    
-    const productData = {
+
+    // Determine imageUrl - use mainImage if available, otherwise keep existing imageUrl
+    const finalImageUrl = formData.mainImage || formData.imageUrl || undefined;
+
+    // Build base product data (for updates, don't change slug)
+    const baseProductData = {
       name: formData.nameEN,
-      slug,
       nameEN: formData.nameEN,
       namePT: formData.namePT,
       descriptionEN: formData.descriptionEN || undefined,
@@ -207,7 +207,7 @@ export default function ProductsTab() {
       descriptionPT_full: formData.descriptionPT_full || undefined,
       price: priceInAED,
       salePrice: salePriceInAED,
-      imageUrl: formData.imageUrl || undefined,
+      imageUrl: finalImageUrl,
       mainImage: formData.mainImage || undefined,
       mainImageAlt: formData.mainImageAlt || undefined,
       images: additionalImages.length > 0 ? JSON.stringify(additionalImages) : undefined,
@@ -231,12 +231,18 @@ export default function ProductsTab() {
     };
 
     if (editingProduct) {
+      // When updating, don't send slug - keep the existing one
       updateMutation.mutate({
         id: Number(editingProduct.id),
-        data: productData,
+        data: baseProductData,
       });
     } else {
-      createMutation.mutate(productData);
+      // Only generate slug for new products
+      const slug = formData.nameEN.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Date.now();
+      createMutation.mutate({
+        ...baseProductData,
+        slug,
+      });
     }
   };
 

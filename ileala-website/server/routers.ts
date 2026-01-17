@@ -1868,8 +1868,70 @@ export const appRouter = router({
           
           return { success: true };
         }),
+      // Migration utility to fix prices (convert fils to AED) and sync imageUrl
+      fixPricesAndImages: protectedProcedure
+        .mutation(async ({ ctx }) => {
+          if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+
+          const dbInstance = await db.getDb();
+          if (!dbInstance) throw new Error('Database not available');
+
+          // Get all products
+          const allProducts = await dbInstance.select().from(products);
+          let fixedCount = 0;
+          const changes: { id: number; name: string; oldPrice: number; newPrice: number; imageFixed: boolean }[] = [];
+
+          for (const product of allProducts) {
+            const updates: Record<string, any> = {};
+            let priceFixed = false;
+            let imageFixed = false;
+
+            // Fix price if it looks like it's in fils (> 1000 and divisible by 100)
+            if (product.price > 1000 && product.price % 100 === 0) {
+              updates.price = Math.round(product.price / 100);
+              priceFixed = true;
+            }
+
+            // Fix salePrice if needed
+            if (product.salePrice && product.salePrice > 1000 && product.salePrice % 100 === 0) {
+              updates.salePrice = Math.round(product.salePrice / 100);
+            }
+
+            // Sync imageUrl with mainImage if missing
+            if (!product.imageUrl && product.mainImage) {
+              updates.imageUrl = product.mainImage;
+              imageFixed = true;
+            } else if (product.imageUrl && !product.mainImage) {
+              updates.mainImage = product.imageUrl;
+              imageFixed = true;
+            }
+
+            if (Object.keys(updates).length > 0) {
+              await dbInstance.update(products).set(updates).where(eq(products.id, product.id));
+              fixedCount++;
+              changes.push({
+                id: product.id,
+                name: product.nameEN || product.name,
+                oldPrice: product.price,
+                newPrice: updates.price || product.price,
+                imageFixed,
+              });
+            }
+          }
+
+          // Invalidate all caches
+          invalidateCache(CacheKeys.products());
+          invalidateCache(CacheKeys.featuredProducts());
+
+          return {
+            success: true,
+            fixedCount,
+            changes,
+            message: `Fixed ${fixedCount} products`
+          };
+        }),
     }),
-    
+
     // Orders management
     orders: router({
       list: protectedProcedure.query(async ({ ctx }) => {
