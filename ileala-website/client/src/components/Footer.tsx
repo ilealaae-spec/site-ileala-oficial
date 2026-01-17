@@ -1,11 +1,33 @@
+import { useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Instagram, Facebook, Phone, Mail } from 'lucide-react';
+import { Instagram, Facebook, Phone, Mail, Send, Loader2 } from 'lucide-react';
 import { Link } from 'wouter';
 import { useSiteSettings } from '@/hooks/useSiteSettings';
+import { trpc } from '@/lib/trpc';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 export default function Footer() {
   const { language, t } = useLanguage();
   const { settings } = useSiteSettings();
+  const [email, setEmail] = useState('');
+
+  const subscribeMutation = trpc.newsletter.subscribe.useMutation({
+    onSuccess: () => {
+      toast.success(language === 'en' ? 'Successfully subscribed!' : 'Inscrito com sucesso!');
+      setEmail('');
+    },
+    onError: (error) => {
+      toast.error(error.message || (language === 'en' ? 'Failed to subscribe' : 'Falha ao inscrever'));
+    },
+  });
+
+  const handleSubscribe = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) return;
+    subscribeMutation.mutate({ email });
+  };
 
   return (
     <footer className="border-t bg-muted/30">
@@ -79,6 +101,29 @@ export default function Footer() {
             <p className="text-sm text-muted-foreground mb-4">
               {t.home.subscribeText}
             </p>
+            <form onSubmit={handleSubscribe} className="flex gap-2">
+              <Input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder={language === 'en' ? 'Enter your email' : 'Digite seu email'}
+                className="flex-1 bg-white border-gray-300"
+                required
+                disabled={subscribeMutation.isPending}
+              />
+              <Button
+                type="submit"
+                size="icon"
+                disabled={subscribeMutation.isPending}
+                className="bg-primary hover:bg-primary/90"
+              >
+                {subscribeMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+              </Button>
+            </form>
           </div>
         </div>
 
