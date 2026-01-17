@@ -21,12 +21,12 @@ function getResend(): Resend {
 }
 
 const FROM_EMAIL = 'ILE ALA <noreply@ileala.ae>';
-// Sempre usar www.ileala.ae como URL canônica
-const SITE_URL = process.env.SITE_URL || 'https://www.ileala.ae';
-// Garantir que sempre use www
+
+// ALWAYS use www.ileala.ae for email links - never admin.ileala.ae
 const getSiteUrl = () => {
-  const url = process.env.SITE_URL || 'https://www.ileala.ae';
-  return url.replace('https://ileala.ae', 'https://www.ileala.ae');
+  // Force www.ileala.ae regardless of SITE_URL environment variable
+  // This ensures email links always go to the main site, not admin subdomain
+  return 'https://www.ileala.ae';
 };
 
 export async function sendVerificationEmail(email: string, token: string, name: string) {
