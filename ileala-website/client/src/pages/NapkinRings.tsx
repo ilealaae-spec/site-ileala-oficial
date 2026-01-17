@@ -27,7 +27,8 @@ export default function NapkinRings() {
   const products: any[] = allProducts.filter((p: any) => {
     if (p.active !== 1) return false;
     const collection = (p.collection || '').toLowerCase();
-    return collection.includes('napkin') || collection.includes('napkin ring');
+    const category = (p.category || '').toLowerCase();
+    return collection.includes('napkin') || collection.includes('napkin ring') || category.includes('napkin');
   });
 
   // Format price: database stores price directly in AED

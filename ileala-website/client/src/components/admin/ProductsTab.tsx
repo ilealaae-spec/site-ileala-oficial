@@ -228,6 +228,7 @@ export default function ProductsTab() {
       onSale: formData.onSale,
       seoTitle: formData.seoTitle || undefined,
       seoDescription: formData.seoDescription || undefined,
+      active: 1, // Always set active to 1 for new products
     };
 
     if (editingProduct) {

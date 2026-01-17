@@ -23,8 +23,11 @@ export default function Accessories() {
   const loading = productsQuery.isLoading;
   const queryError = productsQuery.error;
 
-  // Filter products by category "bags-accessories"
-  const products: any[] = allProducts.filter((p: any) => p.category === 'bags-accessories' && p.active === 1);
+  // Filter products by category "bags-accessories" or "Accessories"
+  const products: any[] = allProducts.filter((p: any) => {
+    const category = (p.category || '').toLowerCase();
+    return (category === 'bags-accessories' || category === 'accessories' || category.includes('accessor')) && p.active === 1;
+  });
 
   // Format price: database stores price directly in AED
   const formatPrice = (price: number) => {

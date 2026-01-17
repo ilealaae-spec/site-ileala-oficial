@@ -1870,6 +1870,26 @@ export const appRouter = router({
           return { success: true };
         }),
       // Migration utility to fix prices (convert fils to AED) and sync imageUrl
+      // Debug endpoint to see all products with their status
+      debugProducts: protectedProcedure
+        .query(async ({ ctx }) => {
+          if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+
+          const dbInstance = await db.getDb();
+          if (!dbInstance) throw new Error('Database not available');
+
+          const allProducts = await dbInstance.select().from(products);
+          return allProducts.map(p => ({
+            id: p.id,
+            name: p.nameEN || p.name,
+            active: p.active,
+            category: p.category,
+            collection: p.collection,
+            imageUrl: p.imageUrl,
+            mainImage: p.mainImage,
+          }));
+        }),
+
       fixPricesAndImages: protectedProcedure
         .mutation(async ({ ctx }) => {
           if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
@@ -1880,12 +1900,13 @@ export const appRouter = router({
           // Get all products
           const allProducts = await dbInstance.select().from(products);
           let fixedCount = 0;
-          const changes: { id: number; name: string; oldPrice: number; newPrice: number; imageFixed: boolean }[] = [];
+          const changes: { id: number; name: string; oldPrice: number; newPrice: number; imageFixed: boolean; activeFixed: boolean }[] = [];
 
           for (const product of allProducts) {
             const updates: Record<string, any> = {};
             let priceFixed = false;
             let imageFixed = false;
+            let activeFixed = false;
 
             // Fix price if it looks like it's in fils (> 1000 and divisible by 100)
             if (product.price > 1000 && product.price % 100 === 0) {
@@ -1907,6 +1928,12 @@ export const appRouter = router({
               imageFixed = true;
             }
 
+            // Fix active status - ensure all products are active (1)
+            if (product.active !== 1) {
+              updates.active = 1;
+              activeFixed = true;
+            }
+
             if (Object.keys(updates).length > 0) {
               await dbInstance.update(products).set(updates).where(eq(products.id, product.id));
               fixedCount++;
@@ -1916,6 +1943,7 @@ export const appRouter = router({
                 oldPrice: product.price,
                 newPrice: updates.price || product.price,
                 imageFixed,
+                activeFixed,
               });
             }
           }

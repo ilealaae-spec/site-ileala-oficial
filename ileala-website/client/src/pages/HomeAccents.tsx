@@ -23,12 +23,15 @@ export default function HomeAccents() {
   const loading = productsQuery.isLoading;
   const queryError = productsQuery.error;
 
-  // Filter products by collections: Cushions, Hand Towels
+  // Filter products by collections: Cushions, Hand Towels, Home Accents
   const products: any[] = allProducts.filter((p: any) => {
-    const collection = p.collection?.toLowerCase() || '';
+    const collection = (p.collection || '').toLowerCase();
+    const category = (p.category || '').toLowerCase();
     return (
       (collection.includes('cushion') ||
-       collection.includes('hand towel')) &&
+       collection.includes('hand towel') ||
+       collection.includes('home accent') ||
+       category.includes('home accent')) &&
       p.active === 1
     );
   });

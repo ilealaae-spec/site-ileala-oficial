@@ -36,6 +36,7 @@ export default function SettingsTab() {
 
   const [isFixingPrices, setIsFixingPrices] = useState(false);
   const [fixResult, setFixResult] = useState<any>(null);
+  const [debugProducts, setDebugProducts] = useState<any[]>([]);
 
   const utils = trpc.useUtils();
   const { data: settings, isLoading } = trpc.settings.list.useQuery();
@@ -72,6 +73,10 @@ export default function SettingsTab() {
     onError: (error) => {
       toast.error(error.message);
     },
+  });
+
+  const debugProductsQuery = trpc.admin.products.debugProducts.useQuery(undefined, {
+    enabled: false, // Only fetch when manually triggered
   });
 
   // Default contact settings to create
@@ -286,8 +291,8 @@ export default function SettingsTab() {
                 </h4>
                 <p className="text-sm text-muted-foreground mt-1">
                   {language === 'en'
-                    ? 'This will convert prices from fils to AED (divide by 100) for products with prices > 1000, and sync imageUrl with mainImage.'
-                    : 'Isso converterá preços de fils para AED (dividir por 100) para produtos com preços > 1000, e sincronizará imageUrl com mainImage.'}
+                    ? 'This will convert prices from fils to AED (divide by 100) for products with prices > 1000, sync imageUrl with mainImage, and activate any inactive products.'
+                    : 'Isso converterá preços de fils para AED (dividir por 100) para produtos com preços > 1000, sincronizará imageUrl com mainImage, e ativará produtos inativos.'}
                 </p>
                 <Button
                   variant="outline"
@@ -326,9 +331,75 @@ export default function SettingsTab() {
                         <li key={change.id}>
                           <strong>{change.name}</strong>: {change.oldPrice} → {change.newPrice} AED
                           {change.imageFixed && ' (image synced)'}
+                          {change.activeFixed && ' (activated)'}
                         </li>
                       ))}
                     </ul>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Debug Products Button */}
+            <div className="flex items-start gap-3 mt-6 pt-6 border-t">
+              <Wrench className="w-5 h-5 text-blue-500 mt-0.5" />
+              <div className="flex-1">
+                <h4 className="font-medium">
+                  {language === 'en' ? 'Debug Products' : 'Debug de Produtos'}
+                </h4>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {language === 'en'
+                    ? 'View all products with their active status, category and collection values.'
+                    : 'Ver todos os produtos com seus status ativo, categoria e coleção.'}
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-3"
+                  onClick={async () => {
+                    const result = await debugProductsQuery.refetch();
+                    if (result.data) {
+                      setDebugProducts(result.data);
+                      toast.success(`Found ${result.data.length} products`);
+                    }
+                  }}
+                  disabled={debugProductsQuery.isFetching}
+                >
+                  {debugProductsQuery.isFetching ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Wrench className="w-4 h-4 mr-2" />
+                  )}
+                  {language === 'en' ? 'Load Products Debug' : 'Carregar Debug de Produtos'}
+                </Button>
+
+                {debugProducts.length > 0 && (
+                  <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200 max-h-60 overflow-y-auto">
+                    <p className="text-sm font-medium text-blue-800 mb-2">
+                      {language === 'en' ? `${debugProducts.length} products found:` : `${debugProducts.length} produtos encontrados:`}
+                    </p>
+                    <table className="text-xs text-blue-700 w-full">
+                      <thead>
+                        <tr className="border-b border-blue-200">
+                          <th className="text-left p-1">ID</th>
+                          <th className="text-left p-1">Name</th>
+                          <th className="text-left p-1">Active</th>
+                          <th className="text-left p-1">Category</th>
+                          <th className="text-left p-1">Collection</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {debugProducts.map((p: any) => (
+                          <tr key={p.id} className={p.active !== 1 ? 'bg-red-100' : ''}>
+                            <td className="p-1">{p.id}</td>
+                            <td className="p-1">{p.name}</td>
+                            <td className="p-1 font-mono">{String(p.active)}</td>
+                            <td className="p-1">{p.category || '-'}</td>
+                            <td className="p-1">{p.collection || '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 )}
               </div>

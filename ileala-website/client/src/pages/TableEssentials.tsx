@@ -20,14 +20,17 @@ export default function TableEssentials() {
     refetchOnWindowFocus: false,
   });
   
-  // Filter products by collections: Tablecloth, Table Runner, Cocktail Napkin, Coaster
-  const products = allProducts.filter(p => {
-    const collection = p.collection?.toLowerCase() || '';
+  // Filter products by collections: Tablecloth, Table Runner, Cocktail Napkin, Coaster, Table Essentials
+  const products = allProducts.filter((p: any) => {
+    const collection = (p.collection || '').toLowerCase();
+    const category = (p.category || '').toLowerCase();
     return (
       (collection.includes('tablecloth') ||
        collection.includes('table runner') ||
        collection.includes('cocktail napkin') ||
-       collection.includes('coaster')) &&
+       collection.includes('coaster') ||
+       collection.includes('table essential') ||
+       category.includes('table essential')) &&
       p.active === 1
     );
   });

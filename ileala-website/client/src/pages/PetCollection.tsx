@@ -23,8 +23,11 @@ export default function PetCollection() {
   const loading = productsQuery.isLoading;
   const queryError = productsQuery.error;
 
-  // Filter products by category "pet-collection"
-  const products: any[] = allProducts.filter((p: any) => p.category === 'pet-collection' && p.active === 1);
+  // Filter products by category "pet-collection" or "Pet Collections"
+  const products: any[] = allProducts.filter((p: any) => {
+    const category = (p.category || '').toLowerCase();
+    return (category === 'pet-collection' || category === 'pet collections' || category.includes('pet')) && p.active === 1;
+  });
 
   // Format price: database stores price directly in AED
   const formatPrice = (price: number) => {
