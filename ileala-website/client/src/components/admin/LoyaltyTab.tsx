@@ -2,8 +2,8 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { trpc } from '@/lib/trpc';
-import { Loader2, Crown, Users, TrendingUp, Search, Eye, Pencil, ArrowUpDown, Save, X } from 'lucide-react';
-import { useState } from 'react';
+import { Loader2, Crown, Users, TrendingUp, Search, Eye, Pencil, ArrowUpDown, Save, X, Upload, Image as ImageIcon } from 'lucide-react';
+import { useState, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -34,6 +34,8 @@ export default function LoyaltyTab() {
   const [isChangeTierOpen, setIsChangeTierOpen] = useState(false);
   const [newTier, setNewTier] = useState('');
   const [tierChangeReason, setTierChangeReason] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const utils = trpc.useUtils();
 
@@ -42,6 +44,9 @@ export default function LoyaltyTab() {
   const { data: membersData, isLoading: membersLoading, refetch: refetchMembers } = trpc.admin.loyalty.list.useQuery({
     tier: tierFilter !== 'all' ? tierFilter : undefined,
   });
+
+  // Fetch loyalty hero image setting
+  const { data: heroImageSetting, refetch: refetchHeroImage } = trpc.settings.get.useQuery({ key: 'loyalty-hero-image' });
 
   const { data: memberDetail } = trpc.admin.loyalty.getMember.useQuery(
     { memberId: selectedMember?.member?.id },
@@ -77,6 +82,31 @@ export default function LoyaltyTab() {
     },
     onError: (error) => {
       toast.error(error.message || (language === 'en' ? 'Failed to change tier' : 'Erro ao alterar nível'));
+    },
+  });
+
+  // Upload image mutation
+  const uploadMutation = (trpc.products as any).uploadImage.useMutation({
+    onSuccess: (data: { url: string }) => {
+      // After uploading, update the setting
+      updateSettingMutation.mutate({ key: 'loyalty-hero-image', value: data.url });
+    },
+    onError: (error: any) => {
+      setIsUploading(false);
+      toast.error(error.message || (language === 'en' ? 'Failed to upload image' : 'Erro ao enviar imagem'));
+    },
+  });
+
+  // Update setting mutation
+  const updateSettingMutation = trpc.settings.upsert.useMutation({
+    onSuccess: () => {
+      setIsUploading(false);
+      toast.success(language === 'en' ? 'Hero image updated!' : 'Imagem hero atualizada!');
+      refetchHeroImage();
+    },
+    onError: (error) => {
+      setIsUploading(false);
+      toast.error(error.message || (language === 'en' ? 'Failed to save image' : 'Erro ao salvar imagem'));
     },
   });
 
@@ -159,6 +189,38 @@ export default function LoyaltyTab() {
     });
   };
 
+  const handleHeroImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error(language === 'en' ? 'Please select an image file' : 'Selecione um arquivo de imagem');
+      return;
+    }
+
+    // Check file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error(language === 'en' ? 'Image must be less than 5MB' : 'Imagem deve ter menos de 5MB');
+      return;
+    }
+
+    setIsUploading(true);
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = (reader.result as string).split(',')[1];
+      uploadMutation.mutate({
+        fileName: `loyalty-hero-${Date.now()}-${file.name}`,
+        fileData: base64,
+        contentType: file.type,
+      });
+    };
+    reader.onerror = () => {
+      setIsUploading(false);
+      toast.error(language === 'en' ? 'Failed to read file' : 'Erro ao ler arquivo');
+    };
+    reader.readAsDataURL(file);
+  };
+
   if (statsLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -181,6 +243,84 @@ export default function LoyaltyTab() {
             : 'Gerencie membros e veja estatísticas do programa'}
         </p>
       </div>
+
+      {/* Hero Image Upload */}
+      <Card className="p-6">
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <ImageIcon className="w-5 h-5" />
+              {language === 'en' ? 'Page Hero Image' : 'Imagem Hero da Página'}
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              {language === 'en'
+                ? 'This image appears at the top of The Green World page'
+                : 'Esta imagem aparece no topo da página The Green World'}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-col md:flex-row gap-6">
+          {/* Current Image Preview */}
+          <div className="w-full md:w-1/2">
+            <Label className="mb-2 block">{language === 'en' ? 'Current Image' : 'Imagem Atual'}</Label>
+            <div className="relative aspect-video rounded-lg overflow-hidden bg-muted border">
+              {heroImageSetting?.value ? (
+                <img
+                  src={heroImageSetting.value}
+                  alt="Loyalty Hero"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground">
+                  <ImageIcon className="w-12 h-12 mb-2 opacity-50" />
+                  <span className="text-sm">{language === 'en' ? 'No image set' : 'Nenhuma imagem definida'}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Upload Section */}
+          <div className="w-full md:w-1/2">
+            <Label className="mb-2 block">{language === 'en' ? 'Upload New Image' : 'Enviar Nova Imagem'}</Label>
+            <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleHeroImageUpload}
+                className="hidden"
+              />
+              <Upload className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground mb-3">
+                {language === 'en'
+                  ? 'Recommended: 1920x1080px or larger'
+                  : 'Recomendado: 1920x1080px ou maior'}
+              </p>
+              <Button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+                variant="outline"
+              >
+                {isUploading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    {language === 'en' ? 'Uploading...' : 'Enviando...'}
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4 mr-2" />
+                    {language === 'en' ? 'Choose Image' : 'Escolher Imagem'}
+                  </>
+                )}
+              </Button>
+              <p className="text-xs text-muted-foreground mt-2">
+                {language === 'en' ? 'Max 5MB. JPG, PNG or WebP' : 'Máx 5MB. JPG, PNG ou WebP'}
+              </p>
+            </div>
+          </div>
+        </div>
+      </Card>
 
       {/* Stats Cards */}
       {stats && (
