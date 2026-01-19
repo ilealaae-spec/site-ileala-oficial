@@ -35,7 +35,9 @@ export default function LoyaltyTab() {
   const [newTier, setNewTier] = useState('');
   const [tierChangeReason, setTierChangeReason] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+  const [isUploadingTierImage, setIsUploadingTierImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const tierImageInputRef = useRef<HTMLInputElement>(null);
 
   const utils = trpc.useUtils();
 
@@ -110,6 +112,19 @@ export default function LoyaltyTab() {
     },
   });
 
+  // Upload tier image mutation
+  const uploadTierImageMutation = (trpc.products as any).uploadImage.useMutation({
+    onSuccess: (data: { url: string }) => {
+      setIsUploadingTierImage(false);
+      setSelectedTier((prev: any) => prev ? { ...prev, iconUrl: data.url } : null);
+      toast.success(language === 'en' ? 'Tier image uploaded!' : 'Imagem do tier enviada!');
+    },
+    onError: (error: any) => {
+      setIsUploadingTierImage(false);
+      toast.error(error.message || (language === 'en' ? 'Failed to upload image' : 'Erro ao enviar imagem'));
+    },
+  });
+
   const formatPrice = (fils: number) => `${(fils / 100).toFixed(2)} AED`;
 
   const formatDate = (date: string | Date | null) => {
@@ -156,6 +171,7 @@ export default function LoyaltyTab() {
       minSpend: selectedTier.minSpend,
       maxSpend: selectedTier.maxSpend,
       color: selectedTier.color,
+      iconUrl: selectedTier.iconUrl,
       freeStandardShipping: selectedTier.freeStandardShipping,
       freeExpressShipping: selectedTier.freeExpressShipping,
       earlyAccess: selectedTier.earlyAccess,
@@ -216,6 +232,37 @@ export default function LoyaltyTab() {
     };
     reader.onerror = () => {
       setIsUploading(false);
+      toast.error(language === 'en' ? 'Failed to read file' : 'Erro ao ler arquivo');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleTierImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedTier) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error(language === 'en' ? 'Please select an image file' : 'Selecione um arquivo de imagem');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error(language === 'en' ? 'Image must be less than 5MB' : 'Imagem deve ter menos de 5MB');
+      return;
+    }
+
+    setIsUploadingTierImage(true);
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = (reader.result as string).split(',')[1];
+      uploadTierImageMutation.mutate({
+        fileName: `tier-${selectedTier.tier}-${Date.now()}-${file.name}`,
+        fileData: base64,
+        contentType: file.type,
+      });
+    };
+    reader.onerror = () => {
+      setIsUploadingTierImage(false);
       toast.error(language === 'en' ? 'Failed to read file' : 'Erro ao ler arquivo');
     };
     reader.readAsDataURL(file);
@@ -684,6 +731,79 @@ export default function LoyaltyTab() {
                       maxSpend: e.target.value ? parseInt(e.target.value) * 100 : null
                     })}
                   />
+                </div>
+              </div>
+
+              {/* Tier Card Image */}
+              <div className="space-y-3">
+                <Label className="flex items-center gap-2">
+                  <ImageIcon className="w-4 h-4" />
+                  {language === 'en' ? 'Tier Card Image' : 'Imagem do Cartão'}
+                </Label>
+                <div className="flex gap-4 items-start">
+                  {/* Current Image Preview */}
+                  <div className="w-40 h-24 rounded-lg overflow-hidden bg-muted border flex-shrink-0">
+                    {selectedTier.iconUrl ? (
+                      <img
+                        src={selectedTier.iconUrl}
+                        alt={`${selectedTier.tier} card`}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div
+                        className="w-full h-full flex items-center justify-center text-white text-2xl"
+                        style={{ background: selectedTier.cardGradient || selectedTier.cardColor }}
+                      >
+                        {tierConfig[selectedTier.tier]?.icon}
+                      </div>
+                    )}
+                  </div>
+                  {/* Upload */}
+                  <div className="flex-1">
+                    <input
+                      ref={tierImageInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleTierImageUpload}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => tierImageInputRef.current?.click()}
+                      disabled={isUploadingTierImage}
+                    >
+                      {isUploadingTierImage ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          {language === 'en' ? 'Uploading...' : 'Enviando...'}
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-4 h-4 mr-2" />
+                          {language === 'en' ? 'Upload Image' : 'Enviar Imagem'}
+                        </>
+                      )}
+                    </Button>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      {language === 'en'
+                        ? 'Recommended: 400x240px. If no image, uses gradient color.'
+                        : 'Recomendado: 400x240px. Sem imagem, usa cor gradiente.'}
+                    </p>
+                    {selectedTier.iconUrl && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="mt-2 text-red-600 hover:text-red-700"
+                        onClick={() => setSelectedTier({ ...selectedTier, iconUrl: null })}
+                      >
+                        <X className="w-4 h-4 mr-1" />
+                        {language === 'en' ? 'Remove Image' : 'Remover Imagem'}
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
 

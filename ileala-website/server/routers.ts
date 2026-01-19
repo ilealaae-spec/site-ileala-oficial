@@ -2368,6 +2368,7 @@ export const appRouter = router({
           minSpend: z.number().optional(),
           maxSpend: z.number().nullable().optional(),
           color: z.string().optional(),
+          iconUrl: z.string().nullable().optional(),
           freeStandardShipping: z.number().min(0).max(1).optional(),
           freeExpressShipping: z.number().min(0).max(1).optional(),
           earlyAccess: z.number().min(0).max(1).optional(),
@@ -2434,8 +2435,8 @@ export const appRouter = router({
       };
     }),
 
-    // Get tier benefits (public info)
-    getTierBenefits: protectedProcedure.query(async () => {
+    // Get tier benefits (public info - for non-authenticated users to see tiers)
+    getTierBenefits: publicProcedure.query(async () => {
       return await db.getAllTierBenefits();
     }),
 

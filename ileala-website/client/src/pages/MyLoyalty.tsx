@@ -22,6 +22,11 @@ export default function MyLoyalty() {
   const { data: heroImageSetting } = trpc.settings.get.useQuery({ key: 'loyalty-hero-image' });
   const heroImage = heroImageSetting?.value || DEFAULT_HERO_IMAGE;
 
+  // Fetch tier benefits (includes iconUrl for card images)
+  const { data: tierBenefitsData } = trpc.loyalty.getTierBenefits.useQuery(undefined, {
+    enabled: !isAuthenticated,
+  });
+
   const { data, isLoading, refetch } = trpc.loyalty.myStatus.useQuery(undefined, {
     enabled: isAuthenticated,
   });
@@ -109,51 +114,51 @@ export default function MyLoyalty() {
             </div>
 
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {/* Green */}
-              <div className="rounded-2xl p-6 text-center text-white" style={{ background: 'linear-gradient(135deg, #255238 0%, #1a3d28 100%)' }}>
-                <span className="text-4xl mb-4 block">🌿</span>
-                <h3 className="text-xl font-bold mb-2">Green</h3>
-                <p className="text-sm opacity-80 mb-4">0 - 1,499 AED</p>
-                <ul className="text-sm text-left space-y-2 opacity-90">
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4" /> Newsletter Exclusiva</li>
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4" /> Acesso a Vendas Privadas</li>
-                </ul>
-              </div>
+              {(() => {
+                const defaultTiers = [
+                  { tier: 'green', icon: '🌿', gradient: 'linear-gradient(135deg, #255238 0%, #1a3d28 100%)', textColor: 'text-white', range: '0 - 1,499 AED', benefits: ['Newsletter Exclusiva', 'Acesso a Vendas Privadas'] },
+                  { tier: 'silver', icon: '🥈', gradient: 'linear-gradient(135deg, #C0C0C0 0%, #808080 100%)', textColor: 'text-gray-900', range: '1,500 - 3,999 AED', benefits: ['Frete Padrão Grátis (UAE)', 'Presente de Aniversário'] },
+                  { tier: 'gold', icon: '🏆', gradient: 'linear-gradient(135deg, #FFD700 0%, #B8860B 100%)', textColor: 'text-gray-900', range: '4,000 - 7,499 AED', benefits: ['Frete Expresso Grátis', 'Acesso Antecipado 24h', 'Suporte Prioritário'] },
+                  { tier: 'platinum', icon: '👑', gradient: 'linear-gradient(135deg, #2C2C2C 0%, #1a1a1a 50%, #3d3d3d 100%)', textColor: 'text-white', range: '7,500+ AED', benefits: ['Concierge WhatsApp VIP', 'Convites para Eventos', 'Presentes Surpresa'] },
+                ];
 
-              {/* Silver */}
-              <div className="rounded-2xl p-6 text-center text-gray-900" style={{ background: 'linear-gradient(135deg, #C0C0C0 0%, #808080 100%)' }}>
-                <span className="text-4xl mb-4 block">🥈</span>
-                <h3 className="text-xl font-bold mb-2">Silver</h3>
-                <p className="text-sm opacity-80 mb-4">1,500 - 3,999 AED</p>
-                <ul className="text-sm text-left space-y-2 opacity-90">
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4" /> Frete Padrão Grátis (UAE)</li>
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4" /> Presente de Aniversário</li>
-                </ul>
-              </div>
+                return defaultTiers.map((t) => {
+                  const dbTier = tierBenefitsData?.find((tb: any) => tb.tier === t.tier);
+                  const hasImage = dbTier?.iconUrl;
 
-              {/* Gold */}
-              <div className="rounded-2xl p-6 text-center text-gray-900" style={{ background: 'linear-gradient(135deg, #FFD700 0%, #B8860B 100%)' }}>
-                <span className="text-4xl mb-4 block">🏆</span>
-                <h3 className="text-xl font-bold mb-2">Gold</h3>
-                <p className="text-sm opacity-80 mb-4">4,000 - 7,499 AED</p>
-                <ul className="text-sm text-left space-y-2 opacity-90">
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4" /> Frete Expresso Grátis</li>
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4" /> Acesso Antecipado 24h</li>
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4" /> Suporte Prioritário</li>
-                </ul>
-              </div>
-
-              {/* Platinum */}
-              <div className="rounded-2xl p-6 text-center text-white" style={{ background: 'linear-gradient(135deg, #2C2C2C 0%, #1a1a1a 50%, #3d3d3d 100%)' }}>
-                <span className="text-4xl mb-4 block">👑</span>
-                <h3 className="text-xl font-bold mb-2">Platinum</h3>
-                <p className="text-sm opacity-80 mb-4">7,500+ AED</p>
-                <ul className="text-sm text-left space-y-2 opacity-90">
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4" /> Concierge WhatsApp VIP</li>
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4" /> Convites para Eventos</li>
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4" /> Presentes Surpresa</li>
-                </ul>
-              </div>
+                  return (
+                    <div
+                      key={t.tier}
+                      className={`rounded-2xl p-6 text-center ${t.textColor} relative overflow-hidden`}
+                      style={{
+                        background: hasImage ? undefined : t.gradient,
+                      }}
+                    >
+                      {hasImage && (
+                        <>
+                          <div
+                            className="absolute inset-0 bg-cover bg-center"
+                            style={{ backgroundImage: `url(${dbTier.iconUrl})` }}
+                          />
+                          <div className="absolute inset-0 bg-black/40" />
+                        </>
+                      )}
+                      <div className="relative z-10">
+                        <span className="text-4xl mb-4 block">{t.icon}</span>
+                        <h3 className="text-xl font-bold mb-2 capitalize">{t.tier}</h3>
+                        <p className="text-sm opacity-80 mb-4">{t.range}</p>
+                        <ul className="text-sm text-left space-y-2 opacity-90">
+                          {t.benefits.map((benefit, i) => (
+                            <li key={i} className="flex items-center gap-2">
+                              <Check className="w-4 h-4" /> {benefit}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
             </div>
           </div>
         </section>
