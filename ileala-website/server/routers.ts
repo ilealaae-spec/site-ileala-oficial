@@ -1133,6 +1133,16 @@ export const appRouter = router({
         return { count: recipients.length };
       }),
 
+    getRecipientsList: protectedProcedure
+      .input(z.object({
+        recipientType: z.enum(['newsletter', 'all_customers']),
+      }))
+      .query(async ({ input, ctx }) => {
+        if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+        const recipients = await db.getEmailRecipients(input.recipientType);
+        return { recipients, count: recipients.length };
+      }),
+
     send: protectedProcedure
       .input(z.object({
         id: z.number(),

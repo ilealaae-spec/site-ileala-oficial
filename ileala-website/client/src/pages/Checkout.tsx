@@ -456,9 +456,12 @@ export default function Checkout() {
               </Card>
 
               <Card className="p-6">
-                <h2 className="text-2xl font-semibold mb-6">
-                  {language === 'en' ? 'Shipping Destination' : 'Destino de Entrega'}
-                </h2>
+                <div className="flex items-center gap-2 mb-6">
+                  <Truck className="w-5 h-5 text-primary" />
+                  <h2 className="text-2xl font-semibold">
+                    {language === 'en' ? 'Shipping Destination' : 'Destino de Entrega'}
+                  </h2>
+                </div>
 
                 <div className="space-y-4">
                   {/* Region/Zone Selector */}

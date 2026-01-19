@@ -5,9 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { trpc } from '@/lib/trpc';
-import { Loader2, Plus, Edit, Trash2, Mail, Send, Users, Eye } from 'lucide-react';
+import { Loader2, Plus, Edit, Trash2, Mail, Send, Users, Eye, Image, Download, List } from 'lucide-react';
 import { toast } from 'sonner';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -37,8 +37,11 @@ export default function EmailMarketingTab() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isSendConfirmOpen, setIsSendConfirmOpen] = useState(false);
+  const [isRecipientsOpen, setIsRecipientsOpen] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<any>(null);
   const [editingCampaign, setEditingCampaign] = useState<any>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
     subject: '',
@@ -53,6 +56,30 @@ export default function EmailMarketingTab() {
     { recipientType: formData.recipientType as 'newsletter' | 'all_customers' },
     { enabled: formData.recipientType !== 'specific' }
   );
+
+  // Query to get recipients list
+  const { data: recipientsList, isLoading: isLoadingRecipients } = trpc.emailCampaigns.getRecipientsList.useQuery(
+    { recipientType: formData.recipientType as 'newsletter' | 'all_customers' },
+    { enabled: isRecipientsOpen && formData.recipientType !== 'specific' }
+  );
+
+  // Image upload mutation
+  const uploadImageMutation = trpc.products.uploadImage.useMutation({
+    onSuccess: (data) => {
+      // Insert image HTML into content
+      const imageHtml = `<img src="${data.url}" alt="Email image" style="max-width: 100%; height: auto; margin: 10px 0;" />`;
+      setFormData(prev => ({
+        ...prev,
+        content: prev.content + '\n' + imageHtml + '\n'
+      }));
+      toast.success(language === 'en' ? 'Image uploaded!' : 'Imagem enviada!');
+      setIsUploading(false);
+    },
+    onError: (error) => {
+      toast.error(error.message);
+      setIsUploading(false);
+    },
+  });
 
   const createMutation = trpc.emailCampaigns.create.useMutation({
     onSuccess: () => {
@@ -151,6 +178,66 @@ export default function EmailMarketingTab() {
     if (selectedCampaign) {
       sendMutation.mutate({ id: selectedCampaign.id });
     }
+  };
+
+  // Handle image upload
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error(language === 'en' ? 'Please select an image file' : 'Por favor, selecione uma imagem');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error(language === 'en' ? 'Image must be less than 5MB' : 'Imagem deve ter menos de 5MB');
+      return;
+    }
+
+    setIsUploading(true);
+
+    // Convert to base64
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = (reader.result as string).split(',')[1];
+      uploadImageMutation.mutate({
+        fileName: `email-${Date.now()}-${file.name}`,
+        fileData: base64,
+        contentType: file.type,
+      });
+    };
+    reader.readAsDataURL(file);
+
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // Download recipients list as CSV
+  const handleDownloadRecipients = () => {
+    if (!recipientsList?.recipients || recipientsList.recipients.length === 0) {
+      toast.error(language === 'en' ? 'No recipients to download' : 'Nenhum destinatario para baixar');
+      return;
+    }
+
+    const csv = [
+      ['Email', 'Name'],
+      ...recipientsList.recipients.map((r: any) => [r.email, r.name || ''])
+    ].map(row => row.join(',')).join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `email-recipients-${formData.recipientType}-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+
+    toast.success(language === 'en' ? 'CSV downloaded!' : 'CSV baixado!');
   };
 
   const getStatusBadge = (status: string) => {
@@ -390,11 +477,22 @@ export default function EmailMarketingTab() {
                 </SelectContent>
               </Select>
               {recipientCount && (
-                <p className="text-sm text-muted-foreground mt-1">
-                  {language === 'en'
-                    ? `${recipientCount.count} recipients will receive this email`
-                    : `${recipientCount.count} destinatarios receberao este email`}
-                </p>
+                <div className="flex items-center justify-between mt-2">
+                  <p className="text-sm text-muted-foreground">
+                    {language === 'en'
+                      ? `${recipientCount.count} recipients will receive this email`
+                      : `${recipientCount.count} destinatarios receberao este email`}
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsRecipientsOpen(true)}
+                  >
+                    <List className="w-4 h-4 mr-1" />
+                    {language === 'en' ? 'View List' : 'Ver Lista'}
+                  </Button>
+                </div>
               )}
             </div>
 
@@ -425,7 +523,41 @@ export default function EmailMarketingTab() {
                 rows={10}
                 required
               />
-              <p className="text-xs text-muted-foreground mt-1">
+
+              {/* Image Upload */}
+              <div className="flex items-center gap-4 mt-2">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                >
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      {language === 'en' ? 'Uploading...' : 'Enviando...'}
+                    </>
+                  ) : (
+                    <>
+                      <Image className="w-4 h-4 mr-2" />
+                      {language === 'en' ? 'Add Image' : 'Adicionar Imagem'}
+                    </>
+                  )}
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  {language === 'en' ? 'Max 5MB (JPG, PNG, GIF)' : 'Max 5MB (JPG, PNG, GIF)'}
+                </p>
+              </div>
+
+              <p className="text-xs text-muted-foreground mt-2">
                 {language === 'en'
                   ? 'Tip: Use <b>bold</b>, <i>italic</i>, <br> for line breaks, and <p> for paragraphs.'
                   : 'Dica: Use <b>negrito</b>, <i>italico</i>, <br> para quebras de linha, e <p> para paragrafos.'}
@@ -478,6 +610,82 @@ export default function EmailMarketingTab() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Recipients List Dialog */}
+      <Dialog open={isRecipientsOpen} onOpenChange={setIsRecipientsOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Users className="w-5 h-5" />
+              {language === 'en' ? 'Recipients List' : 'Lista de Destinatarios'}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* Summary and Download */}
+            <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+              <div>
+                <p className="font-medium">
+                  {formData.recipientType === 'newsletter'
+                    ? (language === 'en' ? 'Newsletter Subscribers' : 'Inscritos na Newsletter')
+                    : (language === 'en' ? 'All Verified Customers' : 'Todos os Clientes Verificados')}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {recipientsList?.count || 0} {language === 'en' ? 'recipients' : 'destinatarios'}
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDownloadRecipients}
+                disabled={!recipientsList?.recipients || recipientsList.recipients.length === 0}
+              >
+                <Download className="w-4 h-4 mr-2" />
+                {language === 'en' ? 'Download CSV' : 'Baixar CSV'}
+              </Button>
+            </div>
+
+            {/* Recipients List */}
+            <div className="border rounded-lg overflow-hidden">
+              <div className="max-h-[400px] overflow-y-auto">
+                {isLoadingRecipients ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                  </div>
+                ) : recipientsList?.recipients && recipientsList.recipients.length > 0 ? (
+                  <table className="w-full">
+                    <thead className="bg-muted sticky top-0">
+                      <tr>
+                        <th className="text-left p-3 text-sm font-medium">#</th>
+                        <th className="text-left p-3 text-sm font-medium">Email</th>
+                        <th className="text-left p-3 text-sm font-medium">
+                          {language === 'en' ? 'Name' : 'Nome'}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {recipientsList.recipients.map((recipient: any, index: number) => (
+                        <tr key={recipient.email} className="border-t hover:bg-muted/50">
+                          <td className="p-3 text-sm text-muted-foreground">{index + 1}</td>
+                          <td className="p-3 text-sm font-medium">{recipient.email}</td>
+                          <td className="p-3 text-sm text-muted-foreground">
+                            {recipient.name || '-'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Mail className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                    <p>{language === 'en' ? 'No recipients found' : 'Nenhum destinatario encontrado'}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 
