@@ -33,10 +33,10 @@ export default function GiftCard() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (formData.amount < 50 || formData.amount > 5000) {
+    if (formData.amount < 50 || formData.amount > 10000) {
       toast.error(language === 'en'
-        ? 'Amount must be between 50 and 5000 AED'
-        : 'O valor deve estar entre 50 e 5000 AED');
+        ? 'Amount must be between 50 and 10,000 AED'
+        : 'O valor deve estar entre 50 e 10.000 AED');
       return;
     }
 
@@ -99,7 +99,7 @@ export default function GiftCard() {
       description: 'Send a digital gift card to someone special. They\'ll receive it via email and can use it on any purchase.',
       amountLabel: 'Select Amount (AED)',
       customAmount: 'Custom Amount',
-      minMax: 'Min 50 AED - Max 5000 AED',
+      minMax: 'Min 50 AED - Max 10,000 AED',
       recipientEmail: 'Recipient Email',
       recipientEmailPlaceholder: 'friend@email.com',
       recipientName: 'Recipient Name (Optional)',
@@ -130,7 +130,7 @@ export default function GiftCard() {
       description: 'Envie um vale presente digital para alguém especial. Eles receberão por email e podem usar em qualquer compra.',
       amountLabel: 'Selecione o Valor (AED)',
       customAmount: 'Valor Personalizado',
-      minMax: 'Mín 50 AED - Máx 5000 AED',
+      minMax: 'Mín 50 AED - Máx 10.000 AED',
       recipientEmail: 'Email do Destinatário',
       recipientEmailPlaceholder: 'amigo@email.com',
       recipientName: 'Nome do Destinatário (Opcional)',
@@ -215,7 +215,7 @@ export default function GiftCard() {
                           name="amount"
                           type="number"
                           min={50}
-                          max={5000}
+                          max={10000}
                           step={1}
                           value={formData.amount}
                           onChange={handleChange}

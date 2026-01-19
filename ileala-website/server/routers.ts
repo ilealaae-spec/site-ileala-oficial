@@ -1477,7 +1477,7 @@ export const appRouter = router({
     // Purchase a gift card
     purchase: protectedProcedure
       .input(z.object({
-        amount: z.number().min(5000, 'Minimum gift card value is 50 AED').max(500000, 'Maximum gift card value is 5000 AED'), // 50-5000 AED in fils
+        amount: z.number().min(5000, 'Minimum gift card value is 50 AED').max(1000000, 'Maximum gift card value is 10000 AED'), // 50-10000 AED in fils
         recipientEmail: z.string().email('Invalid recipient email'),
         recipientName: z.string().max(255).optional(),
         senderName: z.string().max(255).optional(),
