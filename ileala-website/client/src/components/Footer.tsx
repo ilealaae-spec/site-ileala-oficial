@@ -58,6 +58,7 @@ export default function Footer() {
               <li><Link href="/returns" className="hover:text-primary transition-colors">{language === 'en' ? 'Returns' : 'Devoluções'}</Link></li>
               <li><Link href="/product-care" className="hover:text-primary transition-colors">{language === 'en' ? 'Product Care' : 'Cuidados'}</Link></li>
               <li><Link href="/find-retailer" className="hover:text-primary transition-colors">{language === 'en' ? 'Retailers' : 'Revendedores'}</Link></li>
+              <li><Link href="/gift-card" className="hover:text-primary transition-colors">{language === 'en' ? 'Gift Cards' : 'Vale Presente'}</Link></li>
             </ul>
           </div>
 
