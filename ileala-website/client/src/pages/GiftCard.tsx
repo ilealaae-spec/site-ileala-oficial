@@ -25,6 +25,10 @@ export default function GiftCard() {
     scheduledDate: '',
   });
 
+  // Fetch gift card image from settings
+  const { data: giftCardImageSetting } = trpc.settings.get.useQuery({ key: 'gift-card-image' });
+  const giftCardImage = giftCardImageSetting?.value;
+
   const purchaseMutation = trpc.giftCards.purchase.useMutation();
   const checkoutMutation = trpc.giftCards.createCheckoutSession.useMutation();
 
@@ -359,43 +363,74 @@ export default function GiftCard() {
               <div>
                 <h3 className="text-xl font-semibold mb-4">{t.preview}</h3>
                 <div className="relative overflow-hidden rounded-2xl shadow-2xl">
-                  <div className="bg-gradient-to-br from-[#172d20] to-[#255238] p-8 text-white">
-                    <div className="flex justify-between items-start mb-8">
-                      <div>
-                        <p className="text-white/60 text-sm uppercase tracking-widest">Gift Card</p>
-                        <h2 className="text-3xl font-bold mt-1">ILE ALA</h2>
-                      </div>
-                      <Gift className="w-10 h-10 text-white/40" />
-                    </div>
+                  {/* Background: Image or Gradient */}
+                  {giftCardImage ? (
+                    <div className="relative">
+                      <img
+                        src={giftCardImage}
+                        alt="Gift Card"
+                        className="w-full h-auto"
+                      />
+                      <div className="absolute inset-0 bg-black/30" />
+                      <div className="absolute inset-0 p-8 text-white flex flex-col justify-between">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p className="text-white/80 text-sm uppercase tracking-widest">Gift Card</p>
+                            <h2 className="text-3xl font-bold mt-1">ILE ALA</h2>
+                          </div>
+                          <Gift className="w-10 h-10 text-white/60" />
+                        </div>
 
-                    <div className="text-center py-8">
-                      <p className="text-white/60 text-sm uppercase tracking-wider mb-2">Value</p>
-                      <p className="text-5xl font-bold">AED {formData.amount.toFixed(2)}</p>
-                    </div>
+                        <div className="text-center">
+                          <p className="text-white/80 text-sm uppercase tracking-wider mb-2">Value</p>
+                          <p className="text-5xl font-bold">AED {formData.amount.toFixed(2)}</p>
+                        </div>
 
-                    {formData.recipientName && (
-                      <div className="mt-6 pt-6 border-t border-white/20">
-                        <p className="text-white/60 text-sm">For:</p>
-                        <p className="text-lg font-medium">{formData.recipientName}</p>
-                      </div>
-                    )}
-
-                    {formData.message && (
-                      <div className="mt-4 p-4 bg-white/10 rounded-lg">
-                        <p className="text-sm italic">"{formData.message}"</p>
-                        {formData.senderName && (
-                          <p className="text-sm text-white/60 mt-2 text-right">— {formData.senderName}</p>
-                        )}
-                      </div>
-                    )}
-
-                    <div className="mt-8 pt-4 border-t border-white/20">
-                      <div className="flex items-center justify-between text-sm text-white/60">
-                        <span>Code: GC-XXXXXXXXXXXX</span>
-                        <span>Valid for 1 year</span>
+                        <div className="text-sm text-white/80 flex justify-between">
+                          <span>Code: GC-XXXXXXXXXXXX</span>
+                          <span>Valid for 1 year</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="bg-gradient-to-br from-[#172d20] to-[#255238] p-8 text-white">
+                      <div className="flex justify-between items-start mb-8">
+                        <div>
+                          <p className="text-white/60 text-sm uppercase tracking-widest">Gift Card</p>
+                          <h2 className="text-3xl font-bold mt-1">ILE ALA</h2>
+                        </div>
+                        <Gift className="w-10 h-10 text-white/40" />
+                      </div>
+
+                      <div className="text-center py-8">
+                        <p className="text-white/60 text-sm uppercase tracking-wider mb-2">Value</p>
+                        <p className="text-5xl font-bold">AED {formData.amount.toFixed(2)}</p>
+                      </div>
+
+                      {formData.recipientName && (
+                        <div className="mt-6 pt-6 border-t border-white/20">
+                          <p className="text-white/60 text-sm">For:</p>
+                          <p className="text-lg font-medium">{formData.recipientName}</p>
+                        </div>
+                      )}
+
+                      {formData.message && (
+                        <div className="mt-4 p-4 bg-white/10 rounded-lg">
+                          <p className="text-sm italic">"{formData.message}"</p>
+                          {formData.senderName && (
+                            <p className="text-sm text-white/60 mt-2 text-right">— {formData.senderName}</p>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="mt-8 pt-4 border-t border-white/20">
+                        <div className="flex items-center justify-between text-sm text-white/60">
+                          <span>Code: GC-XXXXXXXXXXXX</span>
+                          <span>Valid for 1 year</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 

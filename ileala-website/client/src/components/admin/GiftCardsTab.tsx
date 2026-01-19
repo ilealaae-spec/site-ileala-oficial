@@ -1,10 +1,11 @@
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
 import { trpc } from '@/lib/trpc';
-import { Loader2, Gift, Copy, Mail, RefreshCw, XCircle, Calendar, User, CreditCard } from 'lucide-react';
+import { Loader2, Gift, Copy, Mail, RefreshCw, XCircle, Calendar, User, CreditCard, Upload, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -26,10 +27,15 @@ export default function GiftCardsTab() {
   const [statusFilter, setStatusFilter] = useState<GiftCardStatus>('all');
   const [selectedCard, setSelectedCard] = useState<any>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const utils = trpc.useUtils();
   const { data: giftCards, isLoading } = trpc.admin.giftCards.list.useQuery({ status: statusFilter });
   const { data: stats } = trpc.admin.giftCards.stats.useQuery();
+
+  // Fetch gift card image setting
+  const { data: giftCardImageSetting, refetch: refetchGiftCardImage } = trpc.settings.get.useQuery({ key: 'gift-card-image' });
 
   const cancelMutation = trpc.admin.giftCards.cancel.useMutation({
     onSuccess: () => {
@@ -51,6 +57,62 @@ export default function GiftCardsTab() {
       toast.error(error.message);
     },
   });
+
+  // Upload image mutation
+  const uploadMutation = (trpc.products as any).uploadImage.useMutation({
+    onSuccess: (data: { url: string }) => {
+      // After uploading, update the setting
+      updateSettingMutation.mutate({ key: 'gift-card-image', value: data.url });
+    },
+    onError: (error: any) => {
+      setIsUploading(false);
+      toast.error(error.message || (language === 'en' ? 'Failed to upload image' : 'Erro ao enviar imagem'));
+    },
+  });
+
+  // Update setting mutation
+  const updateSettingMutation = trpc.settings.upsert.useMutation({
+    onSuccess: () => {
+      setIsUploading(false);
+      toast.success(language === 'en' ? 'Gift card image updated!' : 'Imagem do vale presente atualizada!');
+      refetchGiftCardImage();
+    },
+    onError: (error) => {
+      setIsUploading(false);
+      toast.error(error.message || (language === 'en' ? 'Failed to save image' : 'Erro ao salvar imagem'));
+    },
+  });
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error(language === 'en' ? 'Please select an image file' : 'Selecione um arquivo de imagem');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error(language === 'en' ? 'Image must be less than 5MB' : 'Imagem deve ter menos de 5MB');
+      return;
+    }
+
+    setIsUploading(true);
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = (reader.result as string).split(',')[1];
+      uploadMutation.mutate({
+        fileName: `gift-card-${Date.now()}-${file.name}`,
+        fileData: base64,
+        contentType: file.type,
+      });
+    };
+    reader.onerror = () => {
+      setIsUploading(false);
+      toast.error(language === 'en' ? 'Failed to read file' : 'Erro ao ler arquivo');
+    };
+    reader.readAsDataURL(file);
+  };
 
   const copyCode = (code: string) => {
     navigator.clipboard.writeText(code);
@@ -129,6 +191,84 @@ export default function GiftCardsTab() {
           </p>
         </div>
       </div>
+
+      {/* Gift Card Design Image */}
+      <Card className="p-6">
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <ImageIcon className="w-5 h-5" />
+              {language === 'en' ? 'Gift Card Design' : 'Design do Vale Presente'}
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              {language === 'en'
+                ? 'This image appears on the gift card page and email'
+                : 'Esta imagem aparece na página do vale presente e no email'}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-col md:flex-row gap-6">
+          {/* Current Image Preview */}
+          <div className="w-full md:w-1/2">
+            <Label className="mb-2 block">{language === 'en' ? 'Current Image' : 'Imagem Atual'}</Label>
+            <div className="relative aspect-[16/10] rounded-lg overflow-hidden bg-muted border">
+              {giftCardImageSetting?.value ? (
+                <img
+                  src={giftCardImageSetting.value}
+                  alt="Gift Card"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-[#172d20] to-[#255238] text-white">
+                  <Gift className="w-12 h-12 mb-2 opacity-60" />
+                  <span className="text-sm opacity-80">{language === 'en' ? 'Default gradient' : 'Gradiente padrão'}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Upload Section */}
+          <div className="w-full md:w-1/2">
+            <Label className="mb-2 block">{language === 'en' ? 'Upload New Image' : 'Enviar Nova Imagem'}</Label>
+            <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="hidden"
+              />
+              <Upload className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground mb-3">
+                {language === 'en'
+                  ? 'Recommended: 800x500px'
+                  : 'Recomendado: 800x500px'}
+              </p>
+              <Button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+                variant="outline"
+              >
+                {isUploading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    {language === 'en' ? 'Uploading...' : 'Enviando...'}
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4 mr-2" />
+                    {language === 'en' ? 'Choose Image' : 'Escolher Imagem'}
+                  </>
+                )}
+              </Button>
+              <p className="text-xs text-muted-foreground mt-2">
+                {language === 'en' ? 'Max 5MB. JPG, PNG or WebP' : 'Máx 5MB. JPG, PNG ou WebP'}
+              </p>
+            </div>
+          </div>
+        </div>
+      </Card>
 
       {/* Stats Cards */}
       {stats && (
