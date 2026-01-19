@@ -3097,6 +3097,13 @@ export const appRouter = router({
       }
       return settingsMap;
     }),
+    // Get a specific setting by key (public)
+    get: publicProcedure
+      .input(z.object({ key: z.string() }))
+      .query(async ({ input }) => {
+        const setting = await db.getSettingByKey(input.key);
+        return setting || null;
+      }),
     // Admin only - list all settings with metadata
     list: protectedProcedure.query(async ({ ctx }) => {
       if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');

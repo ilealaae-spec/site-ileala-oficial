@@ -146,7 +146,10 @@ export default function Header() {
                   <DropdownMenuItem asChild>
                     <Link href="/my-loyalty" className="flex items-center cursor-pointer">
                       <Crown className="h-4 w-4 mr-2 text-amber-500" />
-                      The Green World
+                      <span className="flex flex-col leading-tight">
+                        <span>The Green World</span>
+                        <span className="text-[10px] font-normal italic text-muted-foreground" style={{ fontFamily: 'Georgia, serif' }}>by Ile Ala</span>
+                      </span>
                     </Link>
                   </DropdownMenuItem>
                   {user?.role === 'admin' && (
@@ -221,12 +224,17 @@ export default function Header() {
           <nav className="flex items-center justify-center overflow-x-auto">
             <div className="flex items-center gap-4 md:gap-6 lg:gap-8 py-3 px-2">
               {menuItems.map((item) => (
-                <Link 
+                <Link
                   key={item.href}
-                  href={item.href} 
+                  href={item.href}
                   className="text-sm font-medium text-[#214430] hover:text-[#255238] transition-colors whitespace-nowrap"
                 >
-                  {item.label}
+                  {item.href === '/my-loyalty' ? (
+                    <span className="flex flex-col items-center leading-tight">
+                      <span>The Green World</span>
+                      <span className="text-[10px] font-normal italic text-[#214430]/70" style={{ fontFamily: 'Georgia, serif' }}>by Ile Ala</span>
+                    </span>
+                  ) : item.label}
                 </Link>
               ))}
             </div>
