@@ -13,31 +13,31 @@ export default function WelcomePopup() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    // Check if user has already seen the popup
-    const hasSeenPopup = localStorage.getItem('ileala_welcome_popup_seen');
-    
-    if (!hasSeenPopup) {
-      // Track page visits
-      const pageVisitsStr = localStorage.getItem('ileala_page_visits');
-      const pageVisits = pageVisitsStr ? parseInt(pageVisitsStr) : 0;
-      const newPageVisits = pageVisits + 1;
-      localStorage.setItem('ileala_page_visits', newPageVisits.toString());
-      
-      // Show popup only after visiting at least 2 pages
-      if (newPageVisits >= 2) {
-        // Show popup after 3 seconds
-        const timer = setTimeout(() => {
-          setIsOpen(true);
-        }, 3000);
+    // Check if user has seen the popup recently (within 7 days)
+    const lastSeenStr = localStorage.getItem('ileala_welcome_popup_seen');
 
-        return () => clearTimeout(timer);
+    if (lastSeenStr) {
+      const lastSeen = parseInt(lastSeenStr);
+      const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+
+      // If seen within last 7 days, don't show
+      if (lastSeen > sevenDaysAgo) {
+        return;
       }
     }
+
+    // Show popup after 2 seconds on first visit
+    const timer = setTimeout(() => {
+      setIsOpen(true);
+    }, 2000);
+
+    return () => clearTimeout(timer);
   }, []);
 
   const handleClose = () => {
     setIsOpen(false);
-    localStorage.setItem('ileala_welcome_popup_seen', 'true');
+    // Save timestamp so popup can appear again after 7 days
+    localStorage.setItem('ileala_welcome_popup_seen', Date.now().toString());
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
