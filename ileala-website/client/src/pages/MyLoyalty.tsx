@@ -19,9 +19,14 @@ export default function MyLoyalty() {
   const [whatsapp, setWhatsapp] = useState('');
   const [selectedTierView, setSelectedTierView] = useState<string | null>(null);
 
-  // Fetch loyalty hero image from settings
+  // Fetch loyalty hero settings
   const { data: heroImageSetting } = trpc.settings.get.useQuery({ key: 'loyalty-hero-image' });
+  const { data: heroTitleSetting } = trpc.settings.get.useQuery({ key: 'loyalty-hero-title' });
+  const { data: heroSubtitleSetting } = trpc.settings.get.useQuery({ key: 'loyalty-hero-subtitle' });
+
   const heroImage = heroImageSetting?.value || DEFAULT_HERO_IMAGE;
+  const heroTitle = heroTitleSetting?.value || 'Inside The Green World';
+  const heroSubtitle = heroSubtitleSetting?.value || 'A private universe where ritual, beauty, and time shape the art of living.';
 
   // Fetch tier benefits (includes iconUrl for card images)
   const { data: tierBenefitsData } = trpc.loyalty.getTierBenefits.useQuery(undefined, {
@@ -295,31 +300,13 @@ export default function MyLoyalty() {
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/20 to-black/40" />
 
-        <div className="relative z-10 text-center text-white px-4">
-          <p className="text-sm uppercase tracking-[0.4em] mb-3 opacity-90">The Green World</p>
-          <h1 className="text-4xl md:text-6xl font-light mb-2" style={{ fontFamily: 'Georgia, serif' }}>
-            {language === 'en' ? 'Hello' : 'Olá'}, <span className="font-medium">{user?.name?.split(' ')[0] || 'Member'}</span>
+        <div className="relative z-10 text-center text-white px-4 max-w-3xl mx-auto">
+          <h1 className="text-4xl md:text-6xl font-light mb-6" style={{ fontFamily: 'Georgia, serif' }}>
+            {heroTitle}
           </h1>
-          <p className="text-xl md:text-2xl font-light mt-4 opacity-90" style={{ fontFamily: 'Georgia, serif' }}>
-            {language === 'en' ? 'Status: ' : 'Status: '}
-            <span className="font-semibold">{getTierDisplayName(member?.tier || 'green')}</span>
+          <p className="text-lg md:text-xl font-light opacity-90 leading-relaxed" style={{ fontFamily: 'Georgia, serif' }}>
+            {heroSubtitle}
           </p>
-
-          {/* Discrete Progress Bar */}
-          {nextTierInfo?.nextTier && (
-            <div className="max-w-md mx-auto mt-8">
-              <div className="h-1 bg-white/30 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-white rounded-full transition-all duration-700 ease-out"
-                  style={{ width: `${nextTierInfo.progress}%` }}
-                />
-              </div>
-              <p className="text-sm mt-2 opacity-80">
-                {formatPrice(nextTierInfo.amountNeeded)} {language === 'en' ? 'until' : 'para'}{' '}
-                <span className="font-medium">{nextTierInfo.nextTier.charAt(0).toUpperCase() + nextTierInfo.nextTier.slice(1)}</span>
-              </p>
-            </div>
-          )}
         </div>
       </section>
 

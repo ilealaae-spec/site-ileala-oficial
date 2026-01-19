@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { trpc } from '@/lib/trpc';
 import { Loader2, Crown, Users, TrendingUp, Search, Eye, Pencil, ArrowUpDown, Save, X, Upload, Image as ImageIcon } from 'lucide-react';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -180,8 +180,20 @@ export default function LoyaltyTab() {
     tier: tierFilter !== 'all' ? tierFilter : undefined,
   });
 
-  // Fetch loyalty hero image setting
+  // Fetch loyalty hero settings
   const { data: heroImageSetting, refetch: refetchHeroImage } = trpc.settings.get.useQuery({ key: 'loyalty-hero-image' });
+  const { data: heroTitleSetting, refetch: refetchHeroTitle } = trpc.settings.get.useQuery({ key: 'loyalty-hero-title' });
+  const { data: heroSubtitleSetting, refetch: refetchHeroSubtitle } = trpc.settings.get.useQuery({ key: 'loyalty-hero-subtitle' });
+
+  const [heroTitle, setHeroTitle] = useState('');
+  const [heroSubtitle, setHeroSubtitle] = useState('');
+  const [isSavingText, setIsSavingText] = useState(false);
+
+  // Initialize hero text values when data loads
+  useEffect(() => {
+    if (heroTitleSetting?.value && !heroTitle) setHeroTitle(heroTitleSetting.value);
+    if (heroSubtitleSetting?.value && !heroSubtitle) setHeroSubtitle(heroSubtitleSetting.value);
+  }, [heroTitleSetting, heroSubtitleSetting]);
 
   const { data: memberDetail } = trpc.admin.loyalty.getMember.useQuery(
     { memberId: selectedMember?.member?.id },
@@ -498,6 +510,65 @@ export default function LoyaltyTab() {
                 {language === 'en' ? 'Max 5MB. JPG, PNG or WebP' : 'Máx 5MB. JPG, PNG ou WebP'}
               </p>
             </div>
+          </div>
+        </div>
+
+        {/* Hero Text Section */}
+        <div className="mt-6 pt-6 border-t">
+          <h4 className="font-medium mb-4">
+            {language === 'en' ? 'Hero Text' : 'Texto do Hero'}
+          </h4>
+          <div className="space-y-4">
+            <div>
+              <Label>{language === 'en' ? 'Title' : 'Título'}</Label>
+              <Input
+                value={heroTitle}
+                onChange={(e) => setHeroTitle(e.target.value)}
+                placeholder={language === 'en' ? 'Inside The Green World' : 'Inside The Green World'}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label>{language === 'en' ? 'Subtitle' : 'Subtítulo'}</Label>
+              <Textarea
+                value={heroSubtitle}
+                onChange={(e) => setHeroSubtitle(e.target.value)}
+                placeholder={language === 'en'
+                  ? 'A private universe where ritual, beauty, and time shape the art of living.'
+                  : 'Um universo privado onde ritual, beleza e tempo moldam a arte de viver.'}
+                className="mt-1"
+                rows={3}
+              />
+            </div>
+            <Button
+              onClick={async () => {
+                setIsSavingText(true);
+                try {
+                  await updateSettingMutation.mutateAsync({ key: 'loyalty-hero-title', value: heroTitle });
+                  await updateSettingMutation.mutateAsync({ key: 'loyalty-hero-subtitle', value: heroSubtitle });
+                  refetchHeroTitle();
+                  refetchHeroSubtitle();
+                  toast.success(language === 'en' ? 'Hero text saved!' : 'Texto do hero salvo!');
+                } catch (error: any) {
+                  toast.error(error.message || (language === 'en' ? 'Failed to save' : 'Erro ao salvar'));
+                } finally {
+                  setIsSavingText(false);
+                }
+              }}
+              disabled={isSavingText}
+            >
+              {isSavingText ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  {language === 'en' ? 'Saving...' : 'Salvando...'}
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  {language === 'en' ? 'Save Text' : 'Salvar Texto'}
+                </>
+              )}
+            </Button>
           </div>
         </div>
       </Card>
