@@ -4,11 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { trpc } from '@/lib/trpc';
 import { useLocation } from 'wouter';
-import { Loader2, Lock, UserPlus, LogIn, Truck } from 'lucide-react';
+import { Loader2, Lock, UserPlus, LogIn, Truck, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 import { useState } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
@@ -134,10 +134,29 @@ export default function Checkout() {
   const [customerPhone, setCustomerPhone] = useState('');
   const [selectedZone, setSelectedZone] = useState<string>('');
   const [selectedLocation, setSelectedLocation] = useState<string>('');
-  const [shippingAddress, setShippingAddress] = useState('');
+
+  // Detailed address fields
+  const [streetAddress, setStreetAddress] = useState('');
+  const [buildingName, setBuildingName] = useState('');
+  const [apartmentUnit, setApartmentUnit] = useState('');
+  const [city, setCity] = useState('');
+  const [postalCode, setPostalCode] = useState('');
+  const [useRegisteredAddress, setUseRegisteredAddress] = useState(false);
+
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number } | null>(null);
   const [couponError, setCouponError] = useState('');
+
+  // Handle using registered address
+  const handleUseRegisteredAddress = (checked: boolean) => {
+    setUseRegisteredAddress(checked);
+    if (checked && user) {
+      // Pre-fill with user's registered info if available
+      if (user.name) setCustomerName(user.name);
+      if (user.email) setCustomerEmail(user.email);
+      // Note: You may need to add address fields to user profile later
+    }
+  };
 
   // Get current zone data
   const getCurrentZone = () => {
@@ -274,6 +293,16 @@ export default function Checkout() {
       return;
     }
 
+    if (!streetAddress.trim()) {
+      toast.error(language === 'en' ? 'Please enter your street address' : 'Por favor, insira seu endereço');
+      return;
+    }
+
+    if (!city.trim()) {
+      toast.error(language === 'en' ? 'Please enter your city' : 'Por favor, insira sua cidade');
+      return;
+    }
+
     const items = cartItems
       .filter(item => item.product)
       .map(item => ({
@@ -282,11 +311,18 @@ export default function Checkout() {
         price: item.product!.price,
       }));
 
-    // Build full address with zone and location info
+    // Build full address with all fields
     const zone = SHIPPING_ZONES[selectedZone as keyof typeof SHIPPING_ZONES];
     const location = zone?.locations.find(l => l.id === selectedLocation);
-    const zoneName = language === 'en' ? zone?.name : zone?.namePt;
-    const fullAddress = `${shippingAddress}\n${location?.name || ''}, ${zoneName || ''}`;
+    const addressParts = [
+      streetAddress,
+      buildingName && `Building: ${buildingName}`,
+      apartmentUnit && `Apt/Unit: ${apartmentUnit}`,
+      city,
+      postalCode && `Postal Code: ${postalCode}`,
+      location?.name,
+    ].filter(Boolean);
+    const fullAddress = addressParts.join('\n');
 
     createOrderMutation.mutate({
       items,
@@ -524,21 +560,110 @@ export default function Checkout() {
                       </div>
                     </div>
                   )}
+                </div>
+              </Card>
 
-                  <div>
-                    <Label htmlFor="address">
-                      {language === 'en' ? 'Full Address' : 'Endereço Completo'} *
-                    </Label>
-                    <Textarea
-                      id="address"
-                      required
-                      value={shippingAddress}
-                      onChange={(e) => setShippingAddress(e.target.value)}
-                      placeholder={language === 'en'
-                        ? 'Street address, building name, apartment/villa number, city, postal code'
-                        : 'Endereço, nome do prédio, número do apartamento/villa, cidade, CEP'}
-                      rows={4}
+              {/* Delivery Address Card */}
+              <Card className="p-6">
+                <div className="flex items-center gap-2 mb-6">
+                  <MapPin className="w-5 h-5 text-primary" />
+                  <h2 className="text-2xl font-semibold">
+                    {language === 'en' ? 'Delivery Address' : 'Endereço de Entrega'}
+                  </h2>
+                </div>
+
+                {/* Use Registered Address Checkbox */}
+                {isAuthenticated && user && (
+                  <div className="flex items-center space-x-3 mb-6 p-4 bg-muted/50 rounded-lg">
+                    <Checkbox
+                      id="useRegisteredAddress"
+                      checked={useRegisteredAddress}
+                      onCheckedChange={handleUseRegisteredAddress}
                     />
+                    <Label htmlFor="useRegisteredAddress" className="cursor-pointer text-sm">
+                      {language === 'en'
+                        ? 'Use my registered account information'
+                        : 'Usar informações da minha conta'}
+                    </Label>
+                  </div>
+                )}
+
+                <div className="space-y-4">
+                  {/* Street Address */}
+                  <div>
+                    <Label htmlFor="streetAddress">
+                      {language === 'en' ? 'Street Address' : 'Endereço'} *
+                    </Label>
+                    <Input
+                      id="streetAddress"
+                      required
+                      value={streetAddress}
+                      onChange={(e) => setStreetAddress(e.target.value)}
+                      placeholder={language === 'en'
+                        ? 'Street name and number'
+                        : 'Nome e número da rua'}
+                    />
+                  </div>
+
+                  {/* Building Name and Apartment/Unit in a row */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="buildingName">
+                        {language === 'en' ? 'Building Name' : 'Nome do Prédio'}
+                      </Label>
+                      <Input
+                        id="buildingName"
+                        value={buildingName}
+                        onChange={(e) => setBuildingName(e.target.value)}
+                        placeholder={language === 'en'
+                          ? 'Building or tower name (optional)'
+                          : 'Nome do prédio ou torre (opcional)'}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="apartmentUnit">
+                        {language === 'en' ? 'Apartment / Villa / Unit' : 'Apartamento / Villa / Unidade'}
+                      </Label>
+                      <Input
+                        id="apartmentUnit"
+                        value={apartmentUnit}
+                        onChange={(e) => setApartmentUnit(e.target.value)}
+                        placeholder={language === 'en'
+                          ? 'Apt, Villa or Unit number (optional)'
+                          : 'Nº do apt, villa ou unidade (opcional)'}
+                      />
+                    </div>
+                  </div>
+
+                  {/* City and Postal Code in a row */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="city">
+                        {language === 'en' ? 'City' : 'Cidade'} *
+                      </Label>
+                      <Input
+                        id="city"
+                        required
+                        value={city}
+                        onChange={(e) => setCity(e.target.value)}
+                        placeholder={language === 'en'
+                          ? 'City name'
+                          : 'Nome da cidade'}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="postalCode">
+                        {language === 'en' ? 'Postal Code / ZIP' : 'CEP / Código Postal'}
+                      </Label>
+                      <Input
+                        id="postalCode"
+                        value={postalCode}
+                        onChange={(e) => setPostalCode(e.target.value)}
+                        placeholder={language === 'en'
+                          ? 'Postal code (optional)'
+                          : 'Código postal (opcional)'}
+                      />
+                    </div>
                   </div>
                 </div>
               </Card>
