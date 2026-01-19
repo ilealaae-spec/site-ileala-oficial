@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { trpc } from '@/lib/trpc';
 import {
   Loader2, Plus, Edit, Trash2, Image as ImageIcon, Video,
-  LayoutGrid, ArrowUp, ArrowDown, Upload, GripVertical
+  LayoutGrid, ArrowUp, ArrowDown, Upload, Database
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useState, useRef } from 'react';
@@ -23,18 +23,55 @@ import {
 export default function HomepageTab() {
   const { language } = useLanguage();
   const [activeSection, setActiveSection] = useState('slides');
+  const utils = trpc.useUtils();
+
+  const seedMutation = (trpc as any).homepageSeed.run.useMutation({
+    onSuccess: (data: any) => {
+      toast.success(data.message || (language === 'en' ? 'Content seeded successfully!' : 'Conteúdo populado com sucesso!'));
+      // Invalidate all queries to refresh data
+      utils.heroSlides.list.invalidate();
+      utils.homepageVideos.list.invalidate();
+      utils.homepageCards.list.invalidate();
+    },
+    onError: (error: any) => {
+      toast.error(error.message || (language === 'en' ? 'Failed to seed content' : 'Falha ao popular conteúdo'));
+    },
+  });
+
+  const handleSeed = () => {
+    if (confirm(language === 'en'
+      ? 'This will populate the database with default content (only if empty). Continue?'
+      : 'Isso vai popular o banco com o conteúdo padrão (apenas se estiver vazio). Continuar?')) {
+      seedMutation.mutate();
+    }
+  };
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-sage-900 mb-2">
-          {language === 'en' ? 'Homepage Management' : 'Gerenciar Homepage'}
-        </h2>
-        <p className="text-sage-600">
-          {language === 'en'
-            ? 'Manage hero slides, videos, and cards displayed on the homepage'
-            : 'Gerencie slides, vídeos e cards exibidos na página inicial'}
-        </p>
+      <div className="flex justify-between items-start">
+        <div>
+          <h2 className="text-2xl font-bold text-sage-900 mb-2">
+            {language === 'en' ? 'Homepage Management' : 'Gerenciar Homepage'}
+          </h2>
+          <p className="text-sage-600">
+            {language === 'en'
+              ? 'Manage hero slides, videos, and cards displayed on the homepage'
+              : 'Gerencie slides, vídeos e cards exibidos na página inicial'}
+          </p>
+        </div>
+        <Button
+          onClick={handleSeed}
+          variant="outline"
+          disabled={seedMutation.isPending}
+          className="flex items-center gap-2"
+        >
+          {seedMutation.isPending ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Database className="w-4 h-4" />
+          )}
+          {language === 'en' ? 'Load Default Content' : 'Carregar Conteúdo Padrão'}
+        </Button>
       </div>
 
       <Tabs value={activeSection} onValueChange={setActiveSection}>
@@ -120,8 +157,8 @@ function HeroSlidesSection() {
     onError: (error) => toast.error(error.message),
   });
 
-  const uploadMutation = trpc.products.uploadImage.useMutation({
-    onSuccess: (data) => {
+  const uploadMutation = (trpc.products as any).uploadImage.useMutation({
+    onSuccess: (data: { url: string }) => {
       setFormData({ ...formData, imageUrl: data.url });
       setIsUploading(false);
       toast.success(language === 'en' ? 'Image uploaded!' : 'Imagem enviada!');
@@ -454,8 +491,6 @@ function VideosSection() {
   const { language } = useLanguage();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingVideo, setEditingVideo] = useState<any>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
     videoUrl: '',
@@ -746,8 +781,8 @@ function CardsSection() {
     onError: (error) => toast.error(error.message),
   });
 
-  const uploadMutation = trpc.products.uploadImage.useMutation({
-    onSuccess: (data) => {
+  const uploadMutation = (trpc.products as any).uploadImage.useMutation({
+    onSuccess: (data: { url: string }) => {
       setFormData({ ...formData, imageUrl: data.url });
       setIsUploading(false);
       toast.success(language === 'en' ? 'Image uploaded!' : 'Imagem enviada!');

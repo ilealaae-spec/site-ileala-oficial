@@ -2468,6 +2468,13 @@ export const appRouter = router({
         return await db.deleteHomepageCard(input.id);
       }),
   }),
+  // Homepage seed endpoint
+  homepageSeed: router({
+    run: protectedProcedure.mutation(async ({ ctx }) => {
+      if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+      return await db.seedHomepageContent();
+    }),
+  }),
   // Public artisans list
   artisans: router({
     listActive: publicProcedure.query(async () => {

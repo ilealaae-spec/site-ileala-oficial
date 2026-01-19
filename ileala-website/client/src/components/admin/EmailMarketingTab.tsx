@@ -64,8 +64,8 @@ export default function EmailMarketingTab() {
   );
 
   // Image upload mutation
-  const uploadImageMutation = trpc.products.uploadImage.useMutation({
-    onSuccess: (data) => {
+  const uploadImageMutation = (trpc.products as any).uploadImage.useMutation({
+    onSuccess: (data: { url: string }) => {
       // Insert image HTML into content
       const imageHtml = `<img src="${data.url}" alt="Email image" style="max-width: 100%; height: auto; margin: 10px 0;" />`;
       setFormData(prev => ({
@@ -75,7 +75,7 @@ export default function EmailMarketingTab() {
       toast.success(language === 'en' ? 'Image uploaded!' : 'Imagem enviada!');
       setIsUploading(false);
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(error.message);
       setIsUploading(false);
     },

@@ -2149,3 +2149,147 @@ export async function getEmailRecipients(type: string): Promise<Array<{ email: s
 
   return [];
 }
+
+// ============================================
+// Seed Homepage Content
+// ============================================
+
+export async function seedHomepageContent() {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const { heroSlides, homepageVideos, homepageCards } = await import("../drizzle/schema");
+
+  const results = {
+    slides: 0,
+    videos: 0,
+    cards: 0,
+  };
+
+  try {
+    // Check if data already exists
+    const existingSlides = await db.select().from(heroSlides);
+    const existingVideos = await db.select().from(homepageVideos);
+    const existingCards = await db.select().from(homepageCards);
+
+    // Seed Hero Slides if empty
+    if (existingSlides.length === 0) {
+      const defaultSlides = [
+        {
+          imageUrl: '/images/hero_home_table_setting.webp',
+          altText: 'ILE ALA Luxury Table Setting',
+          titleEN: 'ILE ALA',
+          titlePT: 'ILE ALA',
+          subtitleEN: 'Crafting Elegance for Your Table',
+          subtitlePT: 'Criando Elegância Para Sua Mesa',
+          displayOrder: 1,
+          active: 1
+        },
+        {
+          imageUrl: '/images/hero_carousel_2.jpeg',
+          altText: 'ILE ALA Collection - Decorative Shells',
+          titleEN: 'ILE ALA',
+          titlePT: 'ILE ALA',
+          subtitleEN: 'Crafting Elegance for Your Table',
+          subtitlePT: 'Criando Elegância Para Sua Mesa',
+          displayOrder: 2,
+          active: 1
+        },
+        {
+          imageUrl: '/images/hero_carousel_3.jpeg?v=4',
+          altText: 'ILE ALA Elegant Table Setting',
+          titleEN: 'ILE ALA',
+          titlePT: 'ILE ALA',
+          subtitleEN: 'Crafting Elegance for Your Table',
+          subtitlePT: 'Criando Elegância Para Sua Mesa',
+          displayOrder: 3,
+          active: 1
+        },
+        {
+          imageUrl: '/images/hero_carousel_moet.jpeg',
+          altText: 'ILE ALA Luxury Collection',
+          titleEN: 'ILE ALA',
+          titlePT: 'ILE ALA',
+          subtitleEN: 'Crafting Elegance for Your Table',
+          subtitlePT: 'Criando Elegância Para Sua Mesa',
+          displayOrder: 4,
+          active: 1
+        },
+      ];
+
+      for (const slide of defaultSlides) {
+        await db.insert(heroSlides).values(slide);
+        results.slides++;
+      }
+      logger.info(`[Seed] Created ${results.slides} hero slides`);
+    }
+
+    // Seed Homepage Videos if empty
+    if (existingVideos.length === 0) {
+      const defaultVideos = [
+        { videoUrl: '/videos/video1.mp4', titleEN: 'Video 1', titlePT: 'Vídeo 1', displayOrder: 1, active: 1 },
+        { videoUrl: '/videos/video2.mp4', titleEN: 'Video 2', titlePT: 'Vídeo 2', displayOrder: 2, active: 1 },
+        { videoUrl: '/videos/video3.mp4', titleEN: 'Video 3', titlePT: 'Vídeo 3', displayOrder: 3, active: 1 },
+        { videoUrl: '/videos/video4.mp4', titleEN: 'Video 4', titlePT: 'Vídeo 4', displayOrder: 4, active: 1 },
+        { videoUrl: '/videos/video5.mp4', titleEN: 'Video 5', titlePT: 'Vídeo 5', displayOrder: 5, active: 1 },
+        { videoUrl: '/videos/video6.mp4', titleEN: 'Video 6', titlePT: 'Vídeo 6', displayOrder: 6, active: 1 },
+      ];
+
+      for (const video of defaultVideos) {
+        await db.insert(homepageVideos).values(video);
+        results.videos++;
+      }
+      logger.info(`[Seed] Created ${results.videos} homepage videos`);
+    }
+
+    // Seed Homepage Cards if empty
+    if (existingCards.length === 0) {
+      const defaultCards = [
+        {
+          imageUrl: '/images/about_me_card_new.png',
+          titleEN: 'About Me',
+          titlePT: 'Sobre Mim',
+          linkUrl: '/about',
+          displayOrder: 1,
+          active: 1
+        },
+        {
+          imageUrl: '/images/about_collections_new.webp',
+          titleEN: 'Our Collections',
+          titlePT: 'Nossas Coleções',
+          linkUrl: '/collections',
+          displayOrder: 2,
+          active: 1
+        },
+        {
+          imageUrl: '/images/our_values_card.webp',
+          titleEN: 'Our Values',
+          titlePT: 'Nossos Valores',
+          linkUrl: '/about',
+          displayOrder: 3,
+          active: 1
+        },
+      ];
+
+      for (const card of defaultCards) {
+        await db.insert(homepageCards).values(card);
+        results.cards++;
+      }
+      logger.info(`[Seed] Created ${results.cards} homepage cards`);
+    }
+
+    return {
+      success: true,
+      message: `Seeded: ${results.slides} slides, ${results.videos} videos, ${results.cards} cards`,
+      results,
+      alreadyExisted: {
+        slides: existingSlides.length > 0,
+        videos: existingVideos.length > 0,
+        cards: existingCards.length > 0,
+      }
+    };
+  } catch (error) {
+    logger.error("[Seed] Failed to seed homepage content:", error);
+    throw error;
+  }
+}
