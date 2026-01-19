@@ -24,6 +24,139 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
+// Tier card config for gradients and icons
+const tierCardConfig: Record<string, { gradient: string; icon: string }> = {
+  green: { gradient: 'linear-gradient(135deg, #255238 0%, #1a3d28 100%)', icon: '🌿' },
+  silver: { gradient: 'linear-gradient(135deg, #C0C0C0 0%, #808080 100%)', icon: '🥈' },
+  gold: { gradient: 'linear-gradient(135deg, #FFD700 0%, #B8860B 100%)', icon: '🏆' },
+  platinum: { gradient: 'linear-gradient(135deg, #2C2C2C 0%, #1a1a1a 50%, #3d3d3d 100%)', icon: '👑' },
+};
+
+// Component for tier card with image upload
+function TierCardWithUpload({ tier, language, onUpdate }: { tier: any; language: string; onUpdate: () => void }) {
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const config = tierCardConfig[tier.tier] || tierCardConfig.green;
+
+  const uploadMutation = (trpc.products as any).uploadImage.useMutation({
+    onSuccess: (data: { url: string }) => {
+      updateTierMutation.mutate({ tier: tier.tier, iconUrl: data.url });
+    },
+    onError: (error: any) => {
+      setIsUploading(false);
+      toast.error(error.message || (language === 'en' ? 'Failed to upload' : 'Erro ao enviar'));
+    },
+  });
+
+  const updateTierMutation = trpc.admin.loyalty.updateTier.useMutation({
+    onSuccess: () => {
+      setIsUploading(false);
+      toast.success(language === 'en' ? 'Image updated!' : 'Imagem atualizada!');
+      onUpdate();
+    },
+    onError: (error) => {
+      setIsUploading(false);
+      toast.error(error.message || (language === 'en' ? 'Failed to save' : 'Erro ao salvar'));
+    },
+  });
+
+  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error(language === 'en' ? 'Select an image file' : 'Selecione uma imagem');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error(language === 'en' ? 'Max 5MB' : 'Máx 5MB');
+      return;
+    }
+
+    setIsUploading(true);
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = (reader.result as string).split(',')[1];
+      uploadMutation.mutate({
+        fileName: `tier-${tier.tier}-${Date.now()}-${file.name}`,
+        fileData: base64,
+        contentType: file.type,
+      });
+    };
+    reader.onerror = () => {
+      setIsUploading(false);
+      toast.error(language === 'en' ? 'Failed to read file' : 'Erro ao ler arquivo');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveImage = () => {
+    setIsUploading(true);
+    updateTierMutation.mutate({ tier: tier.tier, iconUrl: null });
+  };
+
+  return (
+    <Card className="overflow-hidden">
+      {/* Card Preview */}
+      <div
+        className="relative h-32 flex items-center justify-center text-white"
+        style={{
+          background: tier.iconUrl ? undefined : config.gradient,
+        }}
+      >
+        {tier.iconUrl && (
+          <>
+            <img src={tier.iconUrl} alt={tier.tier} className="absolute inset-0 w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-black/30" />
+          </>
+        )}
+        <div className="relative z-10 text-center">
+          <span className="text-3xl block mb-1">{config.icon}</span>
+          <span className="text-lg font-bold capitalize">{tier.tier}</span>
+        </div>
+      </div>
+
+      {/* Upload Controls */}
+      <div className="p-4 space-y-3">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleUpload}
+          className="hidden"
+        />
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isUploading}
+        >
+          {isUploading ? (
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          ) : (
+            <Upload className="w-4 h-4 mr-2" />
+          )}
+          {language === 'en' ? 'Upload Image' : 'Enviar Imagem'}
+        </Button>
+        {tier.iconUrl && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
+            onClick={handleRemoveImage}
+            disabled={isUploading}
+          >
+            <X className="w-4 h-4 mr-2" />
+            {language === 'en' ? 'Remove' : 'Remover'}
+          </Button>
+        )}
+      </div>
+    </Card>
+  );
+}
+
 export default function LoyaltyTab() {
   const { language } = useLanguage();
   const [tierFilter, setTierFilter] = useState('all');
@@ -414,7 +547,31 @@ export default function LoyaltyTab() {
         </div>
       )}
 
-      {/* Tier Benefits Summary */}
+      {/* Tier Cards with Image Upload */}
+      {tiers && tiers.length > 0 && (
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">
+            {language === 'en' ? 'Tier Cards' : 'Cartões dos Níveis'}
+          </h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            {language === 'en'
+              ? 'Upload images for each tier card. These will appear on the loyalty page.'
+              : 'Envie imagens para cada cartão de nível. Elas aparecerão na página de fidelidade.'}
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {tiers.map((tier) => (
+              <TierCardWithUpload
+                key={tier.id}
+                tier={tier}
+                language={language}
+                onUpdate={() => refetchTiers()}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Tier Benefits Table */}
       {tiers && tiers.length > 0 && (
         <Card className="p-6">
           <h3 className="text-lg font-semibold mb-4">
