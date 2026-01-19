@@ -2,14 +2,19 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { trpc } from '@/lib/trpc';
-import { Loader2, Crown, Users, TrendingUp, Search, Eye } from 'lucide-react';
+import { Loader2, Crown, Users, TrendingUp, Search, Eye, Pencil, ArrowUpDown, Save, X } from 'lucide-react';
 import { useState } from 'react';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
+import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import {
   Select,
@@ -24,10 +29,17 @@ export default function LoyaltyTab() {
   const [tierFilter, setTierFilter] = useState('all');
   const [selectedMember, setSelectedMember] = useState<any>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [isEditTierOpen, setIsEditTierOpen] = useState(false);
+  const [selectedTier, setSelectedTier] = useState<any>(null);
+  const [isChangeTierOpen, setIsChangeTierOpen] = useState(false);
+  const [newTier, setNewTier] = useState('');
+  const [tierChangeReason, setTierChangeReason] = useState('');
+
+  const utils = trpc.useUtils();
 
   const { data: stats, isLoading: statsLoading } = trpc.admin.loyalty.stats.useQuery();
-  const { data: tiers } = trpc.admin.loyalty.tiers.useQuery();
-  const { data: membersData, isLoading: membersLoading } = trpc.admin.loyalty.list.useQuery({
+  const { data: tiers, refetch: refetchTiers } = trpc.admin.loyalty.tiers.useQuery();
+  const { data: membersData, isLoading: membersLoading, refetch: refetchMembers } = trpc.admin.loyalty.list.useQuery({
     tier: tierFilter !== 'all' ? tierFilter : undefined,
   });
 
@@ -36,10 +48,37 @@ export default function LoyaltyTab() {
     { enabled: !!selectedMember?.member?.id && isDetailOpen }
   );
 
-  const { data: memberActivity } = trpc.admin.loyalty.getMemberActivity.useQuery(
+  const { data: memberActivity, refetch: refetchActivity } = trpc.admin.loyalty.getMemberActivity.useQuery(
     { memberId: selectedMember?.member?.id, limit: 20 },
     { enabled: !!selectedMember?.member?.id && isDetailOpen }
   );
+
+  // Mutations
+  const updateTierMutation = trpc.admin.loyalty.updateTier.useMutation({
+    onSuccess: () => {
+      toast.success(language === 'en' ? 'Tier updated successfully!' : 'Nível atualizado com sucesso!');
+      refetchTiers();
+      setIsEditTierOpen(false);
+      setSelectedTier(null);
+    },
+    onError: (error) => {
+      toast.error(error.message || (language === 'en' ? 'Failed to update tier' : 'Erro ao atualizar nível'));
+    },
+  });
+
+  const changeMemberTierMutation = trpc.admin.loyalty.changeMemberTier.useMutation({
+    onSuccess: () => {
+      toast.success(language === 'en' ? 'Member tier changed successfully!' : 'Nível do membro alterado com sucesso!');
+      refetchMembers();
+      refetchActivity();
+      setIsChangeTierOpen(false);
+      setNewTier('');
+      setTierChangeReason('');
+    },
+    onError: (error) => {
+      toast.error(error.message || (language === 'en' ? 'Failed to change tier' : 'Erro ao alterar nível'));
+    },
+  });
 
   const formatPrice = (fils: number) => `${(fils / 100).toFixed(2)} AED`;
 
@@ -72,6 +111,52 @@ export default function LoyaltyTab() {
   const openDetail = (member: any) => {
     setSelectedMember(member);
     setIsDetailOpen(true);
+  };
+
+  const openEditTier = (tier: any) => {
+    setSelectedTier({ ...tier });
+    setIsEditTierOpen(true);
+  };
+
+  const handleSaveTier = () => {
+    if (!selectedTier) return;
+    updateTierMutation.mutate({
+      tier: selectedTier.tier,
+      displayName: selectedTier.displayName,
+      minSpend: selectedTier.minSpend,
+      maxSpend: selectedTier.maxSpend,
+      color: selectedTier.color,
+      freeStandardShipping: selectedTier.freeStandardShipping,
+      freeExpressShipping: selectedTier.freeExpressShipping,
+      earlyAccess: selectedTier.earlyAccess,
+      earlyAccessHours: selectedTier.earlyAccessHours,
+      birthdayReward: selectedTier.birthdayReward,
+      exclusiveProducts: selectedTier.exclusiveProducts,
+      prioritySupport: selectedTier.prioritySupport,
+      personalConcierge: selectedTier.personalConcierge,
+      eventInvites: selectedTier.eventInvites,
+      surpriseGifts: selectedTier.surpriseGifts,
+    });
+  };
+
+  const openChangeTier = () => {
+    if (selectedMember?.member) {
+      setNewTier(selectedMember.member.tier);
+      setTierChangeReason('');
+      setIsChangeTierOpen(true);
+    }
+  };
+
+  const handleChangeMemberTier = () => {
+    if (!selectedMember?.member?.id || !newTier || !tierChangeReason.trim()) {
+      toast.error(language === 'en' ? 'Please provide a reason for the tier change' : 'Por favor, informe o motivo da alteração');
+      return;
+    }
+    changeMemberTierMutation.mutate({
+      memberId: selectedMember.member.id,
+      newTier: newTier as 'green' | 'silver' | 'gold' | 'platinum',
+      reason: tierChangeReason.trim(),
+    });
   };
 
   if (statsLoading) {
@@ -159,6 +244,7 @@ export default function LoyaltyTab() {
                   <th className="text-center py-2 px-3">{language === 'en' ? 'Early Access' : 'Acesso Antec.'}</th>
                   <th className="text-center py-2 px-3">{language === 'en' ? 'Birthday' : 'Aniversário'}</th>
                   <th className="text-center py-2 px-3">{language === 'en' ? 'Concierge' : 'Concierge'}</th>
+                  <th className="text-center py-2 px-3">{language === 'en' ? 'Actions' : 'Ações'}</th>
                 </tr>
               </thead>
               <tbody>
@@ -183,6 +269,15 @@ export default function LoyaltyTab() {
                     </td>
                     <td className="text-center py-2 px-3">
                       {tier.personalConcierge ? '✅' : '❌'}
+                    </td>
+                    <td className="text-center py-2 px-3">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openEditTier(tier)}
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </Button>
                     </td>
                   </tr>
                 ))}
@@ -293,22 +388,28 @@ export default function LoyaltyTab() {
           {memberDetail && (
             <div className="space-y-6">
               {/* Member Info */}
-              <div className="flex items-center gap-4">
-                <div
-                  className="w-16 h-16 rounded-full flex items-center justify-center text-2xl"
-                  style={{
-                    background: tierConfig[memberDetail.tier]?.bg === 'bg-gray-800'
-                      ? '#1f2937'
-                      : tierConfig[memberDetail.tier]?.bg.replace('bg-', '').replace('-100', '').replace('-200', ''),
-                  }}
-                >
-                  {tierConfig[memberDetail.tier]?.icon}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div
+                    className="w-16 h-16 rounded-full flex items-center justify-center text-2xl"
+                    style={{
+                      background: tierConfig[memberDetail.tier]?.bg === 'bg-gray-800'
+                        ? '#1f2937'
+                        : tierConfig[memberDetail.tier]?.bg.replace('bg-', '').replace('-100', '').replace('-200', ''),
+                    }}
+                  >
+                    {tierConfig[memberDetail.tier]?.icon}
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold">{memberDetail.name || 'N/A'}</h3>
+                    <p className="text-muted-foreground">{memberDetail.email}</p>
+                    <div className="mt-1">{getTierBadge(memberDetail.tier)}</div>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-xl font-bold">{memberDetail.name || 'N/A'}</h3>
-                  <p className="text-muted-foreground">{memberDetail.email}</p>
-                  <div className="mt-1">{getTierBadge(memberDetail.tier)}</div>
-                </div>
+                <Button variant="outline" size="sm" onClick={openChangeTier}>
+                  <ArrowUpDown className="w-4 h-4 mr-2" />
+                  {language === 'en' ? 'Change Tier' : 'Alterar Nível'}
+                </Button>
               </div>
 
               {/* Stats Grid */}
@@ -393,6 +494,284 @@ export default function LoyaltyTab() {
               )}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Tier Dialog */}
+      <Dialog open={isEditTierOpen} onOpenChange={(open) => {
+        setIsEditTierOpen(open);
+        if (!open) setSelectedTier(null);
+      }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="w-5 h-5" />
+              {language === 'en' ? 'Edit Tier Configuration' : 'Editar Configuração do Nível'}
+            </DialogTitle>
+          </DialogHeader>
+
+          {selectedTier && (
+            <div className="space-y-6">
+              {/* Tier Info */}
+              <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg">
+                {getTierBadge(selectedTier.tier)}
+                <div>
+                  <p className="font-medium">{selectedTier.displayName || selectedTier.tier}</p>
+                </div>
+              </div>
+
+              {/* Spend Range */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>{language === 'en' ? 'Minimum Spend (AED)' : 'Gasto Mínimo (AED)'}</Label>
+                  <Input
+                    type="number"
+                    value={(selectedTier.minSpend / 100).toFixed(0)}
+                    onChange={(e) => setSelectedTier({
+                      ...selectedTier,
+                      minSpend: parseInt(e.target.value || '0') * 100
+                    })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>{language === 'en' ? 'Maximum Spend (AED)' : 'Gasto Máximo (AED)'}</Label>
+                  <Input
+                    type="number"
+                    value={selectedTier.maxSpend ? (selectedTier.maxSpend / 100).toFixed(0) : ''}
+                    placeholder={language === 'en' ? 'No limit' : 'Sem limite'}
+                    onChange={(e) => setSelectedTier({
+                      ...selectedTier,
+                      maxSpend: e.target.value ? parseInt(e.target.value) * 100 : null
+                    })}
+                  />
+                </div>
+              </div>
+
+              {/* Benefits Toggles */}
+              <div className="space-y-4">
+                <h4 className="font-semibold">{language === 'en' ? 'Benefits' : 'Benefícios'}</h4>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <div>
+                      <p className="font-medium">{language === 'en' ? 'Free Standard Shipping' : 'Frete Padrão Grátis'}</p>
+                      <p className="text-sm text-muted-foreground">{language === 'en' ? 'UAE only' : 'Apenas UAE'}</p>
+                    </div>
+                    <Switch
+                      checked={selectedTier.freeStandardShipping === 1}
+                      onCheckedChange={(checked) => setSelectedTier({
+                        ...selectedTier,
+                        freeStandardShipping: checked ? 1 : 0
+                      })}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <div>
+                      <p className="font-medium">{language === 'en' ? 'Free Express Shipping' : 'Frete Expresso Grátis'}</p>
+                      <p className="text-sm text-muted-foreground">{language === 'en' ? 'Worldwide' : 'Mundial'}</p>
+                    </div>
+                    <Switch
+                      checked={selectedTier.freeExpressShipping === 1}
+                      onCheckedChange={(checked) => setSelectedTier({
+                        ...selectedTier,
+                        freeExpressShipping: checked ? 1 : 0
+                      })}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <div>
+                      <p className="font-medium">{language === 'en' ? 'Birthday Reward' : 'Presente de Aniversário'}</p>
+                      <p className="text-sm text-muted-foreground">{language === 'en' ? 'Special gift' : 'Presente especial'}</p>
+                    </div>
+                    <Switch
+                      checked={selectedTier.birthdayReward === 1}
+                      onCheckedChange={(checked) => setSelectedTier({
+                        ...selectedTier,
+                        birthdayReward: checked ? 1 : 0
+                      })}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <div>
+                      <p className="font-medium">{language === 'en' ? 'Priority Support' : 'Suporte Prioritário'}</p>
+                      <p className="text-sm text-muted-foreground">{language === 'en' ? 'Faster response' : 'Resposta rápida'}</p>
+                    </div>
+                    <Switch
+                      checked={selectedTier.prioritySupport === 1}
+                      onCheckedChange={(checked) => setSelectedTier({
+                        ...selectedTier,
+                        prioritySupport: checked ? 1 : 0
+                      })}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <div>
+                      <p className="font-medium">{language === 'en' ? 'Personal Concierge' : 'Concierge Pessoal'}</p>
+                      <p className="text-sm text-muted-foreground">WhatsApp VIP</p>
+                    </div>
+                    <Switch
+                      checked={selectedTier.personalConcierge === 1}
+                      onCheckedChange={(checked) => setSelectedTier({
+                        ...selectedTier,
+                        personalConcierge: checked ? 1 : 0
+                      })}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <div>
+                      <p className="font-medium">{language === 'en' ? 'Event Invites' : 'Convites para Eventos'}</p>
+                      <p className="text-sm text-muted-foreground">{language === 'en' ? 'Exclusive events' : 'Eventos exclusivos'}</p>
+                    </div>
+                    <Switch
+                      checked={selectedTier.eventInvites === 1}
+                      onCheckedChange={(checked) => setSelectedTier({
+                        ...selectedTier,
+                        eventInvites: checked ? 1 : 0
+                      })}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <div>
+                      <p className="font-medium">{language === 'en' ? 'Surprise Gifts' : 'Presentes Surpresa'}</p>
+                      <p className="text-sm text-muted-foreground">{language === 'en' ? 'Quarterly' : 'Trimestral'}</p>
+                    </div>
+                    <Switch
+                      checked={selectedTier.surpriseGifts === 1}
+                      onCheckedChange={(checked) => setSelectedTier({
+                        ...selectedTier,
+                        surpriseGifts: checked ? 1 : 0
+                      })}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <div>
+                      <p className="font-medium">{language === 'en' ? 'Exclusive Products' : 'Produtos Exclusivos'}</p>
+                      <p className="text-sm text-muted-foreground">{language === 'en' ? 'Early access' : 'Acesso antecipado'}</p>
+                    </div>
+                    <Switch
+                      checked={selectedTier.exclusiveProducts === 1}
+                      onCheckedChange={(checked) => setSelectedTier({
+                        ...selectedTier,
+                        exclusiveProducts: checked ? 1 : 0
+                      })}
+                    />
+                  </div>
+                </div>
+
+                {/* Early Access Hours */}
+                <div className="space-y-2">
+                  <Label>{language === 'en' ? 'Early Access Hours (0 = disabled)' : 'Horas de Acesso Antecipado (0 = desativado)'}</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    max="168"
+                    value={selectedTier.earlyAccessHours || 0}
+                    onChange={(e) => setSelectedTier({
+                      ...selectedTier,
+                      earlyAccessHours: parseInt(e.target.value || '0'),
+                      earlyAccess: parseInt(e.target.value || '0') > 0 ? 1 : 0
+                    })}
+                  />
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => {
+                  setIsEditTierOpen(false);
+                  setSelectedTier(null);
+                }}>
+                  <X className="w-4 h-4 mr-2" />
+                  {language === 'en' ? 'Cancel' : 'Cancelar'}
+                </Button>
+                <Button onClick={handleSaveTier} disabled={updateTierMutation.isPending}>
+                  {updateTierMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4 mr-2" />
+                  )}
+                  {language === 'en' ? 'Save Changes' : 'Salvar Alterações'}
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Change Member Tier Dialog */}
+      <Dialog open={isChangeTierOpen} onOpenChange={(open) => {
+        setIsChangeTierOpen(open);
+        if (!open) {
+          setNewTier('');
+          setTierChangeReason('');
+        }
+      }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ArrowUpDown className="w-5 h-5" />
+              {language === 'en' ? 'Change Member Tier' : 'Alterar Nível do Membro'}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="p-3 bg-muted/50 rounded-lg">
+              <p className="font-medium">{selectedMember?.user?.name || 'N/A'}</p>
+              <p className="text-sm text-muted-foreground">{selectedMember?.user?.email}</p>
+              <div className="mt-2">
+                {language === 'en' ? 'Current tier: ' : 'Nível atual: '}
+                {getTierBadge(selectedMember?.member?.tier || 'green')}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>{language === 'en' ? 'New Tier' : 'Novo Nível'}</Label>
+              <Select value={newTier} onValueChange={setNewTier}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="green">🌿 Green</SelectItem>
+                  <SelectItem value="silver">🥈 Silver</SelectItem>
+                  <SelectItem value="gold">🏆 Gold</SelectItem>
+                  <SelectItem value="platinum">👑 Platinum</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>{language === 'en' ? 'Reason for change (required)' : 'Motivo da alteração (obrigatório)'}</Label>
+              <Textarea
+                placeholder={language === 'en' ? 'E.g., VIP promotion, special customer, adjustment...' : 'Ex: Promoção VIP, cliente especial, ajuste...'}
+                value={tierChangeReason}
+                onChange={(e) => setTierChangeReason(e.target.value)}
+                rows={3}
+              />
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsChangeTierOpen(false)}>
+                {language === 'en' ? 'Cancel' : 'Cancelar'}
+              </Button>
+              <Button
+                onClick={handleChangeMemberTier}
+                disabled={changeMemberTierMutation.isPending || !newTier || !tierChangeReason.trim()}
+              >
+                {changeMemberTierMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <ArrowUpDown className="w-4 h-4 mr-2" />
+                )}
+                {language === 'en' ? 'Change Tier' : 'Alterar Nível'}
+              </Button>
+            </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

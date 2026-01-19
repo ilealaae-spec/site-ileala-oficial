@@ -3118,3 +3118,106 @@ export async function getNextTierInfo(userId: number): Promise<{ nextTier: strin
     return null;
   }
 }
+
+// Update tier benefits (admin)
+export async function updateTierBenefits(
+  tier: string,
+  data: {
+    displayName?: string;
+    minSpend?: number;
+    maxSpend?: number | null;
+    color?: string;
+    freeStandardShipping?: number;
+    freeExpressShipping?: number;
+    earlyAccess?: number;
+    earlyAccessHours?: number;
+    birthdayReward?: number;
+    exclusiveProducts?: number;
+    prioritySupport?: number;
+    personalConcierge?: number;
+    eventInvites?: number;
+    surpriseGifts?: number;
+  }
+): Promise<LoyaltyTierBenefit | null> {
+  const db = await getDb();
+  if (!db) return null;
+
+  try {
+    const [updated] = await db.update(loyaltyTierBenefits)
+      .set({
+        ...data,
+        updatedAt: new Date(),
+      })
+      .where(eq(loyaltyTierBenefits.tier, tier))
+      .returning();
+
+    return updated || null;
+  } catch (error) {
+    logger.error("[Loyalty] Failed to update tier benefits:", error);
+    return null;
+  }
+}
+
+// Manually change member tier (admin)
+export async function adminChangeMemberTier(
+  memberId: number,
+  newTier: string,
+  adminId: number,
+  reason: string
+): Promise<{ success: boolean; member: LoyaltyMember | null }> {
+  const db = await getDb();
+  if (!db) return { success: false, member: null };
+
+  try {
+    // Get current member
+    const [currentMember] = await db.select().from(loyaltyMembers).where(eq(loyaltyMembers.id, memberId)).limit(1);
+    if (!currentMember) return { success: false, member: null };
+
+    const oldTier = currentMember.tier;
+    const now = new Date();
+
+    // Update tier
+    const [updatedMember] = await db.update(loyaltyMembers)
+      .set({
+        tier: newTier,
+        previousTier: oldTier,
+        tierUpgradedAt: now,
+        updatedAt: now,
+      })
+      .where(eq(loyaltyMembers.id, memberId))
+      .returning();
+
+    // Log activity
+    await logLoyaltyActivity(
+      memberId,
+      oldTier < newTier ? 'manual_upgrade' : 'manual_downgrade',
+      `Admin manually changed tier: ${reason}`,
+      null,
+      null,
+      oldTier,
+      newTier,
+      { adminId, reason }
+    );
+
+    return { success: true, member: updatedMember };
+  } catch (error) {
+    logger.error("[Loyalty] Failed to change member tier:", error);
+    return { success: false, member: null };
+  }
+}
+
+// Update member status (active/inactive)
+export async function updateMemberStatus(memberId: number, active: number): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+
+  try {
+    await db.update(loyaltyMembers)
+      .set({ active, updatedAt: new Date() })
+      .where(eq(loyaltyMembers.id, memberId));
+    return true;
+  } catch (error) {
+    logger.error("[Loyalty] Failed to update member status:", error);
+    return false;
+  }
+}

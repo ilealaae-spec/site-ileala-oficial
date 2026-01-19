@@ -2359,6 +2359,57 @@ export const appRouter = router({
           if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
           return await db.getMemberActivityLog(input.memberId, input.limit || 50);
         }),
+
+      // Update tier benefits
+      updateTier: protectedProcedure
+        .input(z.object({
+          tier: z.string(),
+          displayName: z.string().optional(),
+          minSpend: z.number().optional(),
+          maxSpend: z.number().nullable().optional(),
+          color: z.string().optional(),
+          freeStandardShipping: z.number().min(0).max(1).optional(),
+          freeExpressShipping: z.number().min(0).max(1).optional(),
+          earlyAccess: z.number().min(0).max(1).optional(),
+          earlyAccessHours: z.number().optional(),
+          birthdayReward: z.number().min(0).max(1).optional(),
+          exclusiveProducts: z.number().min(0).max(1).optional(),
+          prioritySupport: z.number().min(0).max(1).optional(),
+          personalConcierge: z.number().min(0).max(1).optional(),
+          eventInvites: z.number().min(0).max(1).optional(),
+          surpriseGifts: z.number().min(0).max(1).optional(),
+        }))
+        .mutation(async ({ ctx, input }) => {
+          if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+          const { tier, ...data } = input;
+          const updated = await db.updateTierBenefits(tier, data);
+          return { success: !!updated, tier: updated };
+        }),
+
+      // Manually change member tier
+      changeMemberTier: protectedProcedure
+        .input(z.object({
+          memberId: z.number(),
+          newTier: z.enum(['green', 'silver', 'gold', 'platinum']),
+          reason: z.string().min(1),
+        }))
+        .mutation(async ({ ctx, input }) => {
+          if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+          if (!ctx.user?.id) throw new Error('Admin ID required');
+          return await db.adminChangeMemberTier(input.memberId, input.newTier, ctx.user.id, input.reason);
+        }),
+
+      // Update member status (active/inactive)
+      updateMemberStatus: protectedProcedure
+        .input(z.object({
+          memberId: z.number(),
+          active: z.number().min(0).max(1),
+        }))
+        .mutation(async ({ ctx, input }) => {
+          if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+          const success = await db.updateMemberStatus(input.memberId, input.active);
+          return { success };
+        }),
     }),
   }),
 
