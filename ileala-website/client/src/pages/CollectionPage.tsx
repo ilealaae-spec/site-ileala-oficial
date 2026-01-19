@@ -1,11 +1,13 @@
-import { useParams, useLocation } from "wouter";
+import { useParams, useLocation, Link } from "wouter";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { ArrowLeft, ShoppingCart, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useCart } from "@/contexts/CartContext";
 import LazyImage from "@/components/LazyImage";
 import { trpc } from "@/lib/trpc";
+import WishlistButton from "@/components/WishlistButton";
 
 export default function CollectionPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -126,70 +128,85 @@ export default function CollectionPage() {
 
       {/* Products Grid */}
       <div className="container py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
           {products.map((product: any) => {
             const productName = getProductName(product);
-            
+            const productDescription = getProductDescription(product);
+
             return (
-              <div
-                key={product.id}
-                className="group bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-300"
-              >
-                {/* Product Image */}
-                <div
-                  className="relative h-80 bg-gray-100 cursor-pointer overflow-hidden"
-                  onClick={() => setLocation(`/shop/${product.slug}`)}
-                >
-                  {product.imageUrl ? (
-                    <LazyImage
-                      src={product.imageUrl}
-                      alt={productName}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-400">
-                      {language === "en" ? "No Image" : "Sem Imagem"}
+              <Card key={product.id} className="overflow-hidden group">
+                <div className="aspect-square overflow-hidden bg-muted relative">
+                  <WishlistButton
+                    productId={product.id}
+                    className="absolute top-2 right-2 z-10 bg-white/80 hover:bg-white rounded-full shadow-sm"
+                  />
+                  <Link href={`/shop/${product.slug}`}>
+                    <div className="w-full h-full cursor-pointer">
+                      {product.imageUrl ? (
+                        <LazyImage
+                          src={product.imageUrl}
+                          alt={productName}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                          No image
+                        </div>
+                      )}
                     </div>
-                  )}
-                  {product.stock === 0 && (
-                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                      <span className="text-white font-semibold text-lg">
-                        {language === "en" ? "Out of Stock" : "Fora de Estoque"}
-                      </span>
+                  </Link>
+                  {product.featured === 1 && (
+                    <div className="absolute top-2 left-2 bg-green-500 text-white px-2 py-1 text-xs font-semibold rounded">
+                      FEATURED
                     </div>
                   )}
                 </div>
-
-                {/* Product Info */}
-                <div className="p-6">
-                  <h3
-                    className="text-xl font-semibold text-gray-900 mb-2 cursor-pointer hover:text-primary transition-colors"
-                    onClick={() => setLocation(`/shop/${product.slug}`)}
-                  >
-                    {productName}
-                  </h3>
-                  {getProductDescription(product) && (
-                    <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-                      {getProductDescription(product)}
+                <div className="p-4">
+                  <Link href={`/shop/${product.slug}`}>
+                    <h3 className="text-lg font-semibold mb-2 hover:text-primary cursor-pointer">
+                      {productName}
+                    </h3>
+                  </Link>
+                  {productDescription && (
+                    <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
+                      {productDescription}
                     </p>
                   )}
-                  <div className="flex items-center justify-between">
+                  {product.collection && (
+                    <p className="text-xs text-muted-foreground mb-2">
+                      {product.collection}
+                    </p>
+                  )}
+                  <div className="flex items-center justify-between mt-4">
                     <div className="flex flex-col">
-                      <span className="text-2xl font-bold text-primary">
+                      <span className="text-lg font-semibold">
                         {formatPrice(product.price)}
                       </span>
+                      {product.stock === 0 && (
+                        <span className="text-xs text-red-500">
+                          {language === 'en' ? 'Out of stock' : 'Fora de estoque'}
+                        </span>
+                      )}
                     </div>
-                    <Button
-                      onClick={() => handleAddToCart(product)}
-                      disabled={product.stock === 0}
-                      size="sm"
-                    >
-                      <ShoppingCart className="mr-2 h-4 w-4" />
-                      {language === "en" ? "Add to Cart" : "Adicionar"}
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={product.stock === 0}
+                        onClick={() => handleAddToCart(product)}
+                      >
+                        <ShoppingCart className="w-4 h-4 mr-2" />
+                        {language === 'en' ? 'Add' : 'Adicionar'}
+                      </Button>
+                      <Link href={`/shop/${product.slug}`}>
+                        <Button size="sm">
+                          {language === 'en' ? 'View' : 'Ver'}
+                        </Button>
+                      </Link>
+                    </div>
                   </div>
                 </div>
-              </div>
+              </Card>
             );
           })}
         </div>
