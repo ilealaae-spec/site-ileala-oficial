@@ -17,6 +17,7 @@ export default function MyLoyalty() {
   const { user, isAuthenticated } = useAuth();
   const [birthday, setBirthday] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
+  const [selectedTierView, setSelectedTierView] = useState<string | null>(null);
 
   // Fetch loyalty hero image from settings
   const { data: heroImageSetting } = trpc.settings.get.useQuery({ key: 'loyalty-hero-image' });
@@ -651,15 +652,22 @@ export default function MyLoyalty() {
 
           {/* All Tiers Overview */}
           <Card className="p-6 mt-8">
-            <h3 className="text-xl font-semibold mb-6">{t.allTiers}</h3>
+            <h3 className="text-xl font-semibold mb-2">{t.allTiers}</h3>
+            <p className="text-sm text-muted-foreground mb-6">
+              {language === 'en' ? 'Click on a tier to see its benefits' : 'Clique em um nível para ver seus benefícios'}
+            </p>
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {allTiers.map((tier) => {
                 const config = tierConfig[tier.tier];
                 const isCurrentTier = tier.tier === member?.tier;
+                const isSelected = selectedTierView === tier.tier;
                 return (
                   <div
                     key={tier.id}
-                    className={`rounded-xl p-4 text-center transition-transform ${isCurrentTier ? 'ring-2 ring-primary scale-105' : ''}`}
+                    onClick={() => setSelectedTierView(isSelected ? null : tier.tier)}
+                    className={`rounded-xl p-4 text-center transition-all cursor-pointer hover:scale-105 ${
+                      isCurrentTier ? 'ring-2 ring-primary' : ''
+                    } ${isSelected ? 'ring-2 ring-yellow-400 scale-105 shadow-lg' : ''}`}
                     style={{ background: config?.gradient || '#ccc' }}
                   >
                     <p className={`text-3xl mb-2 ${config?.textColor}`}>{config?.icon}</p>
@@ -679,6 +687,170 @@ export default function MyLoyalty() {
                 );
               })}
             </div>
+
+            {/* Selected Tier Benefits */}
+            {selectedTierView && (() => {
+              const selectedTier = allTiers.find(t => t.tier === selectedTierView);
+              if (!selectedTier) return null;
+              const config = tierConfig[selectedTierView];
+
+              return (
+                <div className="mt-8 pt-6 border-t">
+                  <div className="flex items-center gap-3 mb-6">
+                    <span className="text-3xl">{config?.icon}</span>
+                    <div>
+                      <h4 className="text-lg font-bold">
+                        {language === 'en' ? selectedTier.displayNameEN : selectedTier.displayNamePT}
+                      </h4>
+                      <p className="text-sm text-muted-foreground">
+                        {formatPrice(selectedTier.minSpend)}
+                        {selectedTier.maxSpend ? ` - ${formatPrice(selectedTier.maxSpend)}` : '+'} {language === 'en' ? 'spent' : 'gastos'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {/* Free Standard Shipping */}
+                    <div className={`p-4 rounded-lg border ${selectedTier.freeStandardShipping === 1 ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200 opacity-50'}`}>
+                      <div className="flex items-center gap-3">
+                        {selectedTier.freeStandardShipping === 1 ? (
+                          <Check className="w-5 h-5 text-green-600" />
+                        ) : (
+                          <Lock className="w-5 h-5 text-gray-400" />
+                        )}
+                        <div>
+                          <Truck className="w-5 h-5 text-primary mb-1" />
+                          <p className="font-medium text-sm">{t.freeStandardShipping}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Free Express Shipping */}
+                    <div className={`p-4 rounded-lg border ${selectedTier.freeExpressShipping === 1 ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200 opacity-50'}`}>
+                      <div className="flex items-center gap-3">
+                        {selectedTier.freeExpressShipping === 1 ? (
+                          <Check className="w-5 h-5 text-green-600" />
+                        ) : (
+                          <Lock className="w-5 h-5 text-gray-400" />
+                        )}
+                        <div>
+                          <Truck className="w-5 h-5 text-primary mb-1" />
+                          <p className="font-medium text-sm">{t.freeExpressShipping}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Early Access */}
+                    <div className={`p-4 rounded-lg border ${(selectedTier.earlyAccessHours || 0) > 0 ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200 opacity-50'}`}>
+                      <div className="flex items-center gap-3">
+                        {(selectedTier.earlyAccessHours || 0) > 0 ? (
+                          <Check className="w-5 h-5 text-green-600" />
+                        ) : (
+                          <Lock className="w-5 h-5 text-gray-400" />
+                        )}
+                        <div>
+                          <Clock className="w-5 h-5 text-primary mb-1" />
+                          <p className="font-medium text-sm">{t.earlyAccess}</p>
+                          {(selectedTier.earlyAccessHours || 0) > 0 && (
+                            <p className="text-xs text-muted-foreground">{selectedTier.earlyAccessHours} {t.hours}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Birthday Gift */}
+                    <div className={`p-4 rounded-lg border ${selectedTier.birthdayReward === 1 ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200 opacity-50'}`}>
+                      <div className="flex items-center gap-3">
+                        {selectedTier.birthdayReward === 1 ? (
+                          <Check className="w-5 h-5 text-green-600" />
+                        ) : (
+                          <Lock className="w-5 h-5 text-gray-400" />
+                        )}
+                        <div>
+                          <Gift className="w-5 h-5 text-primary mb-1" />
+                          <p className="font-medium text-sm">{t.birthdayGift}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Priority Support */}
+                    <div className={`p-4 rounded-lg border ${selectedTier.prioritySupport === 1 ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200 opacity-50'}`}>
+                      <div className="flex items-center gap-3">
+                        {selectedTier.prioritySupport === 1 ? (
+                          <Check className="w-5 h-5 text-green-600" />
+                        ) : (
+                          <Lock className="w-5 h-5 text-gray-400" />
+                        )}
+                        <div>
+                          <Star className="w-5 h-5 text-primary mb-1" />
+                          <p className="font-medium text-sm">{t.prioritySupport}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Personal Concierge */}
+                    <div className={`p-4 rounded-lg border ${selectedTier.personalConcierge === 1 ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200 opacity-50'}`}>
+                      <div className="flex items-center gap-3">
+                        {selectedTier.personalConcierge === 1 ? (
+                          <Check className="w-5 h-5 text-green-600" />
+                        ) : (
+                          <Lock className="w-5 h-5 text-gray-400" />
+                        )}
+                        <div>
+                          <Phone className="w-5 h-5 text-primary mb-1" />
+                          <p className="font-medium text-sm">{t.concierge}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Event Invites */}
+                    <div className={`p-4 rounded-lg border ${selectedTier.eventInvites === 1 ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200 opacity-50'}`}>
+                      <div className="flex items-center gap-3">
+                        {selectedTier.eventInvites === 1 ? (
+                          <Check className="w-5 h-5 text-green-600" />
+                        ) : (
+                          <Lock className="w-5 h-5 text-gray-400" />
+                        )}
+                        <div>
+                          <Calendar className="w-5 h-5 text-primary mb-1" />
+                          <p className="font-medium text-sm">{t.eventInvites}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Surprise Gifts */}
+                    <div className={`p-4 rounded-lg border ${selectedTier.surpriseGifts === 1 ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200 opacity-50'}`}>
+                      <div className="flex items-center gap-3">
+                        {selectedTier.surpriseGifts === 1 ? (
+                          <Check className="w-5 h-5 text-green-600" />
+                        ) : (
+                          <Lock className="w-5 h-5 text-gray-400" />
+                        )}
+                        <div>
+                          <Gift className="w-5 h-5 text-primary mb-1" />
+                          <p className="font-medium text-sm">{t.surpriseGifts}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Exclusive Products */}
+                    <div className={`p-4 rounded-lg border ${selectedTier.exclusiveProducts === 1 ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200 opacity-50'}`}>
+                      <div className="flex items-center gap-3">
+                        {selectedTier.exclusiveProducts === 1 ? (
+                          <Check className="w-5 h-5 text-green-600" />
+                        ) : (
+                          <Lock className="w-5 h-5 text-gray-400" />
+                        )}
+                        <div>
+                          <Crown className="w-5 h-5 text-primary mb-1" />
+                          <p className="font-medium text-sm">{t.exclusiveProducts}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </Card>
         </div>
       </div>
