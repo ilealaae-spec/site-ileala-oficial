@@ -1440,7 +1440,7 @@ export const appRouter = router({
       }),
 
     // Apply gift card to an order
-    apply: protectedProcedure
+    redeem: protectedProcedure
       .input(z.object({
         code: z.string().min(10),
         orderId: z.number(),
