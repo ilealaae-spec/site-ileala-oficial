@@ -8,7 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { trpc } from '@/lib/trpc';
 import { useLocation } from 'wouter';
-import { Loader2, Lock, UserPlus, LogIn, Truck, MapPin } from 'lucide-react';
+import { Loader2, Lock, UserPlus, LogIn, Truck, MapPin, Gift } from 'lucide-react';
 import { toast } from 'sonner';
 import { useState } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
@@ -147,6 +147,11 @@ export default function Checkout() {
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number } | null>(null);
   const [couponError, setCouponError] = useState('');
 
+  // Gift card state
+  const [giftCardCode, setGiftCardCode] = useState('');
+  const [appliedGiftCard, setAppliedGiftCard] = useState<{ code: string; balance: number; amountToUse: number } | null>(null);
+  const [giftCardError, setGiftCardError] = useState('');
+
   // Handle using registered address
   const handleUseRegisteredAddress = (checked: boolean) => {
     setUseRegisteredAddress(checked);
@@ -244,10 +249,15 @@ export default function Checkout() {
     const subtotal = calculateTotal();
     const discount = appliedCoupon?.discount || 0;
     const shipping = getShippingCost();
-    return subtotal - discount + shipping; // VAT already included, no need to add
+    const giftCardDiscount = appliedGiftCard?.amountToUse || 0;
+    return Math.max(0, subtotal - discount + shipping - giftCardDiscount); // VAT already included, no need to add
   };
 
   const validateCouponMutation = trpc.coupons.validate.useMutation();
+  const validateGiftCardQuery = trpc.giftCards.validate.useQuery(
+    { code: giftCardCode },
+    { enabled: false }
+  );
 
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) {
@@ -278,6 +288,42 @@ export default function Checkout() {
     setAppliedCoupon(null);
     setCouponCode('');
     setCouponError('');
+  };
+
+  const handleApplyGiftCard = async () => {
+    if (!giftCardCode.trim()) {
+      setGiftCardError(language === 'en' ? 'Please enter a gift card code' : 'Por favor, insira um código de vale presente');
+      return;
+    }
+
+    try {
+      const result = await validateGiftCardQuery.refetch();
+      if (result.data?.valid && result.data.balance > 0) {
+        // Calculate how much of the gift card to use (up to the remaining total after coupon)
+        const totalAfterCoupon = calculateTotal() - (appliedCoupon?.discount || 0) + getShippingCost();
+        const amountToUse = Math.min(result.data.balance, totalAfterCoupon);
+
+        setAppliedGiftCard({
+          code: giftCardCode.toUpperCase(),
+          balance: result.data.balance,
+          amountToUse,
+        });
+        setGiftCardError('');
+        toast.success(language === 'en' ? 'Gift card applied!' : 'Vale presente aplicado!');
+      } else {
+        setGiftCardError(result.data?.message || (language === 'en' ? 'Invalid or expired gift card' : 'Vale presente inválido ou expirado'));
+        setAppliedGiftCard(null);
+      }
+    } catch (error) {
+      setGiftCardError(language === 'en' ? 'Failed to validate gift card' : 'Falha ao validar vale presente');
+      setAppliedGiftCard(null);
+    }
+  };
+
+  const handleRemoveGiftCard = () => {
+    setAppliedGiftCard(null);
+    setGiftCardCode('');
+    setGiftCardError('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -792,6 +838,69 @@ export default function Checkout() {
                   )}
                 </div>
 
+                {/* Gift Card Section */}
+                <div className="border-t pt-4 mb-6">
+                  <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                    <Gift className="w-4 h-4" />
+                    {language === 'en' ? 'Have a gift card?' : 'Tem um vale presente?'}
+                  </h3>
+                  {!appliedGiftCard ? (
+                    <div className="space-y-2">
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder={language === 'en' ? 'Enter gift card code' : 'Digite o código do vale presente'}
+                          value={giftCardCode}
+                          onChange={(e) => {
+                            setGiftCardCode(e.target.value.toUpperCase());
+                            setGiftCardError('');
+                          }}
+                          className="flex-1"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleApplyGiftCard}
+                          disabled={validateGiftCardQuery.isFetching}
+                        >
+                          {validateGiftCardQuery.isFetching ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            language === 'en' ? 'Apply' : 'Aplicar'
+                          )}
+                        </Button>
+                      </div>
+                      {giftCardError && (
+                        <p className="text-sm text-red-600">{giftCardError}</p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="bg-purple-50 border border-purple-200 rounded-md p-3">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="text-sm font-semibold text-purple-800 flex items-center gap-2">
+                            <Gift className="w-4 h-4" />
+                            {appliedGiftCard.code}
+                          </p>
+                          <p className="text-xs text-purple-600">
+                            {language === 'en'
+                              ? `Using ${(appliedGiftCard.amountToUse / 100).toFixed(2)} AED of ${(appliedGiftCard.balance / 100).toFixed(2)} AED`
+                              : `Usando ${(appliedGiftCard.amountToUse / 100).toFixed(2)} AED de ${(appliedGiftCard.balance / 100).toFixed(2)} AED`}
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleRemoveGiftCard}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          {language === 'en' ? 'Remove' : 'Remover'}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <div className="space-y-2 border-t pt-4 mb-6">
                   {/* Subtotal */}
                   <div className="flex justify-between text-sm">
@@ -831,6 +940,17 @@ export default function Checkout() {
                       </span>
                     )}
                   </div>
+
+                  {/* Gift Card */}
+                  {appliedGiftCard && (
+                    <div className="flex justify-between text-purple-600 text-sm">
+                      <span className="font-medium flex items-center gap-1">
+                        <Gift className="w-4 h-4" />
+                        {language === 'en' ? 'Gift Card' : 'Vale Presente'}
+                      </span>
+                      <span className="font-semibold">-{formatPrice(appliedGiftCard.amountToUse / 100)}</span>
+                    </div>
+                  )}
 
                   {/* Total */}
                   <div className="flex justify-between text-lg pt-2 border-t">

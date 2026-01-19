@@ -2,7 +2,7 @@ import { eq, sql, and } from 'drizzle-orm';
 // Newsletter fix: omit name field if undefined - Build v2
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import { InsertUser, users, products, Product, InsertProduct, orders, Order, InsertOrder, orderItems, OrderItem, InsertOrderItem, cartItems, CartItem, InsertCartItem, coupons, Coupon, InsertCoupon, newsletter, Newsletter, InsertNewsletter, categories, Category, InsertCategory, collections, Collection, InsertCollection, siteSettings, SiteSetting, InsertSiteSetting, auditLogs, AuditLog, InsertAuditLog, wishlist, WishlistItem, InsertWishlistItem, emailCampaigns, EmailCampaign, InsertEmailCampaign } from "../drizzle/schema";
+import { InsertUser, users, products, Product, InsertProduct, orders, Order, InsertOrder, orderItems, OrderItem, InsertOrderItem, cartItems, CartItem, InsertCartItem, coupons, Coupon, InsertCoupon, newsletter, Newsletter, InsertNewsletter, categories, Category, InsertCategory, collections, Collection, InsertCollection, siteSettings, SiteSetting, InsertSiteSetting, auditLogs, AuditLog, InsertAuditLog, wishlist, WishlistItem, InsertWishlistItem, emailCampaigns, EmailCampaign, InsertEmailCampaign, giftCards, GiftCard, InsertGiftCard } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { logger } from './_core/logger';
 
@@ -523,6 +523,259 @@ export async function deleteCoupon(id: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.delete(coupons).where(eq(coupons.id, id));
+}
+
+// ===== GIFT CARDS =====
+
+/**
+ * Generate a unique gift card code in format GC-XXXXXXXXXXXX
+ */
+export function generateGiftCardCode(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let code = 'GC-';
+  for (let i = 0; i < 12; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}
+
+/**
+ * Create a new gift card
+ */
+export async function createGiftCard(data: {
+  amount: number;
+  recipientEmail: string;
+  recipientName?: string;
+  senderName?: string;
+  message?: string;
+  deliveryType: 'immediate' | 'scheduled';
+  scheduledDate?: Date;
+  purchasedBy?: number;
+  orderId?: number;
+}): Promise<{ id: number; code: string }> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // Generate unique code
+  let code = generateGiftCardCode();
+  let attempts = 0;
+  while (attempts < 10) {
+    const existing = await db.select().from(giftCards).where(eq(giftCards.code, code)).limit(1);
+    if (existing.length === 0) break;
+    code = generateGiftCardCode();
+    attempts++;
+  }
+
+  // Set validity to 1 year from now
+  const validUntil = new Date();
+  validUntil.setFullYear(validUntil.getFullYear() + 1);
+
+  const result = await db.insert(giftCards).values({
+    code,
+    amount: data.amount,
+    balanceRemaining: data.amount,
+    status: 'pending', // Will be activated after payment
+    recipientEmail: data.recipientEmail,
+    recipientName: data.recipientName || null,
+    senderName: data.senderName || null,
+    message: data.message || null,
+    deliveryType: data.deliveryType,
+    scheduledDate: data.scheduledDate || null,
+    purchasedBy: data.purchasedBy || null,
+    orderId: data.orderId || null,
+    validUntil,
+  }).returning({ id: giftCards.id });
+
+  return { id: result[0].id, code };
+}
+
+/**
+ * Get gift card by code
+ */
+export async function getGiftCardByCode(code: string): Promise<GiftCard | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+
+  const result = await db.select().from(giftCards).where(eq(giftCards.code, code.toUpperCase())).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+/**
+ * Get gift card by ID
+ */
+export async function getGiftCardById(id: number): Promise<GiftCard | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+
+  const result = await db.select().from(giftCards).where(eq(giftCards.id, id)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+/**
+ * Validate a gift card for use in checkout
+ */
+export async function validateGiftCard(code: string): Promise<{
+  valid: boolean;
+  message?: string;
+  giftCard?: GiftCard;
+}> {
+  const giftCard = await getGiftCardByCode(code);
+
+  if (!giftCard) {
+    return { valid: false, message: 'Gift card not found' };
+  }
+
+  if (giftCard.status !== 'active') {
+    if (giftCard.status === 'pending') {
+      return { valid: false, message: 'Gift card payment not completed' };
+    }
+    if (giftCard.status === 'used') {
+      return { valid: false, message: 'Gift card has been fully used' };
+    }
+    if (giftCard.status === 'expired') {
+      return { valid: false, message: 'Gift card has expired' };
+    }
+    if (giftCard.status === 'cancelled') {
+      return { valid: false, message: 'Gift card has been cancelled' };
+    }
+    return { valid: false, message: 'Gift card is not active' };
+  }
+
+  // Check expiration
+  if (giftCard.validUntil && new Date() > new Date(giftCard.validUntil)) {
+    // Update status to expired
+    await updateGiftCardStatus(giftCard.id, 'expired');
+    return { valid: false, message: 'Gift card has expired' };
+  }
+
+  // Check balance
+  if (giftCard.balanceRemaining <= 0) {
+    await updateGiftCardStatus(giftCard.id, 'used');
+    return { valid: false, message: 'Gift card has no remaining balance' };
+  }
+
+  return { valid: true, giftCard };
+}
+
+/**
+ * Apply gift card to an order - deducts from balance
+ */
+export async function applyGiftCard(
+  code: string,
+  amountToUse: number,
+  orderId: number,
+  userId?: number
+): Promise<{ success: boolean; amountApplied: number; remainingBalance: number }> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const validation = await validateGiftCard(code);
+  if (!validation.valid || !validation.giftCard) {
+    return { success: false, amountApplied: 0, remainingBalance: 0 };
+  }
+
+  const giftCard = validation.giftCard;
+  const amountApplied = Math.min(amountToUse, giftCard.balanceRemaining);
+  const newBalance = giftCard.balanceRemaining - amountApplied;
+
+  // Update gift card balance
+  await db.update(giftCards).set({
+    balanceRemaining: newBalance,
+    status: newBalance <= 0 ? 'used' : 'active',
+    redeemedBy: userId || giftCard.redeemedBy,
+    updatedAt: new Date(),
+  }).where(eq(giftCards.id, giftCard.id));
+
+  return {
+    success: true,
+    amountApplied,
+    remainingBalance: newBalance,
+  };
+}
+
+/**
+ * Activate a gift card (after payment is confirmed)
+ */
+export async function activateGiftCard(id: number): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+
+  await db.update(giftCards).set({
+    status: 'active',
+    purchasedAt: new Date(),
+    updatedAt: new Date(),
+  }).where(eq(giftCards.id, id));
+
+  return true;
+}
+
+/**
+ * Update gift card status
+ */
+export async function updateGiftCardStatus(id: number, status: string): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db.update(giftCards).set({
+    status,
+    updatedAt: new Date(),
+  }).where(eq(giftCards.id, id));
+}
+
+/**
+ * Mark gift card as delivered (email sent)
+ */
+export async function markGiftCardDelivered(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db.update(giftCards).set({
+    deliveredAt: new Date(),
+    updatedAt: new Date(),
+  }).where(eq(giftCards.id, id));
+}
+
+/**
+ * Get all gift cards (for admin)
+ */
+export async function getAllGiftCards(): Promise<GiftCard[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db.select().from(giftCards).orderBy(sql`${giftCards.createdAt} DESC`);
+}
+
+/**
+ * Get gift cards that need to be delivered (scheduled and past delivery date)
+ */
+export async function getPendingScheduledGiftCards(): Promise<GiftCard[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  const now = new Date();
+  return db.select().from(giftCards).where(
+    and(
+      eq(giftCards.status, 'active'),
+      eq(giftCards.deliveryType, 'scheduled'),
+      sql`${giftCards.scheduledDate} <= ${now}`,
+      sql`${giftCards.deliveredAt} IS NULL`
+    )
+  );
+}
+
+/**
+ * Cancel a gift card (admin action)
+ */
+export async function cancelGiftCard(id: number): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+
+  await db.update(giftCards).set({
+    status: 'cancelled',
+    updatedAt: new Date(),
+  }).where(eq(giftCards.id, id));
+
+  return true;
 }
 
 // ===== LOCAL AUTHENTICATION =====

@@ -39,6 +39,9 @@ const AdminEmergencyLogin = lazy(() => import("./pages/AdminEmergencyLogin"));
 const AdminProducts = lazy(() => import("./pages/admin/Products"));
 const AdminOrders = lazy(() => import("./pages/admin/Orders"));
 const AdminCoupons = lazy(() => import("./pages/admin/Coupons"));
+const AdminGiftCards = lazy(() => import("./pages/admin/GiftCards"));
+const GiftCard = lazy(() => import("./pages/GiftCard"));
+const GiftCardSuccess = lazy(() => import("./pages/GiftCardSuccess"));
 const AdminLayout = lazy(() => import("./components/AdminLayout"));
 const About = lazy(() => import("./pages/About"));
 const Collections = lazy(() => import("./pages/Collections"));
@@ -128,6 +131,15 @@ function Router() {
                 </AdminLayout>
               </Suspense>
             </Route>
+            <Route path="/admin/gift-cards">
+              <Suspense fallback={<PageLoader />}>
+                <AdminLayout>
+                  <AdminGiftCards />
+                </AdminLayout>
+              </Suspense>
+            </Route>
+            <Route path="/gift-card" component={GiftCard} />
+            <Route path="/gift-card/success" component={GiftCardSuccess} />
             <Route path="/about" component={About} />
             <Route path={"/collections"} component={Collections} />
             <Route path="/collections/:slug" component={CollectionPage} />

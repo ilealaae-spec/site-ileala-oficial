@@ -573,3 +573,138 @@ export async function sendCampaignEmail(
     return false;
   }
 }
+
+/**
+ * Send a gift card email to the recipient
+ * Beautiful template with gift card code, value, message and validity
+ */
+export async function sendGiftCardEmail(
+  recipientEmail: string,
+  recipientName: string | null,
+  senderName: string | null,
+  code: string,
+  amount: number, // Em fils (100 = 1 AED)
+  message: string | null,
+  validUntil: Date
+): Promise<boolean> {
+  const siteUrl = getSiteUrl();
+  const displayRecipient = recipientName || 'Friend';
+  const displaySender = senderName || 'Someone special';
+  const amountAED = (amount / 100).toFixed(2);
+  const validUntilFormatted = validUntil.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+
+  logger.info(`[Email] Sending gift card email to ${recipientEmail}`);
+  logger.debug(`[Email] Gift card code: ${code}, amount: ${amountAED} AED`);
+
+  const messageSection = message ? `
+    <div style="background: #f9f9f9; padding: 20px; border-radius: 10px; margin: 25px 0; border-left: 4px solid #8B9D83;">
+      <p style="color: #666; font-size: 13px; margin: 0 0 8px 0; font-style: italic;">Personal message:</p>
+      <p style="color: #333; font-size: 15px; margin: 0; line-height: 1.6;">"${message}"</p>
+      <p style="color: #8B9D83; font-size: 14px; margin: 15px 0 0 0; text-align: right;">— ${displaySender}</p>
+    </div>
+  ` : '';
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>You received a Gift Card from ILE ALA!</title>
+      </head>
+      <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
+        <div style="background: linear-gradient(135deg, #8B9D83 0%, #6B7D63 100%); padding: 40px 30px; text-align: center; border-radius: 10px 10px 0 0;">
+          <h1 style="color: white; margin: 0; font-size: 28px;">ILE ALA</h1>
+          <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 16px;">Gift Card</p>
+        </div>
+
+        <div style="background: #ffffff; padding: 40px; border: 1px solid #e0e0e0; border-top: none;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <p style="color: #666; font-size: 18px; margin: 0;">🎁 Hello ${displayRecipient}!</p>
+            <h2 style="color: #8B9D83; margin: 15px 0 0 0; font-size: 24px;">You've received a gift!</h2>
+            <p style="color: #666; font-size: 15px; margin: 10px 0 0 0;">
+              ${displaySender} sent you an ILE ALA Gift Card
+            </p>
+          </div>
+
+          ${messageSection}
+
+          <!-- Gift Card Visual -->
+          <div style="background: linear-gradient(135deg, #172d20 0%, #255238 100%); padding: 30px; border-radius: 15px; text-align: center; margin: 25px 0; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+            <p style="color: rgba(255,255,255,0.8); font-size: 12px; margin: 0; letter-spacing: 2px; text-transform: uppercase;">Gift Card Value</p>
+            <p style="color: #ffffff; font-size: 42px; font-weight: bold; margin: 10px 0;">AED ${amountAED}</p>
+
+            <div style="background: rgba(255,255,255,0.15); padding: 15px; border-radius: 8px; margin-top: 20px;">
+              <p style="color: rgba(255,255,255,0.8); font-size: 11px; margin: 0; letter-spacing: 1px; text-transform: uppercase;">Your Code</p>
+              <p style="color: #ffffff; font-size: 24px; font-weight: bold; margin: 8px 0 0 0; letter-spacing: 3px; font-family: monospace;">${code}</p>
+            </div>
+          </div>
+
+          <div style="text-align: center; margin: 30px 0;">
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">
+              <tr>
+                <td style="background: #8B9D83; border-radius: 5px; text-align: center;">
+                  <a href="${siteUrl}/shop" style="display: block; padding: 16px 40px; color: #ffffff; text-decoration: none; font-weight: bold; font-size: 16px; border-radius: 5px;">
+                    Shop Now
+                  </a>
+                </td>
+              </tr>
+            </table>
+          </div>
+
+          <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin-top: 25px;">
+            <h3 style="color: #8B9D83; margin: 0 0 15px 0; font-size: 16px;">How to use your Gift Card:</h3>
+            <ol style="color: #666; font-size: 14px; margin: 0; padding-left: 20px; line-height: 2;">
+              <li>Browse our exclusive collection at <a href="${siteUrl}/shop" style="color: #8B9D83;">ileala.ae</a></li>
+              <li>Add your favorite items to the cart</li>
+              <li>At checkout, enter your gift card code: <strong style="color: #172d20;">${code}</strong></li>
+              <li>The value will be applied to your order</li>
+            </ol>
+          </div>
+
+          <div style="text-align: center; margin-top: 25px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
+            <p style="color: #999; font-size: 13px; margin: 0;">
+              <strong>Valid until:</strong> ${validUntilFormatted}
+            </p>
+            <p style="color: #999; font-size: 12px; margin: 10px 0 0 0;">
+              This gift card can be used on any purchase. Any remaining balance will be saved for future use.
+            </p>
+          </div>
+        </div>
+
+        <div style="background: #f9f9f9; padding: 20px; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 10px 10px; text-align: center;">
+          <p style="color: #999; font-size: 12px; margin: 0;">
+            © ${new Date().getFullYear()} ILE ALA. All rights reserved.
+          </p>
+          <p style="color: #999; font-size: 12px; margin: 10px 0 0 0;">
+            <a href="${siteUrl}" style="color: #8B9D83; text-decoration: none;">Visit our website</a> |
+            <a href="${siteUrl}/contact" style="color: #8B9D83; text-decoration: none;">Contact us</a>
+          </p>
+        </div>
+      </body>
+    </html>
+  `;
+
+  try {
+    const result = await getResend().emails.send({
+      from: FROM_EMAIL,
+      to: recipientEmail,
+      subject: `🎁 You received an ILE ALA Gift Card from ${displaySender}!`,
+      html,
+    });
+
+    logger.info(`[Email] Gift card email sent successfully to ${recipientEmail}`);
+    logger.debug(`[Email] Resend API response:`, JSON.stringify(result));
+    return true;
+  } catch (error) {
+    logger.error('[Email] ERROR sending gift card email:', error);
+    if (error instanceof Error) {
+      logger.error('[Email] Error details:', { message: error.message, stack: error.stack });
+    }
+    return false;
+  }
+}

@@ -1427,6 +1427,216 @@ export const appRouter = router({
       }),
   }),
 
+  // Gift Cards router
+  giftCards: router({
+    // Validate gift card for checkout (similar to coupon)
+    validate: publicProcedure
+      .input(z.object({
+        code: z.string().min(10, 'Gift card code must be at least 10 characters'),
+      }))
+      .query(async ({ input }) => {
+        const validation = await db.validateGiftCard(input.code);
+        return validation;
+      }),
+
+    // Apply gift card to an order
+    apply: protectedProcedure
+      .input(z.object({
+        code: z.string().min(10),
+        orderId: z.number(),
+        amount: z.number().min(1), // Amount in fils to apply
+      }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user) throw new Error('Not authenticated');
+
+        const result = await db.applyGiftCard(input.code, input.amount, input.orderId);
+        return result;
+      }),
+
+    // Get gift card balance by code (for checkout display)
+    getBalance: publicProcedure
+      .input(z.object({
+        code: z.string().min(10),
+      }))
+      .query(async ({ input }) => {
+        const giftCard = await db.getGiftCardByCode(input.code);
+        if (!giftCard) {
+          return { found: false, balance: 0 };
+        }
+        if (giftCard.status !== 'active') {
+          return { found: true, balance: 0, status: giftCard.status };
+        }
+        return {
+          found: true,
+          balance: giftCard.balanceRemaining,
+          status: giftCard.status,
+          validUntil: giftCard.validUntil,
+        };
+      }),
+
+    // Purchase a gift card
+    purchase: protectedProcedure
+      .input(z.object({
+        amount: z.number().min(5000, 'Minimum gift card value is 50 AED').max(500000, 'Maximum gift card value is 5000 AED'), // 50-5000 AED in fils
+        recipientEmail: z.string().email('Invalid recipient email'),
+        recipientName: z.string().max(255).optional(),
+        senderName: z.string().max(255).optional(),
+        message: z.string().max(500).optional(),
+        deliveryType: z.enum(['immediate', 'scheduled']),
+        scheduledDate: z.string().optional(), // ISO date string
+      }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user) throw new Error('Not authenticated');
+
+        // Parse scheduled date if provided
+        let scheduledDate: Date | null = null;
+        if (input.deliveryType === 'scheduled' && input.scheduledDate) {
+          scheduledDate = new Date(input.scheduledDate);
+          if (scheduledDate < new Date()) {
+            throw new Error('Scheduled date must be in the future');
+          }
+        }
+
+        // Valid for 1 year from now
+        const validUntil = new Date();
+        validUntil.setFullYear(validUntil.getFullYear() + 1);
+
+        // Create the gift card (status will be 'pending' until payment)
+        const giftCard = await db.createGiftCard({
+          amount: input.amount,
+          balanceRemaining: input.amount,
+          status: 'pending',
+          purchasedBy: ctx.user.id,
+          recipientEmail: input.recipientEmail,
+          recipientName: input.recipientName || null,
+          senderName: input.senderName || ctx.user.name || null,
+          message: input.message || null,
+          deliveryType: input.deliveryType,
+          scheduledDate,
+          validUntil,
+        });
+
+        // Return the gift card for payment processing
+        return {
+          giftCardId: giftCard.id,
+          code: giftCard.code,
+          amount: giftCard.amount,
+        };
+      }),
+
+    // Create Stripe checkout session for gift card purchase
+    createCheckoutSession: protectedProcedure
+      .input(z.object({
+        giftCardId: z.number(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user) throw new Error('Not authenticated');
+        if (!stripe) {
+          throw new Error('Stripe is not configured. Please set STRIPE_SECRET_KEY environment variable.');
+        }
+
+        const giftCard = await db.getGiftCardById(input.giftCardId);
+        if (!giftCard) throw new Error('Gift card not found');
+        if (giftCard.purchasedBy !== ctx.user.id) throw new Error('Unauthorized');
+        if (giftCard.status !== 'pending') throw new Error('Gift card already processed');
+
+        const baseUrl = process.env.SITE_URL || 'https://www.ileala.ae';
+        const amountAED = (giftCard.amount / 100).toFixed(2);
+
+        const session = await stripe.checkout.sessions.create({
+          line_items: [{
+            price_data: {
+              currency: 'aed',
+              product_data: {
+                name: `ILE ALA Gift Card - AED ${amountAED}`,
+                description: `Digital gift card for ${giftCard.recipientEmail}`,
+              },
+              unit_amount: giftCard.amount, // Already in fils
+            },
+            quantity: 1,
+          }],
+          mode: 'payment',
+          success_url: `${baseUrl}/gift-card/success?gc=${giftCard.id}&session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: `${baseUrl}/gift-card?cancelled=true`,
+          metadata: {
+            giftCardId: giftCard.id.toString(),
+            type: 'gift_card',
+          },
+        });
+
+        if (!session.url) {
+          throw new Error('Stripe session created but no checkout URL was returned');
+        }
+
+        return { sessionId: session.id, url: session.url };
+      }),
+
+    // Verify gift card payment and activate
+    verifyPayment: protectedProcedure
+      .input(z.object({
+        sessionId: z.string(),
+        giftCardId: z.number(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user) throw new Error('Not authenticated');
+        if (!stripe) {
+          throw new Error('Stripe is not configured');
+        }
+
+        const session = await stripe.checkout.sessions.retrieve(input.sessionId);
+
+        if (session.payment_status === 'paid' && session.metadata?.giftCardId) {
+          const giftCardId = parseInt(session.metadata.giftCardId);
+
+          if (giftCardId !== input.giftCardId) {
+            throw new Error('Gift card ID mismatch');
+          }
+
+          const giftCard = await db.getGiftCardById(giftCardId);
+          if (!giftCard) throw new Error('Gift card not found');
+
+          // Activate the gift card
+          await db.activateGiftCard(giftCardId);
+
+          // Send email immediately if deliveryType is 'immediate'
+          if (giftCard.deliveryType === 'immediate') {
+            try {
+              const { sendGiftCardEmail } = await import('./email');
+              await sendGiftCardEmail(
+                giftCard.recipientEmail,
+                giftCard.recipientName,
+                giftCard.senderName,
+                giftCard.code,
+                giftCard.amount,
+                giftCard.message,
+                giftCard.validUntil
+              );
+              await db.markGiftCardDelivered(giftCardId);
+            } catch (error) {
+              // Log error but don't fail - email can be resent from admin
+              console.error('[GiftCard] Failed to send email:', error);
+            }
+          }
+
+          return {
+            success: true,
+            code: giftCard.code,
+            recipientEmail: giftCard.recipientEmail,
+            deliveryType: giftCard.deliveryType,
+          };
+        }
+
+        return { success: false, message: 'Payment not completed' };
+      }),
+
+    // Get user's purchased gift cards
+    myPurchases: protectedProcedure.query(async ({ ctx }) => {
+      if (!ctx.user) throw new Error('Not authenticated');
+      const allCards = await db.getAllGiftCards();
+      return allCards.filter(gc => gc.purchasedBy === ctx.user!.id);
+    }),
+  }),
+
   // Orders router
   orders: router({
     create: protectedProcedure
@@ -1980,6 +2190,123 @@ export const appRouter = router({
           await db.deleteCoupon(input.id);
           return { success: true };
         }),
+    }),
+
+    // Gift Cards management
+    giftCards: router({
+      list: protectedProcedure
+        .input(z.object({
+          status: z.enum(['all', 'pending', 'active', 'used', 'expired', 'cancelled']).default('all'),
+        }).optional())
+        .query(async ({ input, ctx }) => {
+          if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+          const allCards = await db.getAllGiftCards();
+          if (!input?.status || input.status === 'all') {
+            return allCards;
+          }
+          return allCards.filter(gc => gc.status === input.status);
+        }),
+
+      getById: protectedProcedure
+        .input(z.object({ id: z.number() }))
+        .query(async ({ input, ctx }) => {
+          if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+          const giftCard = await db.getGiftCardById(input.id);
+          if (!giftCard) throw new Error('Gift card not found');
+          return giftCard;
+        }),
+
+      cancel: protectedProcedure
+        .input(z.object({ id: z.number() }))
+        .mutation(async ({ input, ctx }) => {
+          if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+
+          const giftCard = await db.getGiftCardById(input.id);
+          if (!giftCard) throw new Error('Gift card not found');
+
+          if (giftCard.status === 'used') {
+            throw new Error('Cannot cancel a gift card that has been fully used');
+          }
+
+          await db.cancelGiftCard(input.id);
+
+          // Audit log
+          const audit = createAuditLogger(ctx);
+          await audit.log({
+            action: 'update',
+            entity: 'gift_card',
+            entityId: input.id,
+            metadata: {
+              previousStatus: giftCard.status,
+              newStatus: 'cancelled',
+              code: giftCard.code,
+            },
+          });
+
+          return { success: true };
+        }),
+
+      resendEmail: protectedProcedure
+        .input(z.object({ id: z.number() }))
+        .mutation(async ({ input, ctx }) => {
+          if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+
+          const giftCard = await db.getGiftCardById(input.id);
+          if (!giftCard) throw new Error('Gift card not found');
+
+          if (giftCard.status !== 'active') {
+            throw new Error('Can only resend email for active gift cards');
+          }
+
+          try {
+            const { sendGiftCardEmail } = await import('./email');
+            await sendGiftCardEmail(
+              giftCard.recipientEmail,
+              giftCard.recipientName,
+              giftCard.senderName,
+              giftCard.code,
+              giftCard.amount,
+              giftCard.message,
+              giftCard.validUntil
+            );
+            await db.markGiftCardDelivered(input.id);
+
+            // Audit log
+            const audit = createAuditLogger(ctx);
+            await audit.log({
+              action: 'update',
+              entity: 'gift_card',
+              entityId: input.id,
+              metadata: {
+                action: 'resend_email',
+                recipientEmail: giftCard.recipientEmail,
+              },
+            });
+
+            return { success: true };
+          } catch (error) {
+            throw new Error('Failed to resend gift card email');
+          }
+        }),
+
+      stats: protectedProcedure.query(async ({ ctx }) => {
+        if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+        const allCards = await db.getAllGiftCards();
+
+        const stats = {
+          total: allCards.length,
+          pending: allCards.filter(gc => gc.status === 'pending').length,
+          active: allCards.filter(gc => gc.status === 'active').length,
+          used: allCards.filter(gc => gc.status === 'used').length,
+          expired: allCards.filter(gc => gc.status === 'expired').length,
+          cancelled: allCards.filter(gc => gc.status === 'cancelled').length,
+          totalValue: allCards.reduce((sum, gc) => sum + gc.amount, 0),
+          totalRedeemed: allCards.reduce((sum, gc) => sum + (gc.amount - gc.balanceRemaining), 0),
+          totalPending: allCards.filter(gc => gc.status === 'active').reduce((sum, gc) => sum + gc.balanceRemaining, 0),
+        };
+
+        return stats;
+      }),
     }),
   }),
 

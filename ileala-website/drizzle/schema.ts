@@ -427,3 +427,29 @@ export const pageBanners = pgTable("page_banners", {
 
 export type PageBanner = typeof pageBanners.$inferSelect;
 export type InsertPageBanner = typeof pageBanners.$inferInsert;
+
+// Gift Cards table - for purchasable gift cards
+export const giftCards = pgTable("gift_cards", {
+  id: serial("id").primaryKey(),
+  code: varchar("code", { length: 16 }).notNull().unique(), // GC-XXXXXXXXXXXX
+  amount: integer("amount").notNull(), // Value in fils (1 AED = 100 fils)
+  balanceRemaining: integer("balanceRemaining").notNull(), // Remaining balance in fils
+  status: varchar("status", { length: 20 }).default("pending").notNull(), // pending, active, used, expired, cancelled
+  purchasedBy: integer("purchasedBy").references(() => users.id),
+  purchasedAt: timestamp("purchasedAt"),
+  orderId: integer("orderId"), // Order where gift card was purchased
+  recipientEmail: varchar("recipientEmail", { length: 320 }).notNull(),
+  recipientName: varchar("recipientName", { length: 255 }),
+  senderName: varchar("senderName", { length: 255 }),
+  message: text("message"), // Personal message from sender
+  deliveryType: varchar("deliveryType", { length: 20 }).default("immediate").notNull(), // immediate or scheduled
+  scheduledDate: timestamp("scheduledDate"), // When to send if scheduled
+  deliveredAt: timestamp("deliveredAt"), // When email was sent
+  validUntil: timestamp("validUntil").notNull(), // Expiration date (1 year from purchase)
+  redeemedBy: integer("redeemedBy").references(() => users.id), // Who used the gift card
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+
+export type GiftCard = typeof giftCards.$inferSelect;
+export type InsertGiftCard = typeof giftCards.$inferInsert;
