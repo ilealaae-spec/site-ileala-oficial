@@ -1,4 +1,4 @@
-import { pgTable, serial, varchar, text, timestamp, integer, boolean } from "drizzle-orm/pg-core";
+import { pgTable, serial, varchar, text, timestamp, integer } from "drizzle-orm/pg-core";
 
 /**
  * Core user table backing auth flow.
@@ -355,3 +355,56 @@ export const emailCampaigns = pgTable("email_campaigns", {
 
 export type EmailCampaign = typeof emailCampaigns.$inferSelect;
 export type InsertEmailCampaign = typeof emailCampaigns.$inferInsert;
+
+// Hero Slides table - for homepage carousel
+export const heroSlides = pgTable("hero_slides", {
+  id: serial("id").primaryKey(),
+  imageUrl: varchar("imageUrl", { length: 512 }).notNull(),
+  altText: varchar("altText", { length: 255 }),
+  titleEN: varchar("titleEN", { length: 255 }),
+  titlePT: varchar("titlePT", { length: 255 }),
+  subtitleEN: text("subtitleEN"),
+  subtitlePT: text("subtitlePT"),
+  linkUrl: varchar("linkUrl", { length: 512 }), // Optional link when clicked
+  displayOrder: integer("displayOrder").default(0).notNull(),
+  active: integer("active").default(1).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+
+export type HeroSlide = typeof heroSlides.$inferSelect;
+export type InsertHeroSlide = typeof heroSlides.$inferInsert;
+
+// Homepage Videos table - for video gallery
+export const homepageVideos = pgTable("homepage_videos", {
+  id: serial("id").primaryKey(),
+  videoUrl: varchar("videoUrl", { length: 512 }).notNull(),
+  thumbnailUrl: varchar("thumbnailUrl", { length: 512 }),
+  titleEN: varchar("titleEN", { length: 255 }),
+  titlePT: varchar("titlePT", { length: 255 }),
+  descriptionEN: text("descriptionEN"),
+  descriptionPT: text("descriptionPT"),
+  displayOrder: integer("displayOrder").default(0).notNull(),
+  active: integer("active").default(1).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+
+export type HomepageVideo = typeof homepageVideos.$inferSelect;
+export type InsertHomepageVideo = typeof homepageVideos.$inferInsert;
+
+// Homepage Cards table - for "About Us" section cards
+export const homepageCards = pgTable("homepage_cards", {
+  id: serial("id").primaryKey(),
+  imageUrl: varchar("imageUrl", { length: 512 }).notNull(),
+  titleEN: varchar("titleEN", { length: 255 }).notNull(),
+  titlePT: varchar("titlePT", { length: 255 }).notNull(),
+  linkUrl: varchar("linkUrl", { length: 512 }).notNull(),
+  displayOrder: integer("displayOrder").default(0).notNull(),
+  active: integer("active").default(1).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+
+export type HomepageCard = typeof homepageCards.$inferSelect;
+export type InsertHomepageCard = typeof homepageCards.$inferInsert;

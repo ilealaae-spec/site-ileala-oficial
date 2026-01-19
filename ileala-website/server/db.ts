@@ -1271,19 +1271,21 @@ export async function createMedia(data: {
 }) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
+
   try {
     const { media } = await import("../drizzle/schema");
     const result = await db.insert(media).values({
       url: data.url,
       filename: data.filename,
-      type: data.type,
-      folder: data.folder || null,
-      altText: data.altText || null,
+      originalName: data.filename,
+      mimeType: data.type,
+      size: 0,
+      folder: data.folder || 'general',
+      alt: data.altText || null,
       caption: data.caption || null,
       createdAt: new Date(),
     }).returning();
-    
+
     return result[0];
   } catch (error) {
     logger.error("[Database] Failed to create media:", error);
@@ -1294,7 +1296,7 @@ export async function createMedia(data: {
 export async function deleteMedia(id: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
+
   try {
     const { media } = await import("../drizzle/schema");
     const { eq } = await import("drizzle-orm");
@@ -1303,6 +1305,265 @@ export async function deleteMedia(id: number) {
   } catch (error) {
     logger.error("[Database] Failed to delete media:", error);
     throw error;
+  }
+}
+
+// ==================== Hero Slides Functions ====================
+
+export async function listHeroSlides() {
+  const db = await getDb();
+  if (!db) return [];
+
+  try {
+    const { heroSlides } = await import("../drizzle/schema");
+    const result = await db.select().from(heroSlides).orderBy(heroSlides.displayOrder);
+    return result;
+  } catch (error) {
+    logger.error("[Database] Failed to list hero slides:", error);
+    return [];
+  }
+}
+
+export async function listActiveHeroSlides() {
+  const db = await getDb();
+  if (!db) return [];
+
+  try {
+    const { heroSlides } = await import("../drizzle/schema");
+    const { eq } = await import("drizzle-orm");
+    const result = await db.select().from(heroSlides)
+      .where(eq(heroSlides.active, 1))
+      .orderBy(heroSlides.displayOrder);
+    return result;
+  } catch (error) {
+    logger.error("[Database] Failed to list active hero slides:", error);
+    return [];
+  }
+}
+
+export async function createHeroSlide(data: any) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  try {
+    const { heroSlides } = await import("../drizzle/schema");
+    const result = await db.insert(heroSlides).values(data).returning();
+    return result[0];
+  } catch (error) {
+    logger.error("[Database] Failed to create hero slide:", error);
+    throw error;
+  }
+}
+
+export async function updateHeroSlide(id: number, data: any) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  try {
+    const { heroSlides } = await import("../drizzle/schema");
+    const { eq } = await import("drizzle-orm");
+    const result = await db.update(heroSlides)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(heroSlides.id, id))
+      .returning();
+    return result[0];
+  } catch (error) {
+    logger.error("[Database] Failed to update hero slide:", error);
+    throw error;
+  }
+}
+
+export async function deleteHeroSlide(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  try {
+    const { heroSlides } = await import("../drizzle/schema");
+    const { eq } = await import("drizzle-orm");
+    await db.delete(heroSlides).where(eq(heroSlides.id, id));
+    return { success: true };
+  } catch (error) {
+    logger.error("[Database] Failed to delete hero slide:", error);
+    throw error;
+  }
+}
+
+// ==================== Homepage Videos Functions ====================
+
+export async function listHomepageVideos() {
+  const db = await getDb();
+  if (!db) return [];
+
+  try {
+    const { homepageVideos } = await import("../drizzle/schema");
+    const result = await db.select().from(homepageVideos).orderBy(homepageVideos.displayOrder);
+    return result;
+  } catch (error) {
+    logger.error("[Database] Failed to list homepage videos:", error);
+    return [];
+  }
+}
+
+export async function listActiveHomepageVideos() {
+  const db = await getDb();
+  if (!db) return [];
+
+  try {
+    const { homepageVideos } = await import("../drizzle/schema");
+    const { eq } = await import("drizzle-orm");
+    const result = await db.select().from(homepageVideos)
+      .where(eq(homepageVideos.active, 1))
+      .orderBy(homepageVideos.displayOrder);
+    return result;
+  } catch (error) {
+    logger.error("[Database] Failed to list active homepage videos:", error);
+    return [];
+  }
+}
+
+export async function createHomepageVideo(data: any) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  try {
+    const { homepageVideos } = await import("../drizzle/schema");
+    const result = await db.insert(homepageVideos).values(data).returning();
+    return result[0];
+  } catch (error) {
+    logger.error("[Database] Failed to create homepage video:", error);
+    throw error;
+  }
+}
+
+export async function updateHomepageVideo(id: number, data: any) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  try {
+    const { homepageVideos } = await import("../drizzle/schema");
+    const { eq } = await import("drizzle-orm");
+    const result = await db.update(homepageVideos)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(homepageVideos.id, id))
+      .returning();
+    return result[0];
+  } catch (error) {
+    logger.error("[Database] Failed to update homepage video:", error);
+    throw error;
+  }
+}
+
+export async function deleteHomepageVideo(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  try {
+    const { homepageVideos } = await import("../drizzle/schema");
+    const { eq } = await import("drizzle-orm");
+    await db.delete(homepageVideos).where(eq(homepageVideos.id, id));
+    return { success: true };
+  } catch (error) {
+    logger.error("[Database] Failed to delete homepage video:", error);
+    throw error;
+  }
+}
+
+// ==================== Homepage Cards Functions ====================
+
+export async function listHomepageCards() {
+  const db = await getDb();
+  if (!db) return [];
+
+  try {
+    const { homepageCards } = await import("../drizzle/schema");
+    const result = await db.select().from(homepageCards).orderBy(homepageCards.displayOrder);
+    return result;
+  } catch (error) {
+    logger.error("[Database] Failed to list homepage cards:", error);
+    return [];
+  }
+}
+
+export async function listActiveHomepageCards() {
+  const db = await getDb();
+  if (!db) return [];
+
+  try {
+    const { homepageCards } = await import("../drizzle/schema");
+    const { eq } = await import("drizzle-orm");
+    const result = await db.select().from(homepageCards)
+      .where(eq(homepageCards.active, 1))
+      .orderBy(homepageCards.displayOrder);
+    return result;
+  } catch (error) {
+    logger.error("[Database] Failed to list active homepage cards:", error);
+    return [];
+  }
+}
+
+export async function createHomepageCard(data: any) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  try {
+    const { homepageCards } = await import("../drizzle/schema");
+    const result = await db.insert(homepageCards).values(data).returning();
+    return result[0];
+  } catch (error) {
+    logger.error("[Database] Failed to create homepage card:", error);
+    throw error;
+  }
+}
+
+export async function updateHomepageCard(id: number, data: any) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  try {
+    const { homepageCards } = await import("../drizzle/schema");
+    const { eq } = await import("drizzle-orm");
+    const result = await db.update(homepageCards)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(homepageCards.id, id))
+      .returning();
+    return result[0];
+  } catch (error) {
+    logger.error("[Database] Failed to update homepage card:", error);
+    throw error;
+  }
+}
+
+export async function deleteHomepageCard(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  try {
+    const { homepageCards } = await import("../drizzle/schema");
+    const { eq } = await import("drizzle-orm");
+    await db.delete(homepageCards).where(eq(homepageCards.id, id));
+    return { success: true };
+  } catch (error) {
+    logger.error("[Database] Failed to delete homepage card:", error);
+    throw error;
+  }
+}
+
+// ==================== Public Artisans Function ====================
+
+export async function listActiveArtisans() {
+  const db = await getDb();
+  if (!db) return [];
+
+  try {
+    const { artisans } = await import("../drizzle/schema");
+    const { eq } = await import("drizzle-orm");
+    const result = await db.select().from(artisans)
+      .where(eq(artisans.active, 1))
+      .orderBy(artisans.createdAt);
+    return result;
+  } catch (error) {
+    logger.error("[Database] Failed to list active artisans:", error);
+    return [];
   }
 }
 

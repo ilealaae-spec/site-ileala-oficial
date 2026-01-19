@@ -4,7 +4,7 @@ import { useLocation } from 'wouter';
 import {
   Loader2, Mail, Shield, Lock, Eye, EyeOff,
   LayoutDashboard, Users, Package, ShoppingCart, Palette, FileText, Image,
-  LogOut, Search, Bell, User, FolderOpen, Ticket, Settings, Send
+  LogOut, Search, Bell, User, FolderOpen, Ticket, Settings, Send, Home
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
@@ -37,9 +37,11 @@ import CouponsTab from '@/components/admin/CouponsTab';
 import SettingsTab from '@/components/admin/SettingsTab';
 import SecurityTab from '@/components/admin/SecurityTab';
 import EmailMarketingTab from '@/components/admin/EmailMarketingTab';
+import HomepageTab from '@/components/admin/HomepageTab';
 
 const tabs = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { id: "homepage", label: "Homepage", icon: Home },
   { id: "newsletter", label: "Newsletter", icon: Mail },
   { id: "email-marketing", label: "Email Marketing", icon: Send },
   { id: "users", label: "Users", icon: Users },
@@ -210,6 +212,12 @@ export default function Admin() {
         return (
           <ErrorBoundary>
             <DashboardTab />
+          </ErrorBoundary>
+        );
+      case 'homepage':
+        return (
+          <ErrorBoundary>
+            <HomepageTab />
           </ErrorBoundary>
         );
       case 'newsletter':

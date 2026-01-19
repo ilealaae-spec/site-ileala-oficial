@@ -2338,6 +2338,142 @@ export const appRouter = router({
         return await db.deleteMedia(input.id);
       }),
   }),
+  // Hero Slides management
+  heroSlides: router({
+    list: protectedProcedure.query(async () => {
+      return await db.listHeroSlides();
+    }),
+    listActive: publicProcedure.query(async () => {
+      return await db.listActiveHeroSlides();
+    }),
+    create: protectedProcedure
+      .input(z.object({
+        imageUrl: z.string().min(1),
+        altText: z.string().optional(),
+        titleEN: z.string().optional(),
+        titlePT: z.string().optional(),
+        subtitleEN: z.string().optional(),
+        subtitlePT: z.string().optional(),
+        linkUrl: z.string().optional(),
+        displayOrder: z.number().default(0),
+        active: z.number().default(1),
+      }))
+      .mutation(async ({ input }) => {
+        return await db.createHeroSlide(input);
+      }),
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        imageUrl: z.string().optional(),
+        altText: z.string().optional(),
+        titleEN: z.string().optional(),
+        titlePT: z.string().optional(),
+        subtitleEN: z.string().optional(),
+        subtitlePT: z.string().optional(),
+        linkUrl: z.string().optional(),
+        displayOrder: z.number().optional(),
+        active: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        return await db.updateHeroSlide(id, data);
+      }),
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        return await db.deleteHeroSlide(input.id);
+      }),
+  }),
+  // Homepage Videos management
+  homepageVideos: router({
+    list: protectedProcedure.query(async () => {
+      return await db.listHomepageVideos();
+    }),
+    listActive: publicProcedure.query(async () => {
+      return await db.listActiveHomepageVideos();
+    }),
+    create: protectedProcedure
+      .input(z.object({
+        videoUrl: z.string().min(1),
+        thumbnailUrl: z.string().optional(),
+        titleEN: z.string().optional(),
+        titlePT: z.string().optional(),
+        descriptionEN: z.string().optional(),
+        descriptionPT: z.string().optional(),
+        displayOrder: z.number().default(0),
+        active: z.number().default(1),
+      }))
+      .mutation(async ({ input }) => {
+        return await db.createHomepageVideo(input);
+      }),
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        videoUrl: z.string().optional(),
+        thumbnailUrl: z.string().optional(),
+        titleEN: z.string().optional(),
+        titlePT: z.string().optional(),
+        descriptionEN: z.string().optional(),
+        descriptionPT: z.string().optional(),
+        displayOrder: z.number().optional(),
+        active: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        return await db.updateHomepageVideo(id, data);
+      }),
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        return await db.deleteHomepageVideo(input.id);
+      }),
+  }),
+  // Homepage Cards management
+  homepageCards: router({
+    list: protectedProcedure.query(async () => {
+      return await db.listHomepageCards();
+    }),
+    listActive: publicProcedure.query(async () => {
+      return await db.listActiveHomepageCards();
+    }),
+    create: protectedProcedure
+      .input(z.object({
+        imageUrl: z.string().min(1),
+        titleEN: z.string().min(1),
+        titlePT: z.string().min(1),
+        linkUrl: z.string().min(1),
+        displayOrder: z.number().default(0),
+        active: z.number().default(1),
+      }))
+      .mutation(async ({ input }) => {
+        return await db.createHomepageCard(input);
+      }),
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        imageUrl: z.string().optional(),
+        titleEN: z.string().optional(),
+        titlePT: z.string().optional(),
+        linkUrl: z.string().optional(),
+        displayOrder: z.number().optional(),
+        active: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        return await db.updateHomepageCard(id, data);
+      }),
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        return await db.deleteHomepageCard(input.id);
+      }),
+  }),
+  // Public artisans list
+  artisans: router({
+    listActive: publicProcedure.query(async () => {
+      return await db.listActiveArtisans();
+    }),
+  }),
   users: router({
     list: protectedProcedure.query(async ({ ctx }) => {
       if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
