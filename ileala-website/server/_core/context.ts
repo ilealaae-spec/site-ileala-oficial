@@ -15,10 +15,8 @@ export async function createContext(
 
   try {
     user = await sdk.authenticateRequest(opts.req);
-    console.log('[Context] User authenticated:', user?.email, 'id:', user?.id);
-  } catch (error) {
+  } catch {
     // Authentication is optional for public procedures.
-    console.log('[Context] No auth - error:', (error as Error).message);
     user = null;
   }
 

@@ -224,7 +224,7 @@ export const appRouter = router({
             ip: clientIp,
             userAgent: ctx.req.headers['user-agent'],
             success: true,
-          }).catch(err => console.error('[Login] Failed to record login attempt:', err));
+          }).catch(() => { /* Silent fail */ });
 
           return {
             success: true,
@@ -243,8 +243,7 @@ export const appRouter = router({
         if (!user) {
           // Record failed attempt for rate limiting
           recordFailedAttempt(clientIp);
-          console.warn(`[SECURITY] Failed login attempt for ${email} from IP ${clientIp}`);
-          
+
           // Try to get user ID for failed login tracking
           const failedUser = await db.getUserByEmail(email);
           if (failedUser) {
@@ -255,9 +254,9 @@ export const appRouter = router({
               userAgent: ctx.req.headers['user-agent'],
               success: false,
               failureReason: 'Invalid password',
-            }).catch(err => console.error('[Login] Failed to record login attempt:', err));
+            }).catch(() => { /* Silent fail */ });
           }
-          
+
           throw new Error('Invalid email or password');
         }
                 // Clear rate limit on successful login
@@ -266,11 +265,9 @@ export const appRouter = router({
         // Check if 2FA is enabled for this user
         // Check if 2FA is enabled (handle both number and string from database)
         const is2FAEnabled = user.twoFactorEnabled == 1 || user.twoFactorEnabled === true;
-        console.log('[Auth] 2FA check - twoFactorEnabled:', user.twoFactorEnabled, 'is2FAEnabled:', is2FAEnabled);
-        
+
         if (is2FAEnabled) {
           // Don't create session yet - require 2FA verification first
-          console.log('[Auth] 2FA required for user:', user.email);
           
           // Create a temporary token to identify this login attempt
           const tempToken = Buffer.from(JSON.stringify({
@@ -308,16 +305,8 @@ export const appRouter = router({
           maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year
         };
         
-        console.log('[Auth] Setting cookie:', {
-          name: COOKIE_NAME,
-          options: finalCookieOptions,
-          sessionData,
-        });
-        
         ctx.res.cookie(COOKIE_NAME, JSON.stringify(sessionData), finalCookieOptions);
-        
-        console.log('[Auth] Cookie set successfully');
-        
+
         // Record successful login
         recordLoginAttempt({
           userId: user.id,
@@ -325,7 +314,7 @@ export const appRouter = router({
           ip: clientIp,
           userAgent: ctx.req.headers['user-agent'],
           success: true,
-        }).catch(err => console.error('[Login] Failed to record login attempt:', err));
+        }).catch(() => { /* Silent fail for login recording */ });
 
         return { 
           success: true, 
@@ -418,10 +407,8 @@ export const appRouter = router({
         try {
           const { sendWelcomeEmail } = await import('./email');
           await sendWelcomeEmail(user.email, user.name || 'Customer');
-          console.log('[Auth] Welcome email sent to:', user.email);
-        } catch (error) {
+        } catch {
           // Don't fail verification if welcome email fails
-          console.error('[Auth] Failed to send welcome email:', error);
         }
 
         return { success: true, user: { id: user.id, email: user.email } };
@@ -456,7 +443,6 @@ export const appRouter = router({
         });
       }
 
-      console.log('[Auth] User logged out - cookies cleared');
       return {
         success: true,
       } as const;
@@ -490,7 +476,6 @@ export const appRouter = router({
 
         await db.updateUser(ctx.user.id, updates);
 
-        console.log('[Auth] Profile updated for user:', ctx.user.email);
         return { success: true };
       }),
 
@@ -524,7 +509,6 @@ export const appRouter = router({
         // Update password in database
         await db.updateUserPassword(ctx.user.id, hashedPassword);
 
-        console.log('[Auth] Password changed for user:', ctx.user.email);
         return { success: true };
       }),
 
@@ -601,7 +585,7 @@ export const appRouter = router({
           ip: clientIp,
           userAgent: ctx.req.headers['user-agent'],
           success: true,
-        }).catch(err => console.error('[Login] Failed to record login attempt:', err));
+        }).catch(() => { /* Silent fail */ });
         
         return {
           success: true,
@@ -761,17 +745,14 @@ export const appRouter = router({
     // Session management endpoints
     getActiveSessions: protectedProcedure.query(async ({ ctx }) => {
       if (!ctx.user) throw new Error('Not authenticated');
-      
+
       try {
-        console.log('[getActiveSessions] Fetching sessions for user:', ctx.user.id);
         const sessions = await getActiveSessions(ctx.user.id);
-        console.log('[getActiveSessions] Raw sessions:', sessions);
-        
+
         // Ensure sessions is always an array
         const safeSessions = Array.isArray(sessions) ? sessions : [];
-        console.log('[getActiveSessions] Safe sessions count:', safeSessions.length);
-        
-        const result = {
+
+        return {
           sessions: safeSessions.map(session => ({
             id: session.id,
             sessionToken: session.sessionToken,
@@ -783,11 +764,7 @@ export const appRouter = router({
             createdAt: session.createdAt,
           })),
         };
-        
-        console.log('[getActiveSessions] Returning result:', JSON.stringify(result));
-        return result;
-      } catch (error) {
-        console.error('[getActiveSessions] Error:', error);
+      } catch {
         // Return empty sessions instead of throwing
         return { sessions: [] };
       }
@@ -882,7 +859,6 @@ export const appRouter = router({
         if (!user) {
           // Por segurança, não revelamos se o email existe ou não
           // Retornamos sucesso de qualquer forma
-          console.log('[Auth] Password reset requested for non-existent email:', input.email);
           return {
             success: true,
             message: 'If an account exists with this email, you will receive a password reset link.'
@@ -897,13 +873,11 @@ export const appRouter = router({
           const { sendPasswordResetEmail } = await import('./email');
           await sendPasswordResetEmail(user.email, token, user.name || 'Customer');
 
-          console.log('[Auth] Password reset email sent to:', user.email);
           return {
             success: true,
             message: 'If an account exists with this email, you will receive a password reset link.'
           };
-        } catch (error) {
-          console.error('[Auth] Failed to send password reset email:', error);
+        } catch {
           throw new Error('Failed to send password reset email. Please try again later.');
         }
       }),
@@ -933,10 +907,8 @@ export const appRouter = router({
           // Invalidar o token
           await db.invalidatePasswordResetToken(input.token);
 
-          console.log('[Auth] Password reset successful for user:', user.email);
           return { success: true, message: 'Password updated successfully. You can now sign in with your new password.' };
-        } catch (error) {
-          console.error('[Auth] Failed to reset password:', error);
+        } catch {
           throw new Error('Failed to reset password. Please try again.');
         }
       }),
@@ -1101,9 +1073,8 @@ export const appRouter = router({
             } else {
               failedCount++;
             }
-          } catch (error) {
+          } catch {
             failedCount++;
-            console.error(`[Campaign] Failed to send to ${recipient.email}:`, error);
           }
 
           // Small delay to avoid rate limiting (100ms between emails)
@@ -1117,8 +1088,6 @@ export const appRouter = router({
           failedCount,
           sentAt: new Date(),
         });
-
-        console.log(`[Campaign] Campaign ${input.id} completed: ${sentCount} sent, ${failedCount} failed`);
 
         return {
           success: true,
@@ -1317,7 +1286,6 @@ export const appRouter = router({
           
           return { success: true };
         } catch (error) {
-          console.error('[Admin] Error updating product:', error instanceof Error ? error.message : error);
           throw error;
         }
       }),
@@ -1516,7 +1484,6 @@ export const appRouter = router({
         
         // Create order items
         for (const item of input.items) {
-          console.log('[Order] Creating order item - productId:', item.productId, 'price:', item.price, 'quantity:', item.quantity);
           await db.createOrderItem({
             orderId,
             productId: item.productId,
@@ -1576,21 +1543,11 @@ export const appRouter = router({
         // Admin should see ALL products, including inactive ones
         const dbInstance = await db.getDb();
         if (!dbInstance) {
-          console.error('[Admin.Products.List] Database not available!');
           return [];
         }
-        
+
         const allProducts = await dbInstance.select().from(products).orderBy(products.id);
-        console.log('[Admin.Products.List] Fetched products from DB:', {
-          count: allProducts.length,
-          firstProduct: allProducts.length > 0 ? {
-            id: allProducts[0].id,
-            name: allProducts[0].name,
-            imageUrl: allProducts[0].imageUrl,
-            active: allProducts[0].active,
-          } : 'No products',
-        });
-        
+
         return allProducts;
       }),
       create: protectedProcedure
@@ -1683,7 +1640,6 @@ export const appRouter = router({
             // Return the created product (already verified above)
             return createdProduct || { id: productId };
           } catch (error) {
-            console.error('[Admin.Products.Create] Error:', error instanceof Error ? error.message : error);
             throw error;
           }
         }),
@@ -1928,22 +1884,18 @@ export const appRouter = router({
         // 🔒 SECURITY: Validate upload
         const validation = validateUpload(input.fileName, input.contentType, buffer.length);
         if (!validation.valid) {
-          console.warn(`[SECURITY] Upload rejected: ${validation.error}`);
           throw new Error(validation.error);
         }
-        
+
         // 🔒 SECURITY: Validate image buffer (check magic numbers)
         const bufferValidation = validateImageBuffer(buffer);
         if (!bufferValidation.valid) {
-          console.warn(`[SECURITY] Upload rejected: ${bufferValidation.error}`);
           throw new Error(bufferValidation.error);
         }
-        
+
         // Generate safe filename
         const safeFilename = generateSafeFilename(input.fileName);
         const key = `products/${safeFilename}`;
-        
-        console.log(`[Upload] Validated and uploading: ${safeFilename}`);
         
         // Upload to Cloudinary
         const result = await storagePut(key, buffer, input.contentType);
@@ -1963,10 +1915,8 @@ export const appRouter = router({
             type: input.contentType,
             folder: folder,
           });
-          console.log(`[Media] Saved to media library: ${safeFilename}`);
-        } catch (mediaError) {
+        } catch {
           // Don't fail the upload if media tracking fails
-          console.error('[Media] Failed to save to media library:', mediaError);
         }
 
         // Audit log
@@ -2056,7 +2006,6 @@ export const appRouter = router({
           // Price is stored in AED in the database
           // Stripe requires the smallest currency unit (fils for AED), so multiply by 100
           const unitAmount = Math.round(item.priceAtPurchase * 100);
-          console.log(`[Stripe] Converting price ${item.priceAtPurchase} AED to ${unitAmount} fils`);
 
           // Ensure image URL is absolute
           let imageUrl = item.product?.imageUrl || item.product?.mainImage;
@@ -2082,10 +2031,6 @@ export const appRouter = router({
           throw new Error('Stripe is not configured. Please set STRIPE_SECRET_KEY environment variable.');
         }
 
-        console.log('[Stripe] Creating checkout session for order:', input.orderId);
-        console.log('[Stripe] Line items:', JSON.stringify(lineItems, null, 2));
-        console.log('[Stripe] URLs - success:', `${baseUrl}/order-confirmation/${input.orderId}`, 'cancel:', `${baseUrl}/checkout`);
-
         const session = await stripe.checkout.sessions.create({
           line_items: lineItems,
           mode: 'payment',
@@ -2096,10 +2041,7 @@ export const appRouter = router({
           },
         });
 
-        console.log('[Stripe] Session created:', session.id, 'URL:', session.url);
-
         if (!session.url) {
-          console.error('[Stripe] Session created but no URL returned!');
           throw new Error('Stripe session created but no checkout URL was returned');
         }
 
@@ -2137,11 +2079,9 @@ export const appRouter = router({
                   price: item.priceAtPurchase,
                 }))
               );
-              console.log('[Payment] Order confirmation email sent for order:', orderId);
             }
-          } catch (emailError) {
+          } catch {
             // Don't fail payment verification if email fails
-            console.error('[Payment] Failed to send order confirmation email:', emailError);
           }
         }
 
