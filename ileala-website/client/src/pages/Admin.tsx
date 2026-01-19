@@ -73,18 +73,11 @@ export default function Admin() {
   // This is critical to avoid React error #310
   const loginMutation = trpc.auth.login.useMutation({
     onSuccess: async () => {
-      console.log('[Admin] Login successful!');
       toast.success('Login successful!');
-      
-      // Invalidate auth data to get fresh user info
       await utils.auth.me.invalidate();
-      
-      // Simply reload the page - the admin check will happen on page load
-      // If user is not admin, they will see "Access Denied" after reload
       window.location.reload();
     },
     onError: (error) => {
-      console.error('[Admin] Login error:', error);
       toast.error(error.message || 'Invalid email or password');
     },
   });
@@ -99,8 +92,8 @@ export default function Admin() {
           setEmergencyUser(parsedSession);
         }
       }
-    } catch (error) {
-      console.error('Error checking emergency session:', error);
+    } catch {
+      // Silent fail for emergency session check
     } finally {
       setCheckingEmergency(false);
     }
@@ -109,8 +102,6 @@ export default function Admin() {
   // Force refresh auth data when component mounts if user is null but we're on admin page
   useEffect(() => {
     if (!user && !authLoading && !checkingEmergency) {
-      console.log('[Admin] No user found, refreshing auth data...');
-      // Wait a bit and then refresh
       const timer = setTimeout(() => {
         utils.auth.me.invalidate();
         utils.auth.me.refetch();
@@ -130,12 +121,6 @@ export default function Admin() {
 
   // Use emergency user if available, otherwise use regular auth user
   const currentUser = emergencyUser || user;
-  
-  // DEBUG: Log user info
-  console.log('[Admin] DEBUG - emergencyUser:', emergencyUser);
-  console.log('[Admin] DEBUG - user:', user);
-  console.log('[Admin] DEBUG - currentUser:', currentUser);
-  console.log('[Admin] DEBUG - currentUser?.role:', currentUser?.role);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -159,7 +144,6 @@ export default function Admin() {
       );
     }
     // Redirect to login page
-    console.log('[Admin] No user found, redirecting to /login');
     setLocation('/login');
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -191,17 +175,10 @@ export default function Admin() {
 
   const handleLogout = async () => {
     try {
-      // Clear emergency session if exists
       localStorage.removeItem('emergency_admin_session');
-
-      // Logout via API using the logout function from useAuth hook
       await logout();
-
-      // Redirect to login page
       window.location.href = '/login';
-    } catch (error) {
-      console.error('[Admin] Logout error:', error);
-      // Force redirect even if logout fails
+    } catch {
       window.location.href = '/login';
     }
   };
@@ -307,9 +284,6 @@ export default function Admin() {
     }
   };
 
-  console.log('[Admin] RENDERING ULTRA MODERN DARK LAYOUT - Build: 20251129-155200');
-
-  // INLINE MODERN LAYOUT (AdminLayoutWrapper + AdminSidebar + AdminHeader)
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Sidebar */}

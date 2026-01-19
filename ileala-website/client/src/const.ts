@@ -29,14 +29,12 @@ export const getLoginUrl = () => {
   
   // If OAuth is not configured, return login page
   if (!oauthPortalUrl || !appId) {
-    console.warn('OAuth is not configured. Please set VITE_OAUTH_PORTAL_URL and VITE_APP_ID environment variables.');
     return '/login';
   }
-  
+
   try {
     const redirectUri = `${window.location.origin}/api/oauth/callback`;
     const state = btoa(redirectUri);
-
 
     const url = new URL(`${oauthPortalUrl}/app-auth`);
     url.searchParams.set("appId", appId);
@@ -44,10 +42,8 @@ export const getLoginUrl = () => {
     url.searchParams.set("state", state);
     url.searchParams.set("type", "signIn");
 
-
     return url.toString();
-  } catch (error) {
-    console.error('Failed to construct login URL:', error);
+  } catch {
     return '/login';
   }
 };
@@ -56,13 +52,8 @@ export const getLoginUrl = () => {
 // Generate Google OAuth login URL
 export const getGoogleLoginUrl = (redirectTo: string = '/') => {
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-  
-  // Always log to browser console for easier debugging in production
-  console.log('[Google OAuth] VITE_GOOGLE_CLIENT_ID:', googleClientId ? 'Configured' : 'NOT CONFIGURED');
-
 
   if (!googleClientId || googleClientId.includes('placeholder')) {
-    console.warn('[Google OAuth] Google OAuth is not configured. Add VITE_GOOGLE_CLIENT_ID to Railway variables.');
     return null;
   }
   

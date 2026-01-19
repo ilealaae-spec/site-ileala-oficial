@@ -137,4 +137,7 @@ export const ENV = {
   resendApiKey: process.env.RESEND_API_KEY ?? "",
   stripeSecretKey: process.env.STRIPE_SECRET_KEY ?? "",
   stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET ?? "",
+  // Emergency admin credentials - set via Railway environment variables
+  emergencyAdminEmail: process.env.EMERGENCY_ADMIN_EMAIL ?? "",
+  emergencyAdminPassword: process.env.EMERGENCY_ADMIN_PASSWORD ?? "",
 };

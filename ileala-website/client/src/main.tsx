@@ -36,7 +36,6 @@ queryClient.getQueryCache().subscribe(event => {
   if (event.type === "updated" && event.action.type === "error") {
     const error = event.query.state.error;
     redirectToLoginIfUnauthorized(error);
-    console.error("[API Query Error]", error);
   }
 });
 
@@ -44,7 +43,6 @@ queryClient.getMutationCache().subscribe(event => {
   if (event.type === "updated" && event.action.type === "error") {
     const error = event.mutation.state.error;
     redirectToLoginIfUnauthorized(error);
-    console.error("[API Mutation Error]", error);
   }
 });
 
@@ -68,22 +66,17 @@ const trpcClient = trpc.createClient({
     httpBatchLink({
       url: getApiUrl(),
       transformer: superjson,
-      fetch(input, init) {
-        const url = typeof input === 'string' ? input : input.url;
-        console.log('[tRPC] Request:', url);
-        return globalThis.fetch(input, {
-          ...(init ?? {}),
-          credentials: "include",
-        }).then(async (response) => {
-          console.log('[tRPC] Response:', response.status, response.statusText);
+      async fetch(input, init) {
+        try {
+          const response = await globalThis.fetch(input, {
+            ...(init ?? {}),
+            credentials: "include",
+          });
 
-          // Clone response to read body for debugging if needed
-          const clonedResponse = response.clone();
           const contentType = response.headers.get('content-type') || '';
 
           // Check for CORS error (no body, status 0)
           if (response.status === 0) {
-            console.error('[tRPC] CORS error - request blocked');
             return new Response(
               JSON.stringify([{
                 error: {
@@ -96,11 +89,8 @@ const trpcClient = trpc.createClient({
             );
           }
 
-          // If response is not JSON, try to get the text for debugging
+          // If response is not JSON, return error
           if (!contentType.includes('application/json')) {
-            const text = await clonedResponse.text().catch(() => 'Unable to read response');
-            console.error('[tRPC] Non-JSON response:', text.substring(0, 500));
-
             return new Response(
               JSON.stringify([{
                 error: {
@@ -113,19 +103,8 @@ const trpcClient = trpc.createClient({
             );
           }
 
-          // Log successful response body for debugging
-          if (response.ok) {
-            try {
-              const bodyText = await clonedResponse.text();
-              console.log('[tRPC] Response body preview:', bodyText.substring(0, 200));
-            } catch (e) {
-              console.log('[tRPC] Could not read response body for logging');
-            }
-          }
-
           return response;
-        }).catch((error) => {
-          console.error('[tRPC] Fetch error:', error.message || error);
+        } catch (error: any) {
           return new Response(
             JSON.stringify([{
               error: {
@@ -136,7 +115,7 @@ const trpcClient = trpc.createClient({
             }]),
             { status: 500, headers: { 'Content-Type': 'application/json' } }
           );
-        });
+        }
       },
     }),
   ],

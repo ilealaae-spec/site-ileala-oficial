@@ -71,6 +71,7 @@ import {
   orderTotalSchema,
 } from "./_core/validation";
 import { getCached, setCached, invalidateCache, CacheKeys } from "./_core/cache";
+import { ENV } from "./_core/env";
 
 // Initialize Stripe only if API key is provided
 const stripe = process.env.STRIPE_SECRET_KEY
@@ -83,32 +84,14 @@ export const appRouter = router({
   user: router({
     /**
      * ROTA DE LOGIN DE EMERGÊNCIA (LEGADA)
-     * 
+     *
      * IMPORTANTE: Esta rota existe para compatibilidade com código antigo.
      * A rota principal de login é `auth.login` (veja abaixo).
-     * 
+     *
      * CREDENCIAIS DE EMERGÊNCIA:
-     *   Email: ceo@ileala.ae
-     *   Senha: IleAla@2025
-     * 
-     * COMO FUNCIONA:
-     *   1. Verifica se as credenciais são as de emergência (hardcoded)
-     *   2. Cria/atualiza usuário admin no banco de dados
-     *   3. Cria token de sessão usando SDK
-     *   4. Define cookie de sessão
-     *   5. Retorna sucesso
-     * 
-     * SEGURANÇA:
-     *   - Senha hardcoded no código (repositório privado)
-     *   - Sempre funciona, mesmo se banco estiver vazio
-     *   - Use apenas para recuperação de emergência
-     * 
-     * PARA TROCAR SENHA:
-     *   1. Edite esta linha de código
-     *   2. Faça commit e push
-     *   3. Aguarde deployment do Railway
-     * 
-     * DOCUMENTAÇÃO: Veja ADMIN_ACCESS.md para mais detalhes
+     *   Configure via variáveis de ambiente no Railway:
+     *   - EMERGENCY_ADMIN_EMAIL
+     *   - EMERGENCY_ADMIN_PASSWORD
      */
     login: publicProcedure
       .input(z.object({
@@ -118,33 +101,14 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         const { email, password } = input;
 
-        // ⚠️ CREDENCIAIS DE EMERGÊNCIA HARDCODED - NÃO REMOVER!
-        // Estas credenciais garantem acesso admin mesmo se o banco falhar
-        if (email === 'ceo@ileala.ae' && password === 'IleAla@2025') {
-          // REMOVED: Database upsert to avoid constraint conflicts
-          // Emergency login works purely with session cookie, no DB required
-          // This prevents "users_email_key" constraint errors
-          /*
-          try {
-            const openId = 'emergency-admin-001';
-            await db.upsertUser({
-              openId,
-              email,
-              name: 'Emergency Admin',
-              role: 'admin',
-              loginMethod: 'emergency',
-              lastSignedIn: new Date(),
-            });
-          } catch (error) {
-            console.warn('[Auth] Could not upsert emergency admin user:', error);
-            // Continue anyway - emergency login should work even if DB fails
-          }
-          */
+        // Check emergency credentials from environment variables (not hardcoded)
+        const emergencyEmail = ENV.emergencyAdminEmail;
+        const emergencyPassword = ENV.emergencyAdminPassword;
 
-          // Create simple JSON session instead of JWT to bypass validation issues
+        if (emergencyEmail && emergencyPassword && email === emergencyEmail && password === emergencyPassword) {
           const sessionData = JSON.stringify({
             id: 'emergency-admin-001',
-            email: 'ceo@ileala.ae',
+            email: emergencyEmail,
             name: 'Emergency Admin',
             role: 'admin',
           });
@@ -152,14 +116,11 @@ export const appRouter = router({
           const cookieOptions = getSessionCookieOptions(ctx.req);
           ctx.res.cookie(COOKIE_NAME, sessionData, cookieOptions);
 
-          console.log('[Auth] Emergency login successful - JSON session created');
-
-          // Return user object so frontend knows this is an admin
-          return { 
+          return {
             success: true,
             user: {
               id: 'emergency-admin-001',
-              email: 'ceo@ileala.ae',
+              email: emergencyEmail,
               name: 'Emergency Admin',
               role: 'admin'
             }
@@ -193,37 +154,11 @@ export const appRouter = router({
     
     /**
      * ROTA PRINCIPAL DE LOGIN
-     * 
-     * Esta é a rota de login usada pelo frontend (Login.tsx).
-     * 
-     * FLUXO DE AUTENTICAÇÃO:
-     *   1. Verifica PRIMEIRO se são credenciais de emergência (hardcoded)
-     *   2. Se sim, cria/atualiza admin e retorna sucesso
-     *   3. Se não, verifica credenciais no banco de dados
-     *   4. Se válidas, cria sessão e retorna sucesso
-     *   5. Se inválidas, retorna erro
-     * 
+     *
      * CREDENCIAIS DE EMERGÊNCIA:
-     *   Email: ceo@ileala.ae
-     *   Senha: IleAla@2025
-     *   Role: admin
-     * 
-     * POR QUE CREDENCIAIS DE EMERGÊNCIA?
-     *   - Garantem acesso admin mesmo se banco estiver vazio/corrompido
-     *   - Permitem recuperação de acesso em caso de problemas
-     *   - Não dependem de migrações ou seeds
-     * 
-     * SEGURANÇA:
-     *   - Credenciais hardcoded estão em repositório PRIVADO
-     *   - Senhas normais são hashadas com bcrypt (10 rounds)
-     *   - Sessão expira em 1 ano (pode ser ajustado)
-     *   - Cookie httpOnly e secure em produção
-     * 
-     * COMO CRIAR ADMIN PERMANENTE:
-     *   Execute: pnpm tsx scripts/create-admin.ts
-     *   Ou veja: ADMIN_ACCESS.md
-     * 
-     * DOCUMENTAÇÃO COMPLETA: ADMIN_ACCESS.md
+     *   Configure via variáveis de ambiente no Railway:
+     *   - EMERGENCY_ADMIN_EMAIL
+     *   - EMERGENCY_ADMIN_PASSWORD
      */
     login: publicProcedure
       .input(z.object({
@@ -233,33 +168,26 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         const { email, password } = input;
 
-        // 🔒 SECURITY: Check rate limit before processing login
+        // Check rate limit before processing login
         const clientIp = getClientIp(ctx.req.headers);
         const rateLimit = checkRateLimit(clientIp);
-        
+
         if (rateLimit.isBlocked) {
-          console.warn(`[SECURITY] Login attempt blocked for IP ${clientIp}`);
           throw new Error(rateLimit.message || 'Too many login attempts. Please try again later.');
         }
 
-        // ⚠️ PASSO 1: Verificar credenciais de emergência PRIMEIRO
-        // Estas credenciais sempre funcionam, independente do banco de dados
-        if (email === 'ceo@ileala.ae' && password === 'IleAla@2025') {
-          console.log('[Auth] Emergency credentials detected, checking 2FA status...');
-          
+        // Check emergency credentials from environment variables
+        const emergencyEmail = ENV.emergencyAdminEmail;
+        const emergencyPassword = ENV.emergencyAdminPassword;
+
+        if (emergencyEmail && emergencyPassword && email === emergencyEmail && password === emergencyPassword) {
           // Check if user exists in database and has 2FA enabled
-          const emergencyUser = await db.getUserByEmail('ceo@ileala.ae');
-          
+          const emergencyUser = await db.getUserByEmail(emergencyEmail);
+
           if (emergencyUser) {
-            // Check if 2FA is enabled (handle both number and string from database)
             const is2FAEnabled = emergencyUser.twoFactorEnabled == 1 || emergencyUser.twoFactorEnabled === true;
-            console.log('[Auth] Emergency user 2FA check - twoFactorEnabled:', emergencyUser.twoFactorEnabled, 'is2FAEnabled:', is2FAEnabled);
-            
+
             if (is2FAEnabled) {
-              // Don't create session yet - require 2FA verification first
-              console.log('[Auth] 2FA required for emergency user:', emergencyUser.email);
-              
-              // Create a temporary token to identify this login attempt
               const tokenData = {
                 userId: emergencyUser.id,
                 email: emergencyUser.email,
@@ -267,53 +195,42 @@ export const appRouter = router({
                 isEmergency: true,
               };
               const tempToken = Buffer.from(JSON.stringify(tokenData)).toString('base64');
-              
-              const response = {
+
+              return {
                 success: true,
                 requires2FA: true,
                 tempToken,
                 message: '2FA verification required',
               };
-              
-              console.log('[Auth] Returning 2FA response:', JSON.stringify(response));
-              return response;
             }
           }
 
-          // No 2FA required or user not in DB - proceed with emergency login
-          console.log('[Auth] Emergency login - no 2FA required, creating session...');
-          
-          // Create simple JSON session instead of JWT to bypass validation issues
+          // No 2FA required - proceed with emergency login
           const sessionData = JSON.stringify({
             id: emergencyUser?.id || 'emergency-admin-001',
-            email: 'ceo@ileala.ae',
+            email: emergencyEmail,
             name: 'Emergency Admin',
             role: 'admin',
           });
 
-          // Set cookie with JSON session
           const cookieOptions = getSessionCookieOptions(ctx.req);
           ctx.res.cookie(COOKIE_NAME, sessionData, cookieOptions);
 
-          console.log('[Auth] Emergency login successful - JSON session created');
-          
-          // Clear rate limit on successful login
           clearRateLimit(clientIp);
-          
-          // Record successful login
+
           recordLoginAttempt({
             userId: emergencyUser?.id || 1,
-            email: 'ceo@ileala.ae',
+            email: emergencyEmail,
             ip: clientIp,
             userAgent: ctx.req.headers['user-agent'],
             success: true,
           }).catch(err => console.error('[Login] Failed to record login attempt:', err));
 
-          return { 
-            success: true, 
+          return {
+            success: true,
             user: {
               id: emergencyUser?.id || 'emergency-admin-001',
-              email: 'ceo@ileala.ae',
+              email: emergencyEmail,
               name: 'Emergency Admin',
               role: 'admin',
             }

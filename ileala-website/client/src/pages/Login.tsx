@@ -7,7 +7,7 @@ import { Link, useLocation } from 'wouter';
 import { trpc } from '@/lib/trpc';
 import { toast } from 'sonner';
 import { Loader2, Mail, Lock, LogIn, Eye, EyeOff } from 'lucide-react';
-import { getGoogleLoginUrl, isGoogleOAuthAvailable } from '@/const';
+import { getGoogleLoginUrl } from '@/const';
 import { useAuth } from '@/_core/hooks/useAuth';
 import TwoFactorVerification from '@/components/TwoFactorVerification';
 
@@ -54,8 +54,6 @@ export default function Login() {
     if (error) {
       const errorMsg = decodeURIComponent(error);
       toast.error(errorMsg);
-      console.error('[Login] OAuth error:', errorMsg);
-      // Clean URL
       urlParams.delete('error');
       const newUrl = window.location.pathname + (urlParams.toString() ? `?${urlParams.toString()}` : '');
       window.history.replaceState({}, '', newUrl);
@@ -64,76 +62,37 @@ export default function Login() {
   
   const loginMutation = trpc.auth.login.useMutation({
     onSuccess: async (data: any) => {
-      console.log('[Login] ===== ON SUCCESS CALLED =====');
-      console.log('[Login] typeof data:', typeof data);
-      console.log('[Login] data is null?', data === null);
-      console.log('[Login] data is undefined?', data === undefined);
-      console.log('[Login] ===== LOGIN RESPONSE =====');
-      console.log('[Login] Full response:', JSON.stringify(data, null, 2));
-      console.log('[Login] data.requires2FA:', data.requires2FA);
-      console.log('[Login] data.success:', data.success);
-      console.log('[Login] data.tempToken:', data.tempToken ? 'EXISTS' : 'NULL');
-      console.log('[Login] ==============================');
-      
       // Check if 2FA is required
       if (data.requires2FA) {
-        console.log('[Login] 2FA required, showing verification screen');
         setRequires2FA(true);
         setTempToken(data.tempToken);
         return;
       }
-      
+
       toast.success(language === 'en' ? 'Login successful!' : 'Login realizado com sucesso!');
-      
-      // Check if we're on admin domain FIRST (before any async operations)
-      const isAdminDomain = window.location.hostname === 'admin.ileala.ae' || 
+
+      const isAdminDomain = window.location.hostname === 'admin.ileala.ae' ||
                            window.location.hostname.includes('admin');
-      
-      // Get redirect path from URL params
+
       const params = new URLSearchParams(window.location.search);
       let redirect = params.get('redirect');
-      
-      // DETERMINE REDIRECT IMMEDIATELY (don't wait for auth.me)
-      // Priority: URL redirect param > admin domain > user role from response > home
+
       if (redirect) {
         // Use explicit redirect parameter
-        console.log('[Login] Using explicit redirect:', redirect);
       } else if (isAdminDomain) {
-        // If on admin domain, ALWAYS go to /admin on the SAME domain
-        // Use full URL to ensure we stay on admin.ileala.ae
         redirect = `${window.location.protocol}//${window.location.hostname}/admin`;
-        console.log('[Login] Admin domain detected, redirecting to /admin on same domain:', redirect);
       } else if (data?.user?.role === 'admin') {
-        // Check role from login response (faster than fetching auth.me)
-        // If user is admin but on main domain, redirect to admin domain
         redirect = 'https://admin.ileala.ae/admin';
-        console.log('[Login] Admin user detected from login response, redirecting to admin domain');
       } else {
-        // Default to home on current domain
         redirect = '/';
-        console.log('[Login] Default redirect to home');
       }
-      
-      console.log('[Login] Redirecting to:', redirect, 'Current domain:', window.location.hostname, 'User from response:', data?.user);
-      
-      // Invalidate auth data in background (don't wait for it)
-      utils.auth.me.invalidate().catch(err => {
-        console.warn('[Login] Failed to invalidate auth.me:', err);
-      });
-      
-      // Wait a tiny bit to ensure cookie is set, then redirect
+
+      utils.auth.me.invalidate().catch(() => {});
+
       await new Promise(resolve => setTimeout(resolve, 300));
-      
-      // Redirect immediately - don't wait for auth.me.fetch()
-      // Use window.location.href for full page navigation
       window.location.href = redirect;
     },
     onError: (error) => {
-      console.error('[Login] ===== ON ERROR CALLED =====');
-      console.error('[Login] Error object:', error);
-      console.error('[Login] Error message:', error.message);
-      console.error('[Login] Error stack:', error.stack);
-      console.error('[Login] ==============================');
       toast.error(error.message || (language === 'en' ? 'Invalid email or password' : 'Email ou senha inválidos'));
     },
   });
@@ -141,76 +100,41 @@ export default function Login() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
-    console.log('[Login] ===== FORM SUBMIT =====');
-    console.log('[Login] Browser:', navigator.userAgent);
-    console.log('[Login] Email:', email);
-    console.log('[Login] Has password:', !!password);
-    console.log('[Login] Form valid:', e.currentTarget.checkValidity?.() ?? 'N/A');
-    console.log('[Login] ==============================');
-    
-    // Manual validation
+
     if (!email || email.trim() === '') {
-      console.log('[Login] Email is empty');
       toast.error(language === 'en' ? 'Please enter your email' : 'Por favor, digite seu e-mail');
       return;
     }
-    
+
     if (!password || password.trim() === '') {
-      console.log('[Login] Password is empty');
       toast.error(language === 'en' ? 'Please enter your password' : 'Por favor, digite sua senha');
       return;
     }
-    
-    // Basic email validation
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      console.log('[Login] Invalid email format');
       toast.error(language === 'en' ? 'Please enter a valid email' : 'Por favor, digite um e-mail válido');
       return;
     }
 
-    console.log('[Login] Validation passed, calling loginMutation.mutate');
-    try {
-      loginMutation.mutate({ email: email.trim(), password });
-      console.log('[Login] loginMutation.mutate called successfully');
-    } catch (error) {
-      console.error('[Login] Error calling loginMutation.mutate:', error);
-      toast.error('Login error: ' + (error as Error).message);
-    }
+    loginMutation.mutate({ email: email.trim(), password });
   };
 
   // Handle 2FA verification success
   const handle2FASuccess = async () => {
-    console.log('[Login] 2FA verification successful!');
-    
-    // Refresh auth data to get the new session
     await utils.auth.me.invalidate();
     await refresh();
-    
-    // Check if we're on admin domain
-    const isAdminDomain = window.location.hostname === 'admin.ileala.ae' || 
+
+    const isAdminDomain = window.location.hostname === 'admin.ileala.ae' ||
                          window.location.hostname.includes('admin');
-    
-    // Get redirect path from URL params
+
     const params = new URLSearchParams(window.location.search);
     let redirect = params.get('redirect');
-    
-    if (redirect) {
-      // Use explicit redirect parameter
-      console.log('[Login] Using explicit redirect:', redirect);
-    } else if (isAdminDomain) {
-      // If on admin domain, go to /admin (use relative path!)
-      redirect = '/admin';
-      console.log('[Login] Admin domain detected, redirecting to /admin');
-    } else {
-      // Default to home
-      redirect = '/';
-      console.log('[Login] Default redirect to home');
+
+    if (!redirect) {
+      redirect = isAdminDomain ? '/admin' : '/';
     }
-    
-    // Use setLocation for SPA navigation instead of full page reload
-    console.log('[Login] Navigating to:', redirect);
+
     setLocation(redirect);
   };
   

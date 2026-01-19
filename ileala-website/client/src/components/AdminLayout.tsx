@@ -22,11 +22,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         const parsedSession = JSON.parse(emergencySession);
         if (parsedSession && parsedSession.role === 'admin' && parsedSession.emergency) {
           setEmergencyUser(parsedSession);
-          console.log('[AdminLayout] Emergency session found:', parsedSession);
         }
       }
-    } catch (error) {
-      console.error('[AdminLayout] Error checking emergency session:', error);
+    } catch {
+      // Silent fail for emergency session check
     }
   }, []);
 
@@ -44,19 +43,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   // Use emergency user if available, otherwise use regular auth user
   const currentUser = emergencyUser || user;
-  
-  // Debug logging
-  React.useEffect(() => {
-    console.log('[AdminLayout] Debug info:', {
-      user,
-      emergencyUser,
-      currentUser,
-      isLoading,
-      error: error?.message,
-      userRole: user?.role,
-      emergencyRole: emergencyUser?.role,
-    });
-  }, [user, emergencyUser, currentUser, isLoading, error]);
 
   // Check if user is admin
   if (isLoading) {
@@ -73,7 +59,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   // Show error if API failed
   if (error) {
-    console.error('[AdminLayout] API Error:', error);
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center max-w-md">
