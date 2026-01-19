@@ -2,11 +2,10 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Link } from 'wouter';
-import { useAuth } from '@/_core/hooks/useAuth';
 import WelcomePopup from '@/components/WelcomePopup';
 import SEO from '@/components/SEO';
 import Testimonials from '@/components/Testimonials';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { trpc } from '@/lib/trpc';
 import { toast } from 'sonner';
 import {
@@ -18,15 +17,44 @@ import {
   type CarouselApi,
 } from '@/components/ui/carousel';
 
-export default function Home() {
-  // The userAuth hooks provides authentication state
-  // To implement login/logout functionality, simply call logout() or redirect to getLoginUrl()
-  let { user, loading, error, isAuthenticated, logout } = useAuth();
+// Default/fallback data
+const defaultSlides = [
+  { id: 1, imageUrl: '/images/hero_home_table_setting.webp', altText: 'ILE ALA Luxury Table Setting', titleEN: 'ILE ALA', titlePT: 'ILE ALA' },
+  { id: 2, imageUrl: '/images/hero_carousel_2.jpeg', altText: 'ILE ALA Collection - Decorative Shells', titleEN: 'ILE ALA', titlePT: 'ILE ALA' },
+  { id: 3, imageUrl: '/images/hero_carousel_3.jpeg?v=4', altText: 'ILE ALA Elegant Table Setting', titleEN: 'ILE ALA', titlePT: 'ILE ALA' },
+  { id: 4, imageUrl: '/images/hero_carousel_moet.jpeg', altText: 'ILE ALA Luxury Collection', titleEN: 'ILE ALA', titlePT: 'ILE ALA' },
+];
 
+const defaultVideos = [
+  { id: 1, videoUrl: '/videos/video1.mp4' },
+  { id: 2, videoUrl: '/videos/video2.mp4' },
+  { id: 3, videoUrl: '/videos/video3.mp4' },
+  { id: 4, videoUrl: '/videos/video4.mp4' },
+  { id: 5, videoUrl: '/videos/video5.mp4' },
+  { id: 6, videoUrl: '/videos/video6.mp4' },
+];
+
+const defaultCards = [
+  { id: 1, imageUrl: '/images/about_me_card_new.png', titleEN: 'About Me', titlePT: 'Sobre Mim', linkUrl: '/about' },
+  { id: 2, imageUrl: '/images/about_collections_new.webp', titleEN: 'Our Collections', titlePT: 'Nossas Coleções', linkUrl: '/collections' },
+  { id: 3, imageUrl: '/images/our_values_card.webp', titleEN: 'Our Values', titlePT: 'Nossos Valores', linkUrl: '/about' },
+];
+
+export default function Home() {
   const { t, language } = useLanguage();
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
+
+  // Fetch dynamic content from database
+  const { data: dbSlides } = trpc.heroSlides.listActive.useQuery();
+  const { data: dbVideos } = trpc.homepageVideos.listActive.useQuery();
+  const { data: dbCards } = trpc.homepageCards.listActive.useQuery();
+
+  // Use database data if available, otherwise use defaults
+  const slides = (dbSlides && dbSlides.length > 0) ? dbSlides : defaultSlides;
+  const videos = (dbVideos && dbVideos.length > 0) ? dbVideos : defaultVideos;
+  const cards = (dbCards && dbCards.length > 0) ? dbCards : defaultCards;
 
   // Auto-play do carrossel
   useEffect(() => {
@@ -40,11 +68,11 @@ export default function Home() {
 
     const interval = setInterval(() => {
       api.scrollNext();
-    }, 5000); // Muda a cada 5 segundos
+    }, 5000);
 
     return () => clearInterval(interval);
   }, [api]);
-  
+
   const subscribeMutation = trpc.newsletter.subscribe.useMutation({
     onSuccess: () => {
       toast.success(language === 'en' ? 'Successfully subscribed to newsletter!' : 'Inscrito com sucesso na newsletter!');
@@ -54,8 +82,7 @@ export default function Home() {
       toast.error(error.message || (language === 'en' ? 'Failed to subscribe' : 'Falha ao se inscrever'));
     },
   });
-  
-  // Newsletter subscription handler - Fixed v2
+
   const handleNewsletterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newsletterEmail || !newsletterEmail.includes('@')) {
@@ -65,18 +92,27 @@ export default function Home() {
     subscribeMutation.mutate({ email: newsletterEmail });
   };
 
+  // Get localized title for cards
+  const getCardTitle = (card: any) => {
+    if (language === 'en') {
+      return card.titleEN || card.titlePT || '';
+    }
+    return card.titlePT || card.titleEN || '';
+  };
+
   return (
     <div className="w-full">
-      <SEO 
+      <SEO
         title={language === 'en' ? 'Luxury Home & Table Linens' : 'Roupas de Mesa e Decoração de Luxo'}
-        description={language === 'en' 
+        description={language === 'en'
           ? 'Discover ILE ALA\'s handcrafted luxury table linens, napkins, and home decor. Artisan-made in Dubai with 12 exclusive collections.'
           : 'Descubra os tecidos de mesa de luxo artesanais da ILE ALA, guardanapos e decoração para casa. Feito por artesãos em Dubai com 12 coleções exclusivas.'}
         keywords="luxury table linens, handcrafted placemats, artisan napkins, Dubai home decor, ILE ALA"
         ogImage="/images/hero_home_table_setting.webp"
       />
       <WelcomePopup />
-      {/* Hero Section - Carousel */}
+
+      {/* Hero Section - Dynamic Carousel */}
       <section className="relative h-[70vh] min-h-[500px] w-full overflow-hidden">
         <Carousel
           className="w-full h-full"
@@ -87,92 +123,35 @@ export default function Home() {
           }}
         >
           <CarouselContent className="h-full">
-            {/* Slide 1 - Mesa posta luxuosa (pratos dourados, oliveiras) */}
-            <CarouselItem className="h-full pl-0">
-              <div className="relative h-[70vh] min-h-[500px] w-full">
-                <img 
-                  src="/images/hero_home_table_setting.webp" 
-                  alt="ILE ALA Luxury Table Setting - Handcrafted Placemats and Elegant Tableware"
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-black/30" />
-                <div className="relative container h-full flex items-center justify-center">
-                  <div className="text-center text-white max-w-3xl">
-                    <h1 className="text-5xl md:text-7xl font-bold mb-6">ILE ALA</h1>
-                    <p className="text-xl md:text-2xl font-light">
-                      {t.home.tagline}
-                    </p>
+            {slides.map((slide: any) => (
+              <CarouselItem key={slide.id} className="h-full pl-0">
+                <div className="relative h-[70vh] min-h-[500px] w-full">
+                  <img
+                    src={slide.imageUrl}
+                    alt={slide.altText || (language === 'en' ? slide.titleEN : slide.titlePT) || 'ILE ALA'}
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-black/30" />
+                  <div className="relative container h-full flex items-center justify-center">
+                    <div className="text-center text-white max-w-3xl">
+                      <h1 className="text-5xl md:text-7xl font-bold mb-6">
+                        {(language === 'en' ? slide.titleEN : slide.titlePT) || 'ILE ALA'}
+                      </h1>
+                      <p className="text-xl md:text-2xl font-light">
+                        {(language === 'en' ? slide.subtitleEN : slide.subtitlePT) || t.home.tagline}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </CarouselItem>
-
-            {/* Slide 2 - Búzios/Conchas (decorative item) */}
-            <CarouselItem className="h-full pl-0">
-              <div className="relative h-[70vh] min-h-[500px] w-full">
-                <img 
-                  src="/images/hero_carousel_2.jpeg" 
-                  alt="ILE ALA Collection - Decorative Shells and Wood"
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-black/20" />
-                <div className="relative container h-full flex items-center justify-center">
-                  <div className="text-center text-white max-w-3xl">
-                    <h1 className="text-5xl md:text-7xl font-bold mb-6">ILE ALA</h1>
-                    <p className="text-xl md:text-2xl font-light">
-                      {t.home.tagline}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </CarouselItem>
-
-            {/* Slide 3 - Mesa posta com tema abelha/mel/limão */}
-            <CarouselItem className="h-full pl-0">
-              <div className="relative h-[70vh] min-h-[500px] w-full">
-                <img 
-                  src="/images/hero_carousel_3.jpeg?v=4" 
-                  alt="ILE ALA Elegant Table Setting - Bee and Honey Theme"
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-black/20" />
-                <div className="relative container h-full flex items-center justify-center">
-                  <div className="text-center text-white max-w-3xl">
-                    <h1 className="text-5xl md:text-7xl font-bold mb-6">ILE ALA</h1>
-                    <p className="text-xl md:text-2xl font-light">
-                      {t.home.tagline}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </CarouselItem>
-
-            {/* Slide 4 - Moët Chandon (sala verde esmeralda) - foto correta */}
-            <CarouselItem className="h-full pl-0">
-              <div className="relative h-[70vh] min-h-[500px] w-full">
-                <img 
-                  src="/images/hero_carousel_moet.jpeg" 
-                  alt="ILE ALA Luxury Collection - Moët Chandon"
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-black/20" />
-                <div className="relative container h-full flex items-center justify-center">
-                  <div className="text-center text-white max-w-3xl">
-                    <h1 className="text-5xl md:text-7xl font-bold mb-6">ILE ALA</h1>
-                    <p className="text-xl md:text-2xl font-light">
-                      {t.home.tagline}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </CarouselItem>
+              </CarouselItem>
+            ))}
           </CarouselContent>
           <CarouselPrevious className="left-4" />
           <CarouselNext className="right-4" />
-          
-          {/* Indicadores de slide */}
+
+          {/* Slide indicators */}
           <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2 z-10">
-            {[0, 1, 2, 3].map((index) => (
+            {slides.map((_: any, index: number) => (
               <button
                 key={index}
                 onClick={() => api?.scrollTo(index)}
@@ -208,71 +187,37 @@ export default function Home() {
         </div>
       </section>
 
-      {/* About Us Cards */}
+      {/* About Us Cards - Dynamic */}
       <section className="py-20">
         <div className="container">
           <h2 className="text-4xl md:text-5xl font-bold text-center mb-12">
             {t.home.aboutUs}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <Link href="/about">
-              <Card className="overflow-hidden group cursor-pointer hover:shadow-xl transition-shadow">
-                <div className="aspect-square overflow-hidden">
-                  <img 
-                    src="/images/about_me_card_new.png" 
-                    alt="About me"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                </div>
-                <div className="p-6 text-center">
-                  <h3 className="text-2xl font-semibold mb-4">{t.home.aboutMe}</h3>
-                  <Button variant="outline" className="w-full">
-                    {t.home.knowButton}
-                  </Button>
-                </div>
-              </Card>
-            </Link>
-
-            <Link href="/collections">
-              <Card className="overflow-hidden group cursor-pointer hover:shadow-xl transition-shadow">
-                <div className="aspect-square overflow-hidden">
-                  <img 
-                    src="/images/about_collections_new.webp" 
-                    alt="Our Collections"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                </div>
-                <div className="p-6 text-center">
-                  <h3 className="text-2xl font-semibold mb-4">{t.home.ourCollections}</h3>
-                  <Button variant="outline" className="w-full">
-                    {t.home.knowButton}
-                  </Button>
-                </div>
-              </Card>
-            </Link>
-
-            <Link href="/about">
-              <Card className="overflow-hidden group cursor-pointer hover:shadow-xl transition-shadow">
-                <div className="aspect-square overflow-hidden">
-                  <img 
-                    src="/images/our_values_card.webp" 
-                    alt="Our Values"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                </div>
-                <div className="p-6 text-center">
-                  <h3 className="text-2xl font-semibold mb-4">{t.home.ourValues}</h3>
-                  <Button variant="outline" className="w-full">
-                    {t.home.knowButton}
-                  </Button>
-                </div>
-              </Card>
-            </Link>
+            {cards.map((card: any) => (
+              <Link key={card.id} href={card.linkUrl}>
+                <Card className="overflow-hidden group cursor-pointer hover:shadow-xl transition-shadow">
+                  <div className="aspect-square overflow-hidden">
+                    <img
+                      src={card.imageUrl}
+                      alt={getCardTitle(card)}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                  <div className="p-6 text-center">
+                    <h3 className="text-2xl font-semibold mb-4">{getCardTitle(card)}</h3>
+                    <Button variant="outline" className="w-full">
+                      {t.home.knowButton}
+                    </Button>
+                  </div>
+                </Card>
+              </Link>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Video Gallery Section */}
+      {/* Video Gallery Section - Dynamic */}
       <section className="py-20">
         <div className="container">
           <div className="text-center mb-12">
@@ -282,83 +227,20 @@ export default function Home() {
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* Video 1 */}
-            <div className="relative aspect-video rounded-lg overflow-hidden bg-black shadow-lg">
-              <video
-                className="w-full h-full object-cover"
-                src="/videos/video1.mp4"
-                controls
-                loop
-                muted
-                playsInline
-                preload="metadata"
-              />
-            </div>
-
-            {/* Video 2 */}
-            <div className="relative aspect-video rounded-lg overflow-hidden bg-black shadow-lg">
-              <video
-                className="w-full h-full object-cover"
-                src="/videos/video2.mp4"
-                controls
-                loop
-                muted
-                playsInline
-                preload="metadata"
-              />
-            </div>
-
-            {/* Video 3 */}
-            <div className="relative aspect-video rounded-lg overflow-hidden bg-black shadow-lg">
-              <video
-                className="w-full h-full object-cover"
-                src="/videos/video3.mp4"
-                controls
-                loop
-                muted
-                playsInline
-                preload="metadata"
-              />
-            </div>
-
-            {/* Video 4 */}
-            <div className="relative aspect-video rounded-lg overflow-hidden bg-black shadow-lg">
-              <video
-                className="w-full h-full object-cover"
-                src="/videos/video4.mp4"
-                controls
-                loop
-                muted
-                playsInline
-                preload="metadata"
-              />
-            </div>
-
-            {/* Video 5 */}
-            <div className="relative aspect-video rounded-lg overflow-hidden bg-black shadow-lg">
-              <video
-                className="w-full h-full object-cover"
-                src="/videos/video5.mp4"
-                controls
-                loop
-                muted
-                playsInline
-                preload="metadata"
-              />
-            </div>
-
-            {/* Video 6 */}
-            <div className="relative aspect-video rounded-lg overflow-hidden bg-black shadow-lg">
-              <video
-                className="w-full h-full object-cover"
-                src="/videos/video6.mp4"
-                controls
-                loop
-                muted
-                playsInline
-                preload="metadata"
-              />
-            </div>
+            {videos.map((video: any) => (
+              <div key={video.id} className="relative aspect-video rounded-lg overflow-hidden bg-black shadow-lg">
+                <video
+                  className="w-full h-full object-cover"
+                  src={video.videoUrl}
+                  controls
+                  loop
+                  muted
+                  playsInline
+                  preload="metadata"
+                  poster={video.thumbnailUrl || undefined}
+                />
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -390,8 +272,8 @@ export default function Home() {
                   color: '#1f2937',
                 }}
               />
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 variant="default"
                 size="lg"
                 disabled={subscribeMutation.isPending}
