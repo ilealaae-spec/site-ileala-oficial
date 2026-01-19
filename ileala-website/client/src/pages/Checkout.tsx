@@ -13,16 +13,115 @@ import { toast } from 'sonner';
 import { useState } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 
-// UAE Emirates with shipping costs
-const UAE_EMIRATES = [
-  { id: 'dubai', name: 'Dubai', nameAr: 'دبي', shippingCost: 0 },
-  { id: 'abu-dhabi', name: 'Abu Dhabi', nameAr: 'أبوظبي', shippingCost: 50 },
-  { id: 'sharjah', name: 'Sharjah', nameAr: 'الشارقة', shippingCost: 50 },
-  { id: 'ajman', name: 'Ajman', nameAr: 'عجمان', shippingCost: 50 },
-  { id: 'umm-al-quwain', name: 'Umm Al Quwain', nameAr: 'أم القيوين', shippingCost: 50 },
-  { id: 'ras-al-khaimah', name: 'Ras Al Khaimah', nameAr: 'رأس الخيمة', shippingCost: 50 },
-  { id: 'fujairah', name: 'Fujairah', nameAr: 'الفجيرة', shippingCost: 50 },
-];
+// Shipping Zones and Countries
+const SHIPPING_ZONES = {
+  uae: {
+    name: 'United Arab Emirates',
+    namePt: 'Emirados Árabes Unidos',
+    deliveryTime: '1-3 days',
+    deliveryTimePt: '1-3 dias',
+    locations: [
+      { id: 'dubai', name: 'Dubai', shippingCost: 0 },
+      { id: 'abu-dhabi', name: 'Abu Dhabi', shippingCost: 50 },
+      { id: 'sharjah', name: 'Sharjah', shippingCost: 50 },
+      { id: 'ajman', name: 'Ajman', shippingCost: 50 },
+      { id: 'umm-al-quwain', name: 'Umm Al Quwain', shippingCost: 50 },
+      { id: 'ras-al-khaimah', name: 'Ras Al Khaimah', shippingCost: 50 },
+      { id: 'fujairah', name: 'Fujairah', shippingCost: 50 },
+    ],
+  },
+  gcc: {
+    name: 'GCC Countries',
+    namePt: 'Países do GCC',
+    shippingCost: 100,
+    deliveryTime: '3-5 days',
+    deliveryTimePt: '3-5 dias',
+    locations: [
+      { id: 'saudi-arabia', name: 'Saudi Arabia' },
+      { id: 'kuwait', name: 'Kuwait' },
+      { id: 'bahrain', name: 'Bahrain' },
+      { id: 'oman', name: 'Oman' },
+      { id: 'qatar', name: 'Qatar' },
+    ],
+  },
+  europe: {
+    name: 'Europe',
+    namePt: 'Europa',
+    shippingCost: 200,
+    deliveryTime: '5-10 days',
+    deliveryTimePt: '5-10 dias',
+    locations: [
+      { id: 'uk', name: 'United Kingdom' },
+      { id: 'france', name: 'France' },
+      { id: 'germany', name: 'Germany' },
+      { id: 'italy', name: 'Italy' },
+      { id: 'spain', name: 'Spain' },
+      { id: 'portugal', name: 'Portugal' },
+      { id: 'netherlands', name: 'Netherlands' },
+      { id: 'belgium', name: 'Belgium' },
+      { id: 'switzerland', name: 'Switzerland' },
+      { id: 'austria', name: 'Austria' },
+      { id: 'sweden', name: 'Sweden' },
+      { id: 'denmark', name: 'Denmark' },
+      { id: 'norway', name: 'Norway' },
+      { id: 'finland', name: 'Finland' },
+      { id: 'ireland', name: 'Ireland' },
+      { id: 'greece', name: 'Greece' },
+      { id: 'poland', name: 'Poland' },
+      { id: 'czech-republic', name: 'Czech Republic' },
+      { id: 'europe-other', name: 'Other European Country' },
+    ],
+  },
+  americas: {
+    name: 'Americas',
+    namePt: 'Américas',
+    shippingCost: 250,
+    deliveryTime: '7-14 days',
+    deliveryTimePt: '7-14 dias',
+    locations: [
+      { id: 'usa', name: 'United States' },
+      { id: 'canada', name: 'Canada' },
+      { id: 'brazil', name: 'Brazil' },
+      { id: 'mexico', name: 'Mexico' },
+      { id: 'argentina', name: 'Argentina' },
+      { id: 'chile', name: 'Chile' },
+      { id: 'colombia', name: 'Colombia' },
+      { id: 'americas-other', name: 'Other American Country' },
+    ],
+  },
+  asia: {
+    name: 'Asia & Pacific',
+    namePt: 'Ásia e Pacífico',
+    shippingCost: 200,
+    deliveryTime: '5-10 days',
+    deliveryTimePt: '5-10 dias',
+    locations: [
+      { id: 'india', name: 'India' },
+      { id: 'pakistan', name: 'Pakistan' },
+      { id: 'china', name: 'China' },
+      { id: 'japan', name: 'Japan' },
+      { id: 'south-korea', name: 'South Korea' },
+      { id: 'singapore', name: 'Singapore' },
+      { id: 'malaysia', name: 'Malaysia' },
+      { id: 'thailand', name: 'Thailand' },
+      { id: 'indonesia', name: 'Indonesia' },
+      { id: 'philippines', name: 'Philippines' },
+      { id: 'australia', name: 'Australia' },
+      { id: 'new-zealand', name: 'New Zealand' },
+      { id: 'asia-other', name: 'Other Asian Country' },
+    ],
+  },
+  other: {
+    name: 'Rest of World',
+    namePt: 'Resto do Mundo',
+    shippingCost: 300,
+    deliveryTime: '10-15 days',
+    deliveryTimePt: '10-15 dias',
+    locations: [
+      { id: 'other-country', name: 'Other Country' },
+    ],
+  },
+};
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
@@ -33,17 +132,46 @@ export default function Checkout() {
   const [customerName, setCustomerName] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
-  const [selectedEmirate, setSelectedEmirate] = useState('');
+  const [selectedZone, setSelectedZone] = useState<string>('');
+  const [selectedLocation, setSelectedLocation] = useState<string>('');
   const [shippingAddress, setShippingAddress] = useState('');
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number } | null>(null);
   const [couponError, setCouponError] = useState('');
 
-  // Get shipping cost based on selected emirate
+  // Get current zone data
+  const getCurrentZone = () => {
+    if (!selectedZone) return null;
+    return SHIPPING_ZONES[selectedZone as keyof typeof SHIPPING_ZONES];
+  };
+
+  // Get shipping cost based on selected zone and location
   const getShippingCost = () => {
-    if (!selectedEmirate) return 0;
-    const emirate = UAE_EMIRATES.find(e => e.id === selectedEmirate);
-    return emirate?.shippingCost || 0;
+    if (!selectedZone || !selectedLocation) return 0;
+    const zone = SHIPPING_ZONES[selectedZone as keyof typeof SHIPPING_ZONES];
+    if (!zone) return 0;
+
+    // For UAE, each location has its own shipping cost
+    if (selectedZone === 'uae') {
+      const location = zone.locations.find(l => l.id === selectedLocation);
+      return (location as any)?.shippingCost ?? 50;
+    }
+
+    // For other zones, use the zone's shipping cost
+    return zone.shippingCost || 0;
+  };
+
+  // Get delivery time
+  const getDeliveryTime = () => {
+    const zone = getCurrentZone();
+    if (!zone) return '';
+    return language === 'en' ? zone.deliveryTime : zone.deliveryTimePt;
+  };
+
+  // Handle zone change - reset location when zone changes
+  const handleZoneChange = (zone: string) => {
+    setSelectedZone(zone);
+    setSelectedLocation('');
   };
 
   const { data: cartItems, isLoading } = trpc.cart.items.useQuery();
@@ -141,8 +269,8 @@ export default function Checkout() {
       return;
     }
 
-    if (!selectedEmirate) {
-      toast.error(language === 'en' ? 'Please select your emirate' : 'Por favor, selecione seu emirado');
+    if (!selectedZone || !selectedLocation) {
+      toast.error(language === 'en' ? 'Please select your delivery location' : 'Por favor, selecione seu local de entrega');
       return;
     }
 
@@ -154,8 +282,11 @@ export default function Checkout() {
         price: item.product!.price,
       }));
 
-    const selectedEmirateData = UAE_EMIRATES.find(e => e.id === selectedEmirate);
-    const fullAddress = `${shippingAddress}\n${selectedEmirateData?.name || ''}, UAE`;
+    // Build full address with zone and location info
+    const zone = SHIPPING_ZONES[selectedZone as keyof typeof SHIPPING_ZONES];
+    const location = zone?.locations.find(l => l.id === selectedLocation);
+    const zoneName = language === 'en' ? zone?.name : zone?.namePt;
+    const fullAddress = `${shippingAddress}\n${location?.name || ''}, ${zoneName || ''}`;
 
     createOrderMutation.mutate({
       items,
@@ -290,31 +421,31 @@ export default function Checkout() {
 
               <Card className="p-6">
                 <h2 className="text-2xl font-semibold mb-6">
-                  {language === 'en' ? 'Shipping Address' : 'Endereço de Entrega'}
+                  {language === 'en' ? 'Shipping Destination' : 'Destino de Entrega'}
                 </h2>
 
                 <div className="space-y-4">
-                  {/* Emirate Selector */}
+                  {/* Region/Zone Selector */}
                   <div>
-                    <Label htmlFor="emirate">
-                      {language === 'en' ? 'Emirate' : 'Emirado'} *
+                    <Label htmlFor="zone">
+                      {language === 'en' ? 'Region' : 'Região'} *
                     </Label>
-                    <Select value={selectedEmirate} onValueChange={setSelectedEmirate}>
-                      <SelectTrigger id="emirate" className="w-full">
-                        <SelectValue placeholder={language === 'en' ? 'Select your emirate' : 'Selecione seu emirado'} />
+                    <Select value={selectedZone} onValueChange={handleZoneChange}>
+                      <SelectTrigger id="zone" className="w-full">
+                        <SelectValue placeholder={language === 'en' ? 'Select your region' : 'Selecione sua região'} />
                       </SelectTrigger>
                       <SelectContent>
-                        {UAE_EMIRATES.map((emirate) => (
-                          <SelectItem key={emirate.id} value={emirate.id}>
+                        {Object.entries(SHIPPING_ZONES).map(([key, zone]) => (
+                          <SelectItem key={key} value={key}>
                             <div className="flex items-center justify-between w-full">
-                              <span>{emirate.name}</span>
-                              {emirate.shippingCost === 0 ? (
+                              <span>{language === 'en' ? zone.name : zone.namePt}</span>
+                              {key === 'uae' ? (
                                 <span className="ml-2 text-xs text-green-600 font-semibold">
-                                  {language === 'en' ? 'FREE Delivery' : 'Entrega GRÁTIS'}
+                                  {language === 'en' ? 'From FREE' : 'A partir de GRÁTIS'}
                                 </span>
                               ) : (
                                 <span className="ml-2 text-xs text-muted-foreground">
-                                  +{emirate.shippingCost} AED
+                                  {zone.shippingCost} AED
                                 </span>
                               )}
                             </div>
@@ -324,21 +455,71 @@ export default function Checkout() {
                     </Select>
                   </div>
 
+                  {/* Country/Location Selector */}
+                  {selectedZone && (
+                    <div>
+                      <Label htmlFor="location">
+                        {selectedZone === 'uae'
+                          ? (language === 'en' ? 'Emirate' : 'Emirado')
+                          : (language === 'en' ? 'Country' : 'País')} *
+                      </Label>
+                      <Select value={selectedLocation} onValueChange={setSelectedLocation}>
+                        <SelectTrigger id="location" className="w-full">
+                          <SelectValue placeholder={
+                            selectedZone === 'uae'
+                              ? (language === 'en' ? 'Select your emirate' : 'Selecione seu emirado')
+                              : (language === 'en' ? 'Select your country' : 'Selecione seu país')
+                          } />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {getCurrentZone()?.locations.map((location) => (
+                            <SelectItem key={location.id} value={location.id}>
+                              <div className="flex items-center justify-between w-full">
+                                <span>{location.name}</span>
+                                {selectedZone === 'uae' && (
+                                  (location as any).shippingCost === 0 ? (
+                                    <span className="ml-2 text-xs text-green-600 font-semibold">
+                                      {language === 'en' ? 'FREE' : 'GRÁTIS'}
+                                    </span>
+                                  ) : (
+                                    <span className="ml-2 text-xs text-muted-foreground">
+                                      +{(location as any).shippingCost} AED
+                                    </span>
+                                  )
+                                )}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
                   {/* Shipping Cost Info */}
-                  {selectedEmirate && (
+                  {selectedZone && selectedLocation && (
                     <div className={`flex items-center gap-3 p-4 rounded-lg ${getShippingCost() === 0 ? 'bg-green-50 border border-green-200' : 'bg-blue-50 border border-blue-200'}`}>
                       <Truck className={`w-5 h-5 ${getShippingCost() === 0 ? 'text-green-600' : 'text-blue-600'}`} />
                       <div>
                         {getShippingCost() === 0 ? (
-                          <p className="text-sm font-semibold text-green-800">
-                            {language === 'en' ? '🎉 Free Delivery to Dubai!' : '🎉 Entrega Grátis para Dubai!'}
-                          </p>
+                          <>
+                            <p className="text-sm font-semibold text-green-800">
+                              {language === 'en' ? '🎉 Free Delivery to Dubai!' : '🎉 Entrega Grátis para Dubai!'}
+                            </p>
+                            <p className="text-xs text-green-600">
+                              {language === 'en' ? `Estimated delivery: ${getDeliveryTime()}` : `Entrega estimada: ${getDeliveryTime()}`}
+                            </p>
+                          </>
                         ) : (
-                          <p className="text-sm font-semibold text-blue-800">
-                            {language === 'en'
-                              ? `Delivery to ${UAE_EMIRATES.find(e => e.id === selectedEmirate)?.name}: ${getShippingCost()} AED`
-                              : `Entrega para ${UAE_EMIRATES.find(e => e.id === selectedEmirate)?.name}: ${getShippingCost()} AED`}
-                          </p>
+                          <>
+                            <p className="text-sm font-semibold text-blue-800">
+                              {language === 'en'
+                                ? `Shipping: ${getShippingCost()} AED`
+                                : `Frete: ${getShippingCost()} AED`}
+                            </p>
+                            <p className="text-xs text-blue-600">
+                              {language === 'en' ? `Estimated delivery: ${getDeliveryTime()}` : `Entrega estimada: ${getDeliveryTime()}`}
+                            </p>
+                          </>
                         )}
                       </div>
                     </div>
@@ -354,8 +535,8 @@ export default function Checkout() {
                       value={shippingAddress}
                       onChange={(e) => setShippingAddress(e.target.value)}
                       placeholder={language === 'en'
-                        ? 'Street address, building name, apartment/villa number, area'
-                        : 'Endereço, nome do prédio, número do apartamento/villa, área'}
+                        ? 'Street address, building name, apartment/villa number, city, postal code'
+                        : 'Endereço, nome do prédio, número do apartamento/villa, cidade, CEP'}
                       rows={4}
                     />
                   </div>
@@ -508,7 +689,7 @@ export default function Checkout() {
                       <Truck className="w-4 h-4" />
                       {language === 'en' ? 'Shipping' : 'Entrega'}
                     </span>
-                    {selectedEmirate ? (
+                    {selectedZone && selectedLocation ? (
                       getShippingCost() === 0 ? (
                         <span className="text-green-600 font-semibold">
                           {language === 'en' ? 'FREE' : 'GRÁTIS'}
@@ -518,7 +699,7 @@ export default function Checkout() {
                       )
                     ) : (
                       <span className="text-muted-foreground italic text-xs">
-                        {language === 'en' ? 'Select emirate' : 'Selecione emirado'}
+                        {language === 'en' ? 'Select destination' : 'Selecione destino'}
                       </span>
                     )}
                   </div>
