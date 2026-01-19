@@ -4,7 +4,7 @@ import { useLocation } from 'wouter';
 import {
   Loader2, Mail, Shield, Lock, Eye, EyeOff,
   LayoutDashboard, Users, Package, ShoppingCart, Palette, FileText, Image,
-  LogOut, Search, Bell, User, FolderOpen, Ticket, Settings, Send, Home
+  LogOut, Search, Bell, User, FolderOpen, Ticket, Settings, Send, Home, Gift
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
@@ -34,6 +34,7 @@ import MediaTab from '@/components/admin/MediaTab';
 import CategoriesTab from '@/components/admin/CategoriesTab';
 import CollectionsTab from '@/components/admin/CollectionsTab';
 import CouponsTab from '@/components/admin/CouponsTab';
+import GiftCardsTab from '@/components/admin/GiftCardsTab';
 import SettingsTab from '@/components/admin/SettingsTab';
 import SecurityTab from '@/components/admin/SecurityTab';
 import EmailMarketingTab from '@/components/admin/EmailMarketingTab';
@@ -49,6 +50,7 @@ const tabs = [
   { id: "categories", label: "Categories", icon: FolderOpen },
   { id: "collections", label: "Collections", icon: Palette },
   { id: "coupons", label: "Coupons", icon: Ticket },
+  { id: "gift-cards", label: "Gift Cards", icon: Gift },
   { id: "orders", label: "Orders", icon: ShoppingCart },
   { id: "artisans", label: "Artisans", icon: Palette },
   { id: "content", label: "Content", icon: FileText },
@@ -237,6 +239,12 @@ export default function Admin() {
         return (
           <ErrorBoundary>
             <CouponsTab />
+          </ErrorBoundary>
+        );
+      case 'gift-cards':
+        return (
+          <ErrorBoundary>
+            <GiftCardsTab />
           </ErrorBoundary>
         );
       case 'orders':
