@@ -1,6 +1,7 @@
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Card } from '@/components/ui/card';
 import { Link } from 'wouter';
+import { trpc } from '@/lib/trpc';
 
 const collections = [
   {
@@ -86,16 +87,26 @@ const collections = [
   },
 ];
 
+// Default banner data
+const defaultBanner = {
+  imageUrl: '/images/collections_hero_porcelain.webp',
+  altText: 'ILE ALA Collections',
+};
+
 export default function Collections() {
   const { language, t } = useLanguage();
+
+  // Fetch banner from database
+  const { data: dbBanner } = (trpc as any).pageBanners.get.useQuery({ pageSlug: 'collections' });
+  const banner = dbBanner || defaultBanner;
 
   return (
     <div className="w-full">
       {/* Hero Section */}
       <section className="relative h-[50vh] min-h-[400px] w-full overflow-hidden">
-        <img 
-          src="/images/collections_hero_porcelain.webp" 
-          alt="ILE ALA Collections"
+        <img
+          src={banner.imageUrl}
+          alt={banner.altText || 'ILE ALA Collections'}
           className="absolute inset-0 w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-black/40" />

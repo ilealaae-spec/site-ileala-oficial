@@ -10,10 +10,20 @@ import { trpc } from '@/lib/trpc';
 import LazyImage from '@/components/LazyImage';
 import WishlistButton from '@/components/WishlistButton';
 
+// Default banner
+const defaultBanner = {
+  imageUrl: '/images/table_essentials_hero.jpeg',
+  altText: 'ILE ALA Table Essentials - Luxury Outdoor Dining Setting',
+};
+
 export default function TableEssentials() {
   const { language } = useLanguage();
   const { addItem } = useCart();
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Fetch banner from database
+  const { data: dbBanner } = (trpc as any).pageBanners.get.useQuery({ pageSlug: 'table-essentials' });
+  const banner = dbBanner || defaultBanner;
   
   // Fetch all products and filter by collections
   const { data: allProducts = [], isLoading: loading, error: queryError } = trpc.products.list.useQuery(undefined, {
@@ -90,8 +100,8 @@ export default function TableEssentials() {
       {/* Hero Section */}
       <section className="relative h-[50vh] min-h-[400px] w-full overflow-hidden">
         <img
-          src="/images/table_essentials_hero.jpeg"
-          alt="ILE ALA Table Essentials - Luxury Outdoor Dining Setting"
+          src={banner.imageUrl}
+          alt={banner.altText || 'ILE ALA Table Essentials'}
           className="absolute inset-0 w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-black/30" />

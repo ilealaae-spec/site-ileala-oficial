@@ -10,10 +10,20 @@ import { trpc } from '@/lib/trpc';
 import LazyImage from '@/components/LazyImage';
 import WishlistButton from '@/components/WishlistButton';
 
+// Default banner
+const defaultBanner = {
+  imageUrl: '/images/pet_collection_logo.png?v=4',
+  altText: 'Pet Collection - ILE ALA',
+};
+
 export default function PetCollection() {
   const { language } = useLanguage();
   const { addItem } = useCart();
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Fetch banner from database
+  const { data: dbBanner } = (trpc as any).pageBanners.get.useQuery({ pageSlug: 'pet-collection' });
+  const banner = dbBanner || defaultBanner;
   
   // Fetch all products and filter by category
   const productsQuery = trpc.products.list.useQuery(undefined, {
@@ -90,8 +100,8 @@ export default function PetCollection() {
       <section className="relative h-[50vh] min-h-[400px] w-full overflow-hidden bg-gradient-to-br from-[#255238] to-[#1E3F2D]">
         {/* Imagem de fundo - se existir, será exibida; caso contrário, usa gradiente */}
         <img
-          src="/images/pet_collection_logo.png?v=4"
-          alt="Pet Collection - ILE ALA"
+          src={banner.imageUrl}
+          alt={banner.altText || 'Pet Collection - ILE ALA'}
           className="absolute inset-0 w-full h-full object-cover"
           onError={(e) => {
             // Se a imagem não existir, esconde o elemento img

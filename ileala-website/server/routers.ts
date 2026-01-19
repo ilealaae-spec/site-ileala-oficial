@@ -2475,6 +2475,58 @@ export const appRouter = router({
       return await db.seedHomepageContent();
     }),
   }),
+  // Page Banners management
+  pageBanners: router({
+    list: protectedProcedure.query(async () => {
+      return await db.listPageBanners();
+    }),
+    get: publicProcedure
+      .input(z.object({ pageSlug: z.string() }))
+      .query(async ({ input }) => {
+        return await db.getPageBanner(input.pageSlug);
+      }),
+    create: protectedProcedure
+      .input(z.object({
+        pageSlug: z.string().min(1),
+        imageUrl: z.string().min(1),
+        altText: z.string().optional(),
+        titleEN: z.string().optional(),
+        titlePT: z.string().optional(),
+        subtitleEN: z.string().optional(),
+        subtitlePT: z.string().optional(),
+        overlayOpacity: z.number().default(30),
+        active: z.number().default(1),
+      }))
+      .mutation(async ({ input }) => {
+        return await db.createPageBanner(input);
+      }),
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        pageSlug: z.string().optional(),
+        imageUrl: z.string().optional(),
+        altText: z.string().optional(),
+        titleEN: z.string().optional(),
+        titlePT: z.string().optional(),
+        subtitleEN: z.string().optional(),
+        subtitlePT: z.string().optional(),
+        overlayOpacity: z.number().optional(),
+        active: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        return await db.updatePageBanner(id, data);
+      }),
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        return await db.deletePageBanner(input.id);
+      }),
+    seed: protectedProcedure.mutation(async ({ ctx }) => {
+      if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+      return await db.seedPageBanners();
+    }),
+  }),
   // Public artisans list
   artisans: router({
     listActive: publicProcedure.query(async () => {

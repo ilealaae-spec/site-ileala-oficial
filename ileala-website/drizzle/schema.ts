@@ -408,3 +408,22 @@ export const homepageCards = pgTable("homepage_cards", {
 
 export type HomepageCard = typeof homepageCards.$inferSelect;
 export type InsertHomepageCard = typeof homepageCards.$inferInsert;
+
+// Page Banners table - for hero images on different pages
+export const pageBanners = pgTable("page_banners", {
+  id: serial("id").primaryKey(),
+  pageSlug: varchar("pageSlug", { length: 100 }).notNull().unique(), // e.g., "collections", "pet", "table-essentials"
+  imageUrl: varchar("imageUrl", { length: 512 }).notNull(),
+  altText: varchar("altText", { length: 255 }),
+  titleEN: varchar("titleEN", { length: 255 }),
+  titlePT: varchar("titlePT", { length: 255 }),
+  subtitleEN: text("subtitleEN"),
+  subtitlePT: text("subtitlePT"),
+  overlayOpacity: integer("overlayOpacity").default(30), // 0-100
+  active: integer("active").default(1).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+
+export type PageBanner = typeof pageBanners.$inferSelect;
+export type InsertPageBanner = typeof pageBanners.$inferInsert;

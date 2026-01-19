@@ -2293,3 +2293,188 @@ export async function seedHomepageContent() {
     throw error;
   }
 }
+
+// ============================================
+// Page Banners Functions
+// ============================================
+
+export async function listPageBanners() {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  try {
+    const { pageBanners } = await import("../drizzle/schema");
+    const { sql } = await import("drizzle-orm");
+    return await db.select().from(pageBanners).orderBy(sql`${pageBanners.pageSlug} ASC`);
+  } catch (error) {
+    logger.error("[Database] Failed to list page banners:", error);
+    return [];
+  }
+}
+
+export async function getPageBanner(pageSlug: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  try {
+    const { pageBanners } = await import("../drizzle/schema");
+    const { eq, and } = await import("drizzle-orm");
+    const result = await db.select().from(pageBanners)
+      .where(and(eq(pageBanners.pageSlug, pageSlug), eq(pageBanners.active, 1)));
+    return result[0] || null;
+  } catch (error) {
+    logger.error("[Database] Failed to get page banner:", error);
+    return null;
+  }
+}
+
+export async function createPageBanner(data: any) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  try {
+    const { pageBanners } = await import("../drizzle/schema");
+    const result = await db.insert(pageBanners).values(data).returning();
+    return result[0];
+  } catch (error) {
+    logger.error("[Database] Failed to create page banner:", error);
+    throw error;
+  }
+}
+
+export async function updatePageBanner(id: number, data: any) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  try {
+    const { pageBanners } = await import("../drizzle/schema");
+    const { eq } = await import("drizzle-orm");
+    const result = await db.update(pageBanners)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(pageBanners.id, id))
+      .returning();
+    return result[0];
+  } catch (error) {
+    logger.error("[Database] Failed to update page banner:", error);
+    throw error;
+  }
+}
+
+export async function deletePageBanner(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  try {
+    const { pageBanners } = await import("../drizzle/schema");
+    const { eq } = await import("drizzle-orm");
+    await db.delete(pageBanners).where(eq(pageBanners.id, id));
+    return { success: true };
+  } catch (error) {
+    logger.error("[Database] Failed to delete page banner:", error);
+    throw error;
+  }
+}
+
+export async function seedPageBanners() {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const { pageBanners } = await import("../drizzle/schema");
+
+  try {
+    const existing = await db.select().from(pageBanners);
+    if (existing.length > 0) {
+      return { success: true, message: 'Banners already exist', count: 0 };
+    }
+
+    const defaultBanners = [
+      {
+        pageSlug: 'collections',
+        imageUrl: '/images/collections_hero_porcelain.webp',
+        altText: 'ILE ALA Collections',
+        titleEN: 'Our Collections',
+        titlePT: 'Nossas Coleções',
+        subtitleEN: 'Discover our exclusive collections',
+        subtitlePT: 'Descubra nossas coleções exclusivas',
+        overlayOpacity: 30,
+        active: 1
+      },
+      {
+        pageSlug: 'table-essentials',
+        imageUrl: '/images/table_essentials_hero.jpeg',
+        altText: 'Table Essentials',
+        titleEN: 'Table Essentials',
+        titlePT: 'Essenciais de Mesa',
+        subtitleEN: 'Elevate your dining experience',
+        subtitlePT: 'Eleve sua experiência gastronômica',
+        overlayOpacity: 30,
+        active: 1
+      },
+      {
+        pageSlug: 'pet-collection',
+        imageUrl: '/images/pet_collection_logo.png?v=4',
+        altText: 'Pet Collection',
+        titleEN: 'Pet Collection',
+        titlePT: 'Coleção Pet',
+        subtitleEN: 'Luxury for your furry friends',
+        subtitlePT: 'Luxo para seus amigos peludos',
+        overlayOpacity: 30,
+        active: 1
+      },
+      {
+        pageSlug: 'accessories',
+        imageUrl: '/images/accessories_hero.jpeg',
+        altText: 'Accessories',
+        titleEN: 'Accessories',
+        titlePT: 'Acessórios',
+        subtitleEN: 'Complete your collection',
+        subtitlePT: 'Complete sua coleção',
+        overlayOpacity: 30,
+        active: 1
+      },
+      {
+        pageSlug: 'home-accents',
+        imageUrl: '/images/home_accents_hero.jpeg',
+        altText: 'Home Accents',
+        titleEN: 'Home Accents',
+        titlePT: 'Decoração',
+        subtitleEN: 'Transform your space',
+        subtitlePT: 'Transforme seu espaço',
+        overlayOpacity: 30,
+        active: 1
+      },
+      {
+        pageSlug: 'napkin-rings',
+        imageUrl: '/images/napkin_rings_hero.jpeg',
+        altText: 'Napkin Rings',
+        titleEN: 'Napkin Rings',
+        titlePT: 'Porta Guardanapos',
+        subtitleEN: 'Elegant details for your table',
+        subtitlePT: 'Detalhes elegantes para sua mesa',
+        overlayOpacity: 30,
+        active: 1
+      },
+      {
+        pageSlug: 'about',
+        imageUrl: '/images/about-galeries-lafayette.webp',
+        altText: 'About ILE ALA',
+        titleEN: 'About Us',
+        titlePT: 'Sobre Nós',
+        subtitleEN: 'Our story and values',
+        subtitlePT: 'Nossa história e valores',
+        overlayOpacity: 30,
+        active: 1
+      },
+    ];
+
+    for (const banner of defaultBanners) {
+      await db.insert(pageBanners).values(banner);
+    }
+
+    logger.info(`[Seed] Created ${defaultBanners.length} page banners`);
+    return { success: true, message: `Created ${defaultBanners.length} banners`, count: defaultBanners.length };
+  } catch (error) {
+    logger.error("[Seed] Failed to seed page banners:", error);
+    throw error;
+  }
+}

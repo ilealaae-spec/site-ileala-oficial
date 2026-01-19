@@ -10,10 +10,20 @@ import { trpc } from '@/lib/trpc';
 import LazyImage from '@/components/LazyImage';
 import WishlistButton from '@/components/WishlistButton';
 
+// Default banner
+const defaultBanner = {
+  imageUrl: '/images/napkin_rings_hero.jpeg',
+  altText: 'Napkin Rings - Elegant Table Accessories',
+};
+
 export default function NapkinRings() {
   const { language } = useLanguage();
   const { addItem } = useCart();
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Fetch banner from database
+  const { data: dbBanner } = (trpc as any).pageBanners.get.useQuery({ pageSlug: 'napkin-rings' });
+  const banner = dbBanner || defaultBanner;
   
   // Fetch all products and filter by collection
   const productsQuery = trpc.products.list.useQuery(undefined, {
@@ -88,9 +98,9 @@ export default function NapkinRings() {
     <div className="w-full">
       {/* Hero Section */}
       <section className="relative h-[50vh] min-h-[400px] w-full overflow-hidden">
-        <img 
-          src="/images/napkin_rings_hero.jpeg" 
-          alt="Napkin Rings - Elegant Table Accessories"
+        <img
+          src={banner.imageUrl}
+          alt={banner.altText || 'Napkin Rings'}
           className="absolute inset-0 w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-black/30" />

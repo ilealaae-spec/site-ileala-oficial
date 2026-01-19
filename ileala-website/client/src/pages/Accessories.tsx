@@ -10,10 +10,20 @@ import { trpc } from '@/lib/trpc';
 import LazyImage from '@/components/LazyImage';
 import WishlistButton from '@/components/WishlistButton';
 
+// Default banner
+const defaultBanner = {
+  imageUrl: '/images/accessories_hero.jpeg',
+  altText: 'ILE ALA Accessories - Beach Tote Bag with Pearls',
+};
+
 export default function Accessories() {
   const { language } = useLanguage();
   const { addItem } = useCart();
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Fetch banner from database
+  const { data: dbBanner } = (trpc as any).pageBanners.get.useQuery({ pageSlug: 'accessories' });
+  const banner = dbBanner || defaultBanner;
   
   // Fetch all products and filter by category
   const productsQuery = trpc.products.list.useQuery(undefined, {
@@ -89,8 +99,8 @@ export default function Accessories() {
       {/* Hero Section */}
       <section className="relative h-[50vh] min-h-[400px] w-full overflow-hidden">
         <img
-          src="/images/accessories_hero.jpeg"
-          alt="ILE ALA Accessories - Beach Tote Bag with Pearls"
+          src={banner.imageUrl}
+          alt={banner.altText || 'ILE ALA Accessories'}
           className="absolute inset-0 w-full h-full object-cover"
           onError={(e) => {
             // Se a imagem não existir, esconde o elemento img

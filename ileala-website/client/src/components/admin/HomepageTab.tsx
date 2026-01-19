@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { trpc } from '@/lib/trpc';
 import {
   Loader2, Plus, Edit, Trash2, Image as ImageIcon, Video,
-  LayoutGrid, ArrowUp, ArrowDown, Upload, Database
+  LayoutGrid, ArrowUp, ArrowDown, Upload, Database, Layout
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useState, useRef } from 'react';
@@ -75,7 +75,7 @@ export default function HomepageTab() {
       </div>
 
       <Tabs value={activeSection} onValueChange={setActiveSection}>
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="slides" className="flex items-center gap-2">
             <ImageIcon className="w-4 h-4" />
             {language === 'en' ? 'Hero Slides' : 'Slides Hero'}
@@ -87,6 +87,10 @@ export default function HomepageTab() {
           <TabsTrigger value="cards" className="flex items-center gap-2">
             <LayoutGrid className="w-4 h-4" />
             {language === 'en' ? 'About Cards' : 'Cards About'}
+          </TabsTrigger>
+          <TabsTrigger value="banners" className="flex items-center gap-2">
+            <Layout className="w-4 h-4" />
+            {language === 'en' ? 'Page Banners' : 'Banners'}
           </TabsTrigger>
         </TabsList>
 
@@ -100,6 +104,10 @@ export default function HomepageTab() {
 
         <TabsContent value="cards">
           <CardsSection />
+        </TabsContent>
+
+        <TabsContent value="banners">
+          <PageBannersSection />
         </TabsContent>
       </Tabs>
     </div>
@@ -1034,6 +1042,410 @@ function CardsSection() {
                 {language === 'en' ? 'Cancel' : 'Cancelar'}
               </Button>
               <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending || !formData.imageUrl || !formData.titleEN || !formData.titlePT || !formData.linkUrl}>
+                {(createMutation.isPending || updateMutation.isPending) && (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                )}
+                {language === 'en' ? 'Save' : 'Salvar'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// Page Banners Section
+function PageBannersSection() {
+  const { language } = useLanguage();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingBanner, setEditingBanner] = useState<any>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const pageOptions = [
+    { slug: 'collections', labelEN: 'Collections', labelPT: 'Coleções' },
+    { slug: 'table-essentials', labelEN: 'Table Essentials', labelPT: 'Essenciais de Mesa' },
+    { slug: 'pet-collection', labelEN: 'Pet Collection', labelPT: 'Coleção Pet' },
+    { slug: 'accessories', labelEN: 'Accessories', labelPT: 'Acessórios' },
+    { slug: 'home-accents', labelEN: 'Home Accents', labelPT: 'Decoração' },
+    { slug: 'napkin-rings', labelEN: 'Napkin Rings', labelPT: 'Porta Guardanapos' },
+    { slug: 'about', labelEN: 'About', labelPT: 'Sobre' },
+  ];
+
+  const [formData, setFormData] = useState({
+    pageSlug: '',
+    imageUrl: '',
+    altText: '',
+    titleEN: '',
+    titlePT: '',
+    subtitleEN: '',
+    subtitlePT: '',
+    overlayOpacity: 30,
+    active: 1,
+  });
+
+  const utils = trpc.useUtils();
+  const { data: banners, isLoading } = (trpc as any).pageBanners.list.useQuery();
+
+  const createMutation = (trpc as any).pageBanners.create.useMutation({
+    onSuccess: () => {
+      toast.success(language === 'en' ? 'Banner created!' : 'Banner criado!');
+      utils.pageBanners.list.invalidate();
+      resetForm();
+      setIsDialogOpen(false);
+    },
+    onError: (error: any) => toast.error(error.message),
+  });
+
+  const updateMutation = (trpc as any).pageBanners.update.useMutation({
+    onSuccess: () => {
+      toast.success(language === 'en' ? 'Banner updated!' : 'Banner atualizado!');
+      utils.pageBanners.list.invalidate();
+      resetForm();
+      setIsDialogOpen(false);
+    },
+    onError: (error: any) => toast.error(error.message),
+  });
+
+  const deleteMutation = (trpc as any).pageBanners.delete.useMutation({
+    onSuccess: () => {
+      toast.success(language === 'en' ? 'Banner deleted!' : 'Banner excluído!');
+      utils.pageBanners.list.invalidate();
+    },
+    onError: (error: any) => toast.error(error.message),
+  });
+
+  const seedMutation = (trpc as any).pageBanners.seed.useMutation({
+    onSuccess: (data: any) => {
+      toast.success(data.message || (language === 'en' ? 'Banners seeded!' : 'Banners populados!'));
+      utils.pageBanners.list.invalidate();
+    },
+    onError: (error: any) => toast.error(error.message),
+  });
+
+  const uploadMutation = (trpc.products as any).uploadImage.useMutation({
+    onSuccess: (data: { url: string }) => {
+      setFormData({ ...formData, imageUrl: data.url });
+      setIsUploading(false);
+      toast.success(language === 'en' ? 'Image uploaded!' : 'Imagem enviada!');
+    },
+    onError: (error: any) => {
+      setIsUploading(false);
+      toast.error(error.message);
+    },
+  });
+
+  const resetForm = () => {
+    setFormData({
+      pageSlug: '',
+      imageUrl: '',
+      altText: '',
+      titleEN: '',
+      titlePT: '',
+      subtitleEN: '',
+      subtitlePT: '',
+      overlayOpacity: 30,
+      active: 1,
+    });
+    setEditingBanner(null);
+  };
+
+  const handleEdit = (banner: any) => {
+    setEditingBanner(banner);
+    setFormData({
+      pageSlug: banner.pageSlug || '',
+      imageUrl: banner.imageUrl || '',
+      altText: banner.altText || '',
+      titleEN: banner.titleEN || '',
+      titlePT: banner.titlePT || '',
+      subtitleEN: banner.subtitleEN || '',
+      subtitlePT: banner.subtitlePT || '',
+      overlayOpacity: banner.overlayOpacity ?? 30,
+      active: banner.active ?? 1,
+    });
+    setIsDialogOpen(true);
+  };
+
+  const handleDelete = (id: number) => {
+    if (confirm(language === 'en' ? 'Delete this banner?' : 'Excluir este banner?')) {
+      deleteMutation.mutate({ id });
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editingBanner) {
+      updateMutation.mutate({ id: editingBanner.id, ...formData });
+    } else {
+      createMutation.mutate(formData);
+    }
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error(language === 'en' ? 'Please select an image' : 'Selecione uma imagem');
+      return;
+    }
+
+    setIsUploading(true);
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = (reader.result as string).split(',')[1];
+      uploadMutation.mutate({
+        fileName: `banner-${Date.now()}-${file.name}`,
+        fileData: base64,
+        contentType: file.type,
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSeed = () => {
+    if (confirm(language === 'en'
+      ? 'This will populate default banners for all pages (only if empty). Continue?'
+      : 'Isso vai popular os banners padrão de todas as páginas (apenas se estiver vazio). Continuar?')) {
+      seedMutation.mutate();
+    }
+  };
+
+  const getPageLabel = (slug: string) => {
+    const page = pageOptions.find(p => p.slug === slug);
+    return page ? (language === 'en' ? page.labelEN : page.labelPT) : slug;
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6 mt-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <p className="text-sm text-muted-foreground">
+            {language === 'en'
+              ? `${banners?.length || 0} page banners configured`
+              : `${banners?.length || 0} banners de página configurados`}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            {language === 'en'
+              ? 'These are the large hero images on each page'
+              : 'Estas são as imagens grandes no topo de cada página'}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleSeed} disabled={seedMutation.isPending}>
+            {seedMutation.isPending ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Database className="w-4 h-4 mr-2" />
+            )}
+            {language === 'en' ? 'Load Defaults' : 'Carregar Padrão'}
+          </Button>
+          <Button onClick={() => { resetForm(); setIsDialogOpen(true); }}>
+            <Plus className="w-4 h-4 mr-2" />
+            {language === 'en' ? 'Add Banner' : 'Adicionar Banner'}
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid gap-4">
+        {banners?.map((banner: any) => (
+          <Card key={banner.id} className="p-4">
+            <div className="flex items-center gap-4">
+              <div className="w-48 h-28 rounded overflow-hidden bg-muted flex-shrink-0">
+                {banner.imageUrl ? (
+                  <img src={banner.imageUrl} alt={banner.altText || ''} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <ImageIcon className="w-8 h-8 text-muted-foreground" />
+                  </div>
+                )}
+              </div>
+
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="px-2 py-0.5 text-xs rounded bg-blue-100 text-blue-700 font-medium">
+                    {getPageLabel(banner.pageSlug)}
+                  </span>
+                  <span className={`px-2 py-0.5 text-xs rounded ${banner.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                    {banner.active ? (language === 'en' ? 'Active' : 'Ativo') : (language === 'en' ? 'Inactive' : 'Inativo')}
+                  </span>
+                </div>
+                <p className="font-medium truncate">{banner.titleEN || banner.titlePT || 'No title'}</p>
+                <p className="text-sm text-muted-foreground truncate">{banner.subtitleEN || banner.subtitlePT || 'No subtitle'}</p>
+              </div>
+
+              <div className="flex gap-2">
+                <Button variant="outline" size="icon" onClick={() => handleEdit(banner)}>
+                  <Edit className="w-4 h-4" />
+                </Button>
+                <Button variant="destructive" size="icon" onClick={() => handleDelete(banner.id)}>
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          </Card>
+        ))}
+
+        {(!banners || banners.length === 0) && (
+          <Card className="p-12 text-center">
+            <Layout className="w-12 h-12 mx-auto mb-4 opacity-50" />
+            <p className="text-lg font-medium mb-2">
+              {language === 'en' ? 'No page banners yet' : 'Nenhum banner ainda'}
+            </p>
+            <p className="text-muted-foreground mb-4">
+              {language === 'en'
+                ? 'Click "Load Defaults" to populate banners for all pages, or add them manually'
+                : 'Clique em "Carregar Padrão" para popular os banners de todas as páginas, ou adicione manualmente'}
+            </p>
+          </Card>
+        )}
+      </div>
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {editingBanner
+                ? (language === 'en' ? 'Edit Page Banner' : 'Editar Banner')
+                : (language === 'en' ? 'Add Page Banner' : 'Adicionar Banner')}
+            </DialogTitle>
+          </DialogHeader>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <Label htmlFor="pageSlug">{language === 'en' ? 'Page' : 'Página'} *</Label>
+              <select
+                id="pageSlug"
+                value={formData.pageSlug}
+                onChange={(e) => setFormData({ ...formData, pageSlug: e.target.value })}
+                className="w-full mt-1 px-3 py-2 border rounded-md bg-background"
+                required
+                disabled={!!editingBanner}
+              >
+                <option value="">{language === 'en' ? 'Select a page' : 'Selecione uma página'}</option>
+                {pageOptions.map(page => (
+                  <option key={page.slug} value={page.slug}>
+                    {language === 'en' ? page.labelEN : page.labelPT}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <Label>{language === 'en' ? 'Banner Image' : 'Imagem do Banner'} *</Label>
+              <div className="mt-2 flex gap-4 items-start">
+                <div className="w-48 h-32 rounded border overflow-hidden bg-muted flex-shrink-0">
+                  {formData.imageUrl ? (
+                    <img src={formData.imageUrl} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <ImageIcon className="w-8 h-8 text-muted-foreground" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 space-y-2">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading}
+                    className="w-full"
+                  >
+                    {isUploading ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Upload className="w-4 h-4 mr-2" />
+                    )}
+                    {language === 'en' ? 'Upload Image' : 'Enviar Imagem'}
+                  </Button>
+                  <Input
+                    placeholder={language === 'en' ? 'Or paste image URL' : 'Ou cole a URL da imagem'}
+                    value={formData.imageUrl}
+                    onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="altText">{language === 'en' ? 'Alt Text' : 'Texto Alt'}</Label>
+              <Input
+                id="altText"
+                value={formData.altText}
+                onChange={(e) => setFormData({ ...formData, altText: e.target.value })}
+                placeholder={language === 'en' ? 'Description for accessibility' : 'Descrição para acessibilidade'}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="titleEN">{language === 'en' ? 'Title (English)' : 'Título (Inglês)'}</Label>
+                <Input
+                  id="titleEN"
+                  value={formData.titleEN}
+                  onChange={(e) => setFormData({ ...formData, titleEN: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="titlePT">{language === 'en' ? 'Title (Portuguese)' : 'Título (Português)'}</Label>
+                <Input
+                  id="titlePT"
+                  value={formData.titlePT}
+                  onChange={(e) => setFormData({ ...formData, titlePT: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="subtitleEN">{language === 'en' ? 'Subtitle (English)' : 'Subtítulo (Inglês)'}</Label>
+                <Textarea
+                  id="subtitleEN"
+                  value={formData.subtitleEN}
+                  onChange={(e) => setFormData({ ...formData, subtitleEN: e.target.value })}
+                  rows={2}
+                />
+              </div>
+              <div>
+                <Label htmlFor="subtitlePT">{language === 'en' ? 'Subtitle (Portuguese)' : 'Subtítulo (Português)'}</Label>
+                <Textarea
+                  id="subtitlePT"
+                  value={formData.subtitlePT}
+                  onChange={(e) => setFormData({ ...formData, subtitlePT: e.target.value })}
+                  rows={2}
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Switch
+                checked={formData.active === 1}
+                onCheckedChange={(checked) => setFormData({ ...formData, active: checked ? 1 : 0 })}
+              />
+              <Label>{language === 'en' ? 'Active' : 'Ativo'}</Label>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4">
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                {language === 'en' ? 'Cancel' : 'Cancelar'}
+              </Button>
+              <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending || !formData.imageUrl || !formData.pageSlug}>
                 {(createMutation.isPending || updateMutation.isPending) && (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 )}
