@@ -184,45 +184,51 @@ export default function NapkinRings() {
                         </h3>
                       </Link>
                       {productDescription && (
-                        <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+                        <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
                           {productDescription}
                         </p>
                       )}
-                      <div className="flex items-center justify-between mb-4">
-                        <div>
-                          <span className="text-xl font-bold">
+                      {product.collection && (
+                        <p className="text-xs text-muted-foreground mb-2">
+                          {product.collection}
+                        </p>
+                      )}
+                      <div className="flex items-center justify-between mt-4">
+                        <div className="flex flex-col">
+                          <span className="text-lg font-semibold">
                             {formatPrice(product.price)}
                           </span>
+                          {product.stock === 0 && (
+                            <span className="text-xs text-red-500">
+                              {language === 'en' ? 'Out of stock' : 'Fora de estoque'}
+                            </span>
+                          )}
                         </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          className="flex-1"
-                          disabled={product.stock === 0}
-                          onClick={() => {
-                            addItem({
-                              id: product.id,
-                              name: productName,
-                              price: product.price,
-                              imageUrl: product.imageUrl || undefined,
-                              slug: product.slug,
-                            });
-                            toast.success(
-                              language === 'en'
-                                ? `${productName} added to cart!`
-                                : `${productName} adicionado ao carrinho!`
-                            );
-                          }}
-                        >
-                          <ShoppingCart className="w-4 h-4 mr-2" />
-                          {language === 'en' ? 'Add to Cart' : 'Adicionar'}
-                        </Button>
-                        <Link href={`/shop/${product.slug}`}>
-                          <Button className="flex-1">
-                            {language === 'en' ? 'View' : 'Ver'}
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={product.stock === 0}
+                            onClick={() => {
+                              addItem({
+                                id: product.id,
+                                name: productName,
+                                price: product.price,
+                                imageUrl: product.imageUrl || undefined,
+                                slug: product.slug,
+                              });
+                              toast.success(language === 'en' ? 'Added to cart' : 'Adicionado ao carrinho');
+                            }}
+                          >
+                            <ShoppingCart className="w-4 h-4 mr-2" />
+                            {language === 'en' ? 'Add' : 'Adicionar'}
                           </Button>
-                        </Link>
+                          <Link href={`/shop/${product.slug}`}>
+                            <Button size="sm">
+                              {language === 'en' ? 'View' : 'Ver'}
+                            </Button>
+                          </Link>
+                        </div>
                       </div>
                     </div>
                   </Card>
