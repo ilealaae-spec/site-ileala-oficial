@@ -53,6 +53,7 @@ export default function Header() {
     { href: '/accessories', label: 'Accessories' },
     { href: '/pet-collection', label: 'Pet Collection' },
     { href: '/contact', label: 'Contact' },
+    { href: '/gift-card', label: 'Gift Cards' },
   ];
 
   // Note: Additional categories from database are intentionally NOT added here
