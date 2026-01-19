@@ -5,12 +5,24 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { trpc } from '@/lib/trpc';
 import { useLocation } from 'wouter';
-import { Loader2, Lock, UserPlus, LogIn } from 'lucide-react';
+import { Loader2, Lock, UserPlus, LogIn, Truck } from 'lucide-react';
 import { toast } from 'sonner';
 import { useState } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
+
+// UAE Emirates with shipping costs
+const UAE_EMIRATES = [
+  { id: 'dubai', name: 'Dubai', nameAr: 'دبي', shippingCost: 0 },
+  { id: 'abu-dhabi', name: 'Abu Dhabi', nameAr: 'أبوظبي', shippingCost: 50 },
+  { id: 'sharjah', name: 'Sharjah', nameAr: 'الشارقة', shippingCost: 50 },
+  { id: 'ajman', name: 'Ajman', nameAr: 'عجمان', shippingCost: 50 },
+  { id: 'umm-al-quwain', name: 'Umm Al Quwain', nameAr: 'أم القيوين', shippingCost: 50 },
+  { id: 'ras-al-khaimah', name: 'Ras Al Khaimah', nameAr: 'رأس الخيمة', shippingCost: 50 },
+  { id: 'fujairah', name: 'Fujairah', nameAr: 'الفجيرة', shippingCost: 50 },
+];
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
@@ -21,10 +33,18 @@ export default function Checkout() {
   const [customerName, setCustomerName] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
+  const [selectedEmirate, setSelectedEmirate] = useState('');
   const [shippingAddress, setShippingAddress] = useState('');
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number } | null>(null);
   const [couponError, setCouponError] = useState('');
+
+  // Get shipping cost based on selected emirate
+  const getShippingCost = () => {
+    if (!selectedEmirate) return 0;
+    const emirate = UAE_EMIRATES.find(e => e.id === selectedEmirate);
+    return emirate?.shippingCost || 0;
+  };
 
   const { data: cartItems, isLoading } = trpc.cart.items.useQuery();
   const createOrderMutation = trpc.orders.create.useMutation({
@@ -76,7 +96,8 @@ export default function Checkout() {
   const calculateGrandTotal = () => {
     const subtotal = calculateTotal();
     const discount = appliedCoupon?.discount || 0;
-    return subtotal - discount; // VAT already included, no need to add
+    const shipping = getShippingCost();
+    return subtotal - discount + shipping; // VAT already included, no need to add
   };
 
   const validateCouponMutation = trpc.coupons.validate.useMutation();
@@ -120,6 +141,11 @@ export default function Checkout() {
       return;
     }
 
+    if (!selectedEmirate) {
+      toast.error(language === 'en' ? 'Please select your emirate' : 'Por favor, selecione seu emirado');
+      return;
+    }
+
     const items = cartItems
       .filter(item => item.product)
       .map(item => ({
@@ -128,13 +154,17 @@ export default function Checkout() {
         price: item.product!.price,
       }));
 
+    const selectedEmirateData = UAE_EMIRATES.find(e => e.id === selectedEmirate);
+    const fullAddress = `${shippingAddress}\n${selectedEmirateData?.name || ''}, UAE`;
+
     createOrderMutation.mutate({
       items,
       customerName,
       customerEmail,
       customerPhone,
-      shippingAddress,
+      shippingAddress: fullAddress,
       couponCode: appliedCoupon?.code,
+      shippingCost: getShippingCost(),
     });
   };
 
@@ -262,21 +292,73 @@ export default function Checkout() {
                 <h2 className="text-2xl font-semibold mb-6">
                   {language === 'en' ? 'Shipping Address' : 'Endereço de Entrega'}
                 </h2>
-                
-                <div>
-                  <Label htmlFor="address">
-                    {language === 'en' ? 'Full Address' : 'Endereço Completo'} *
-                  </Label>
-                  <Textarea
-                    id="address"
-                    required
-                    value={shippingAddress}
-                    onChange={(e) => setShippingAddress(e.target.value)}
-                    placeholder={language === 'en' 
-                      ? 'Street address, apartment/unit, city, emirate, postal code' 
-                      : 'Rua, apartamento/unidade, cidade, emirado, código postal'}
-                    rows={4}
-                  />
+
+                <div className="space-y-4">
+                  {/* Emirate Selector */}
+                  <div>
+                    <Label htmlFor="emirate">
+                      {language === 'en' ? 'Emirate' : 'Emirado'} *
+                    </Label>
+                    <Select value={selectedEmirate} onValueChange={setSelectedEmirate}>
+                      <SelectTrigger id="emirate" className="w-full">
+                        <SelectValue placeholder={language === 'en' ? 'Select your emirate' : 'Selecione seu emirado'} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {UAE_EMIRATES.map((emirate) => (
+                          <SelectItem key={emirate.id} value={emirate.id}>
+                            <div className="flex items-center justify-between w-full">
+                              <span>{emirate.name}</span>
+                              {emirate.shippingCost === 0 ? (
+                                <span className="ml-2 text-xs text-green-600 font-semibold">
+                                  {language === 'en' ? 'FREE Delivery' : 'Entrega GRÁTIS'}
+                                </span>
+                              ) : (
+                                <span className="ml-2 text-xs text-muted-foreground">
+                                  +{emirate.shippingCost} AED
+                                </span>
+                              )}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Shipping Cost Info */}
+                  {selectedEmirate && (
+                    <div className={`flex items-center gap-3 p-4 rounded-lg ${getShippingCost() === 0 ? 'bg-green-50 border border-green-200' : 'bg-blue-50 border border-blue-200'}`}>
+                      <Truck className={`w-5 h-5 ${getShippingCost() === 0 ? 'text-green-600' : 'text-blue-600'}`} />
+                      <div>
+                        {getShippingCost() === 0 ? (
+                          <p className="text-sm font-semibold text-green-800">
+                            {language === 'en' ? '🎉 Free Delivery to Dubai!' : '🎉 Entrega Grátis para Dubai!'}
+                          </p>
+                        ) : (
+                          <p className="text-sm font-semibold text-blue-800">
+                            {language === 'en'
+                              ? `Delivery to ${UAE_EMIRATES.find(e => e.id === selectedEmirate)?.name}: ${getShippingCost()} AED`
+                              : `Entrega para ${UAE_EMIRATES.find(e => e.id === selectedEmirate)?.name}: ${getShippingCost()} AED`}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <Label htmlFor="address">
+                      {language === 'en' ? 'Full Address' : 'Endereço Completo'} *
+                    </Label>
+                    <Textarea
+                      id="address"
+                      required
+                      value={shippingAddress}
+                      onChange={(e) => setShippingAddress(e.target.value)}
+                      placeholder={language === 'en'
+                        ? 'Street address, building name, apartment/villa number, area'
+                        : 'Endereço, nome do prédio, número do apartamento/villa, área'}
+                      rows={4}
+                    />
+                  </div>
                 </div>
               </Card>
 
@@ -402,15 +484,47 @@ export default function Checkout() {
                 </div>
 
                 <div className="space-y-2 border-t pt-4 mb-6">
+                  {/* Subtotal */}
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">
+                      {language === 'en' ? 'Subtotal' : 'Subtotal'}
+                    </span>
+                    <span>{formatPrice(calculateTotal())}</span>
+                  </div>
+
+                  {/* Discount */}
                   {appliedCoupon && (
-                    <div className="flex justify-between text-green-600">
+                    <div className="flex justify-between text-green-600 text-sm">
                       <span className="font-medium">
                         {language === 'en' ? 'Discount' : 'Desconto'}
                       </span>
                       <span className="font-semibold">-{formatPrice(appliedCoupon.discount)}</span>
                     </div>
                   )}
-                  <div className="flex justify-between text-lg">
+
+                  {/* Shipping */}
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground flex items-center gap-1">
+                      <Truck className="w-4 h-4" />
+                      {language === 'en' ? 'Shipping' : 'Entrega'}
+                    </span>
+                    {selectedEmirate ? (
+                      getShippingCost() === 0 ? (
+                        <span className="text-green-600 font-semibold">
+                          {language === 'en' ? 'FREE' : 'GRÁTIS'}
+                        </span>
+                      ) : (
+                        <span>{formatPrice(getShippingCost())}</span>
+                      )
+                    ) : (
+                      <span className="text-muted-foreground italic text-xs">
+                        {language === 'en' ? 'Select emirate' : 'Selecione emirado'}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Total */}
+                  <div className="flex justify-between text-lg pt-2 border-t">
                     <span className="font-bold">
                       {language === 'en' ? 'Total' : 'Total'}
                     </span>

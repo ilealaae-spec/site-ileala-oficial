@@ -1546,17 +1546,18 @@ export const appRouter = router({
         customerEmail: emailSchema,
         customerPhone: phoneSchema,
         couponCode: couponCodeSchema.optional(),
+        shippingCost: z.number().min(0).max(500).optional().default(0),
       }))
       .mutation(async ({ input, ctx }) => {
         if (!ctx.user) throw new Error('Not authenticated');
-        
+
         // Calculate subtotal
         const subtotal = input.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        
+
         // Apply coupon if provided
         let discountAmount = 0;
         let totalAmount = subtotal;
-        
+
         if (input.couponCode) {
           const validation = await db.validateCoupon(input.couponCode, subtotal);
           if (validation.valid && validation.coupon) {
@@ -1566,8 +1567,12 @@ export const appRouter = router({
             await db.incrementCouponUsage(input.couponCode);
           }
         }
-        
-        // Create order
+
+        // Add shipping cost to total
+        const shippingCost = input.shippingCost || 0;
+        totalAmount = totalAmount + shippingCost;
+
+        // Create order (shippingCost is already included in totalAmount)
         const orderId = await db.createOrder({
           userId: ctx.user.id,
           totalAmount,
@@ -1577,6 +1582,7 @@ export const appRouter = router({
           customerPhone: input.customerPhone,
           couponCode: input.couponCode,
           discountAmount,
+          notes: shippingCost > 0 ? `Shipping: ${shippingCost} AED` : 'Free shipping (Dubai)',
           status: 'pending',
           paymentStatus: 'pending',
         });
