@@ -2028,9 +2028,30 @@ export const appRouter = router({
         
         console.log(`[Upload] Validated and uploading: ${safeFilename}`);
         
-        // Upload to S3
+        // Upload to Cloudinary
         const result = await storagePut(key, buffer, input.contentType);
-        
+
+        // Determine folder based on filename prefix
+        let folder = 'general';
+        if (safeFilename.startsWith('email-')) folder = 'email-marketing';
+        else if (key.startsWith('products/')) folder = 'products';
+        else if (safeFilename.includes('artisan')) folder = 'artisans';
+        else if (safeFilename.includes('banner')) folder = 'banners';
+
+        // Save to media library for tracking
+        try {
+          await db.createMedia({
+            filename: safeFilename,
+            url: result.url,
+            type: input.contentType,
+            folder: folder,
+          });
+          console.log(`[Media] Saved to media library: ${safeFilename}`);
+        } catch (mediaError) {
+          // Don't fail the upload if media tracking fails
+          console.error('[Media] Failed to save to media library:', mediaError);
+        }
+
         // Audit log
         const audit = createAuditLogger(ctx);
         await audit.log({
@@ -2042,7 +2063,7 @@ export const appRouter = router({
             contentType: input.contentType,
           },
         });
-        
+
         return { url: result.url, key: result.key };
       }),
     

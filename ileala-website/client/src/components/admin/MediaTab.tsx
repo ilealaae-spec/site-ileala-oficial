@@ -5,9 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { trpc } from '@/lib/trpc';
-import { Loader2, Upload, Trash2, Search, FolderOpen, Image as ImageIcon } from 'lucide-react';
+import { Loader2, Upload, Trash2, Search, FolderOpen, Image as ImageIcon, Copy, Check } from 'lucide-react';
 import { toast } from 'sonner';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -27,22 +27,23 @@ export default function MediaTab() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFolder, setSelectedFolder] = useState<string>('all');
-  
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadFolder, setUploadFolder] = useState('general');
+
   const [formData, setFormData] = useState({
     filename: '',
-    originalName: '',
     url: '',
-    mimeType: 'image/jpeg',
-    size: '',
+    type: 'image/jpeg',
     alt: '',
     caption: '',
     folder: 'general',
   });
 
   const utils = trpc.useUtils();
-  
+
   // Fetch media files
-  const { data: mediaFiles, isLoading } = trpc.media?.list?.useQuery() || { data: [], isLoading: false };
+  const { data: mediaFiles, isLoading } = trpc.media?.list?.useQuery() ?? { data: [], isLoading: false };
 
   const createMutation = trpc.media?.create?.useMutation({
     onSuccess: () => {
@@ -66,34 +67,81 @@ export default function MediaTab() {
     },
   });
 
+  // Upload mutation (uploads file to Cloudinary, which also saves to media library)
+  const uploadMutation = trpc.products.uploadImage.useMutation({
+    onSuccess: () => {
+      toast.success(language === 'en' ? 'File uploaded!' : 'Arquivo enviado!');
+      utils.media?.list?.invalidate();
+      setIsUploading(false);
+    },
+    onError: (error: any) => {
+      toast.error(error.message);
+      setIsUploading(false);
+    },
+  });
+
   const resetForm = () => {
     setFormData({
       filename: '',
-      originalName: '',
       url: '',
-      mimeType: 'image/jpeg',
-      size: '',
+      type: 'image/jpeg',
       alt: '',
       caption: '',
       folder: 'general',
     });
   };
 
+  // Handle direct file upload
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error(language === 'en' ? 'Please select an image file' : 'Por favor, selecione uma imagem');
+      return;
+    }
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error(language === 'en' ? 'Image must be less than 10MB' : 'Imagem deve ter menos de 10MB');
+      return;
+    }
+
+    setIsUploading(true);
+
+    // Convert to base64
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = (reader.result as string).split(',')[1];
+      const prefix = uploadFolder === 'products' ? '' : `${uploadFolder}-`;
+      uploadMutation.mutate({
+        fileName: `${prefix}${Date.now()}-${file.name}`,
+        fileData: base64,
+        contentType: file.type,
+      });
+    };
+    reader.readAsDataURL(file);
+
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const mediaData = {
       filename: formData.filename,
-      originalName: formData.originalName || formData.filename,
       url: formData.url,
-      mimeType: formData.mimeType,
-      size: parseInt(formData.size) || 0,
-      alt: formData.alt || undefined,
+      type: formData.type,
+      altText: formData.alt || undefined,
       caption: formData.caption || undefined,
       folder: formData.folder,
     };
 
-    createMutation.mutate(mediaData);
+    createMutation?.mutate(mediaData);
   };
 
   const handleDelete = (id: number) => {
@@ -120,7 +168,8 @@ export default function MediaTab() {
   }) || [];
 
   // Get unique folders
-  const folders = ['all', ...new Set(mediaFiles?.map((f: any) => f.folder) || [])];
+  const uniqueFolders = Array.from(new Set(mediaFiles?.map((f: any) => f.folder).filter(Boolean) || []));
+  const folders = ['all', ...uniqueFolders];
 
   // Group by folder
   const mediaByFolder = filteredMedia.reduce((acc: any, file: any) => {
@@ -146,15 +195,53 @@ export default function MediaTab() {
             {language === 'en' ? 'Media Library' : 'Biblioteca de Mídia'}
           </h2>
           <p className="text-sage-600">
-            {language === 'en' 
-              ? 'Manage your images and files' 
+            {language === 'en'
+              ? 'Manage your images and files'
               : 'Gerencie suas imagens e arquivos'}
           </p>
         </div>
-        <Button onClick={() => { resetForm(); setIsDialogOpen(true); }}>
-          <Upload className="w-4 h-4 mr-2" />
-          {language === 'en' ? 'Add Media' : 'Adicionar Mídia'}
-        </Button>
+        <div className="flex gap-2 items-center">
+          {/* Upload Folder Select */}
+          <Select value={uploadFolder} onValueChange={setUploadFolder}>
+            <SelectTrigger className="w-36">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="general">General</SelectItem>
+              <SelectItem value="products">Products</SelectItem>
+              <SelectItem value="artisans">Artisans</SelectItem>
+              <SelectItem value="banners">Banners</SelectItem>
+              <SelectItem value="email-marketing">Email Marketing</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Hidden File Input */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            accept="image/*"
+            onChange={handleFileUpload}
+            className="hidden"
+          />
+
+          {/* Upload Button */}
+          <Button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading}
+          >
+            {isUploading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                {language === 'en' ? 'Uploading...' : 'Enviando...'}
+              </>
+            ) : (
+              <>
+                <Upload className="w-4 h-4 mr-2" />
+                {language === 'en' ? 'Add Media' : 'Adicionar Mídia'}
+              </>
+            )}
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -222,12 +309,11 @@ export default function MediaTab() {
             </div>
             <div className="grid grid-cols-4 gap-4">
               {mediaByFolder[folder].map((file: any) => (
-                <MediaCard 
-                  key={file.id} 
-                  file={file} 
+                <MediaCard
+                  key={file.id}
+                  file={file}
                   onDelete={handleDelete}
                   formatFileSize={formatFileSize}
-                  language={language}
                 />
               ))}
             </div>
@@ -237,12 +323,11 @@ export default function MediaTab() {
         // Show flat grid
         <div className="grid grid-cols-4 gap-4">
           {filteredMedia.map((file: any) => (
-            <MediaCard 
-              key={file.id} 
-              file={file} 
+            <MediaCard
+              key={file.id}
+              file={file}
               onDelete={handleDelete}
               formatFileSize={formatFileSize}
-              language={language}
             />
           ))}
         </div>
@@ -266,54 +351,49 @@ export default function MediaTab() {
         </Card>
       )}
 
-      {/* Add Media Dialog */}
+      {/* Add Media Dialog (for adding external URLs) */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>
-              {language === 'en' ? 'Add Media File' : 'Adicionar Arquivo de Mídia'}
+              {language === 'en' ? 'Add External Media' : 'Adicionar Mídia Externa'}
             </DialogTitle>
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label htmlFor="url">File URL *</Label>
+              <Label htmlFor="url">
+                {language === 'en' ? 'File URL' : 'URL do Arquivo'} *
+              </Label>
               <Input
                 id="url"
                 type="url"
                 value={formData.url}
                 onChange={(e) => setFormData({ ...formData, url: e.target.value })}
                 required
-                placeholder="https://cdn.sanity.io/images/..."
+                placeholder="https://example.com/image.jpg"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="filename">
+                {language === 'en' ? 'Filename' : 'Nome do Arquivo'} *
+              </Label>
+              <Input
+                id="filename"
+                value={formData.filename}
+                onChange={(e) => setFormData({ ...formData, filename: e.target.value })}
+                required
+                placeholder="image.jpg"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="filename">Filename *</Label>
-                <Input
-                  id="filename"
-                  value={formData.filename}
-                  onChange={(e) => setFormData({ ...formData, filename: e.target.value })}
-                  required
-                  placeholder="image.jpg"
-                />
-              </div>
-              <div>
-                <Label htmlFor="originalName">Original Name</Label>
-                <Input
-                  id="originalName"
-                  value={formData.originalName}
-                  onChange={(e) => setFormData({ ...formData, originalName: e.target.value })}
-                  placeholder="My Image.jpg"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="mimeType">MIME Type *</Label>
-                <Select value={formData.mimeType} onValueChange={(value) => setFormData({ ...formData, mimeType: value })}>
+                <Label htmlFor="type">
+                  {language === 'en' ? 'Type' : 'Tipo'} *
+                </Label>
+                <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value })}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -322,55 +402,36 @@ export default function MediaTab() {
                     <SelectItem value="image/png">image/png</SelectItem>
                     <SelectItem value="image/webp">image/webp</SelectItem>
                     <SelectItem value="image/gif">image/gif</SelectItem>
-                    <SelectItem value="application/pdf">application/pdf</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <Label htmlFor="size">Size (bytes)</Label>
-                <Input
-                  id="size"
-                  type="number"
-                  value={formData.size}
-                  onChange={(e) => setFormData({ ...formData, size: e.target.value })}
-                  placeholder="0"
-                />
+                <Label htmlFor="folder">
+                  {language === 'en' ? 'Folder' : 'Pasta'}
+                </Label>
+                <Select value={formData.folder} onValueChange={(value) => setFormData({ ...formData, folder: value })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="general">General</SelectItem>
+                    <SelectItem value="products">Products</SelectItem>
+                    <SelectItem value="artisans">Artisans</SelectItem>
+                    <SelectItem value="banners">Banners</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
             <div>
-              <Label htmlFor="folder">Folder</Label>
-              <Select value={formData.folder} onValueChange={(value) => setFormData({ ...formData, folder: value })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="general">general</SelectItem>
-                  <SelectItem value="products">products</SelectItem>
-                  <SelectItem value="artisans">artisans</SelectItem>
-                  <SelectItem value="banners">banners</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="alt">Alt Text</Label>
+              <Label htmlFor="alt">
+                {language === 'en' ? 'Alt Text' : 'Texto Alternativo'}
+              </Label>
               <Input
                 id="alt"
                 value={formData.alt}
                 onChange={(e) => setFormData({ ...formData, alt: e.target.value })}
-                placeholder="Description for accessibility"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="caption">Caption</Label>
-              <Textarea
-                id="caption"
-                value={formData.caption}
-                onChange={(e) => setFormData({ ...formData, caption: e.target.value })}
-                rows={2}
-                placeholder="Optional caption"
+                placeholder={language === 'en' ? 'Description for accessibility' : 'Descrição para acessibilidade'}
               />
             </div>
 
@@ -384,9 +445,9 @@ export default function MediaTab() {
               </Button>
               <Button
                 type="submit"
-                disabled={createMutation.isPending}
+                disabled={createMutation?.isPending}
               >
-                {createMutation.isPending && (
+                {createMutation?.isPending && (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 )}
                 {language === 'en' ? 'Add' : 'Adicionar'}
@@ -400,8 +461,19 @@ export default function MediaTab() {
 }
 
 // Media Card Component
-function MediaCard({ file, onDelete, formatFileSize, language }: any) {
-  const isImage = file.mimeType.startsWith('image/');
+function MediaCard({ file, onDelete, formatFileSize }: any) {
+  const isImage = file.type?.startsWith('image/') || file.mimeType?.startsWith('image/');
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(file.url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy URL');
+    }
+  };
 
   return (
     <Card className="overflow-hidden group relative">
@@ -409,7 +481,7 @@ function MediaCard({ file, onDelete, formatFileSize, language }: any) {
         {isImage ? (
           <img
             src={file.url}
-            alt={file.alt || file.filename}
+            alt={file.altText || file.filename}
             className="w-full h-full object-cover"
           />
         ) : (
@@ -422,16 +494,27 @@ function MediaCard({ file, onDelete, formatFileSize, language }: any) {
         <p className="text-sm font-medium truncate" title={file.filename}>
           {file.filename}
         </p>
-        <p className="text-xs text-muted-foreground">
-          {formatFileSize(file.size)}
-        </p>
-        {file.alt && (
-          <p className="text-xs text-muted-foreground truncate mt-1" title={file.alt}>
-            {file.alt}
+        {file.folder && (
+          <p className="text-xs text-primary truncate">
+            {file.folder}
+          </p>
+        )}
+        {file.altText && (
+          <p className="text-xs text-muted-foreground truncate mt-1" title={file.altText}>
+            {file.altText}
           </p>
         )}
       </div>
-      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+        <Button
+          variant="secondary"
+          size="icon"
+          className="h-8 w-8"
+          onClick={handleCopyUrl}
+          title="Copy URL"
+        >
+          {copied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+        </Button>
         <Button
           variant="destructive"
           size="icon"
