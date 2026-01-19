@@ -59,7 +59,7 @@ export default function GiftCardsTab() {
   });
 
   // Upload image mutation
-  const uploadMutation = (trpc.products as any).uploadImage.useMutation({
+  const uploadMutation = (trpc.admin as any).uploadImage.useMutation({
     onSuccess: (data: { url: string }) => {
       // After uploading, update the setting
       updateSettingMutation.mutate({ key: 'gift-card-image', value: data.url });

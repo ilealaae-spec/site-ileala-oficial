@@ -38,7 +38,7 @@ function TierCardWithUpload({ tier, language, onUpdate }: { tier: any; language:
   const fileInputRef = useRef<HTMLInputElement>(null);
   const config = tierCardConfig[tier.tier] || tierCardConfig.green;
 
-  const uploadMutation = (trpc.products as any).uploadImage.useMutation({
+  const uploadMutation = (trpc.admin as any).uploadImage.useMutation({
     onSuccess: (data: { url: string }) => {
       updateTierMutation.mutate({ tier: tier.tier, iconUrl: data.url });
     },
@@ -221,7 +221,7 @@ export default function LoyaltyTab() {
   });
 
   // Upload image mutation
-  const uploadMutation = (trpc.products as any).uploadImage.useMutation({
+  const uploadMutation = (trpc.admin as any).uploadImage.useMutation({
     onSuccess: (data: { url: string }) => {
       // After uploading, update the setting
       updateSettingMutation.mutate({ key: 'loyalty-hero-image', value: data.url });
@@ -246,7 +246,7 @@ export default function LoyaltyTab() {
   });
 
   // Upload tier image mutation
-  const uploadTierImageMutation = (trpc.products as any).uploadImage.useMutation({
+  const uploadTierImageMutation = (trpc.admin as any).uploadImage.useMutation({
     onSuccess: (data: { url: string }) => {
       setIsUploadingTierImage(false);
       setSelectedTier((prev: any) => prev ? { ...prev, iconUrl: data.url } : null);

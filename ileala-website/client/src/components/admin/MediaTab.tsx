@@ -68,7 +68,7 @@ export default function MediaTab() {
   });
 
   // Upload mutation (uploads file to Cloudinary, which also saves to media library)
-  const uploadMutation = (trpc.products as any).uploadImage.useMutation({
+  const uploadMutation = (trpc.admin as any).uploadImage.useMutation({
     onSuccess: () => {
       toast.success(language === 'en' ? 'File uploaded!' : 'Arquivo enviado!');
       utils.media?.list?.invalidate();

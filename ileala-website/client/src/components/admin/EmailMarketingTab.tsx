@@ -64,7 +64,7 @@ export default function EmailMarketingTab() {
   );
 
   // Image upload mutation
-  const uploadImageMutation = (trpc.products as any).uploadImage.useMutation({
+  const uploadImageMutation = (trpc.admin as any).uploadImage.useMutation({
     onSuccess: (data: { url: string }) => {
       // Insert image HTML into content
       const imageHtml = `<img src="${data.url}" alt="Email image" style="max-width: 100%; height: auto; margin: 10px 0;" />`;

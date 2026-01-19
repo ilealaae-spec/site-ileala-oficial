@@ -165,7 +165,7 @@ function HeroSlidesSection() {
     onError: (error) => toast.error(error.message),
   });
 
-  const uploadMutation = (trpc.products as any).uploadImage.useMutation({
+  const uploadMutation = (trpc.admin as any).uploadImage.useMutation({
     onSuccess: (data: { url: string }) => {
       setFormData({ ...formData, imageUrl: data.url });
       setIsUploading(false);
@@ -789,7 +789,7 @@ function CardsSection() {
     onError: (error) => toast.error(error.message),
   });
 
-  const uploadMutation = (trpc.products as any).uploadImage.useMutation({
+  const uploadMutation = (trpc.admin as any).uploadImage.useMutation({
     onSuccess: (data: { url: string }) => {
       setFormData({ ...formData, imageUrl: data.url });
       setIsUploading(false);
@@ -1124,7 +1124,7 @@ function PageBannersSection() {
     onError: (error: any) => toast.error(error.message),
   });
 
-  const uploadMutation = (trpc.products as any).uploadImage.useMutation({
+  const uploadMutation = (trpc.admin as any).uploadImage.useMutation({
     onSuccess: (data: { url: string }) => {
       setFormData({ ...formData, imageUrl: data.url });
       setIsUploading(false);
