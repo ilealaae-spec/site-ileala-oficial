@@ -1,0 +1,400 @@
+import { useLanguage } from '@/contexts/LanguageContext';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { trpc } from '@/lib/trpc';
+import { Loader2, Crown, Users, TrendingUp, Search, Eye } from 'lucide-react';
+import { useState } from 'react';
+import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+
+export default function LoyaltyTab() {
+  const { language } = useLanguage();
+  const [tierFilter, setTierFilter] = useState('all');
+  const [selectedMember, setSelectedMember] = useState<any>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+
+  const { data: stats, isLoading: statsLoading } = trpc.admin.loyalty.stats.useQuery();
+  const { data: tiers } = trpc.admin.loyalty.tiers.useQuery();
+  const { data: membersData, isLoading: membersLoading } = trpc.admin.loyalty.list.useQuery({
+    tier: tierFilter !== 'all' ? tierFilter : undefined,
+  });
+
+  const { data: memberDetail } = trpc.admin.loyalty.getMember.useQuery(
+    { memberId: selectedMember?.member?.id },
+    { enabled: !!selectedMember?.member?.id && isDetailOpen }
+  );
+
+  const { data: memberActivity } = trpc.admin.loyalty.getMemberActivity.useQuery(
+    { memberId: selectedMember?.member?.id, limit: 20 },
+    { enabled: !!selectedMember?.member?.id && isDetailOpen }
+  );
+
+  const formatPrice = (fils: number) => `${(fils / 100).toFixed(2)} AED`;
+
+  const formatDate = (date: string | Date | null) => {
+    if (!date) return '-';
+    return new Date(date).toLocaleDateString(language === 'en' ? 'en-US' : 'pt-BR', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  };
+
+  const tierConfig: Record<string, { bg: string; text: string; icon: string }> = {
+    green: { bg: 'bg-green-100', text: 'text-green-800', icon: '🌿' },
+    silver: { bg: 'bg-gray-200', text: 'text-gray-800', icon: '🥈' },
+    gold: { bg: 'bg-yellow-100', text: 'text-yellow-800', icon: '🏆' },
+    platinum: { bg: 'bg-gray-800', text: 'text-white', icon: '👑' },
+  };
+
+  const getTierBadge = (tier: string) => {
+    const config = tierConfig[tier] || tierConfig.green;
+    return (
+      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm font-medium ${config.bg} ${config.text}`}>
+        <span>{config.icon}</span>
+        {tier.charAt(0).toUpperCase() + tier.slice(1)}
+      </span>
+    );
+  };
+
+  const openDetail = (member: any) => {
+    setSelectedMember(member);
+    setIsDetailOpen(true);
+  };
+
+  if (statsLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h2 className="text-2xl font-bold flex items-center gap-2">
+          <Crown className="w-6 h-6 text-yellow-500" />
+          {language === 'en' ? 'Loyalty Program' : 'Programa de Fidelidade'}
+        </h2>
+        <p className="text-muted-foreground">
+          {language === 'en'
+            ? 'Manage members and view program statistics'
+            : 'Gerencie membros e veja estatísticas do programa'}
+        </p>
+      </div>
+
+      {/* Stats Cards */}
+      {stats && (
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          <Card className="p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Users className="w-4 h-4 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">
+                {language === 'en' ? 'Total Members' : 'Total Membros'}
+              </p>
+            </div>
+            <p className="text-2xl font-bold">{stats.total_members || 0}</p>
+          </Card>
+
+          <Card className="p-4 border-green-200 bg-green-50">
+            <p className="text-sm text-green-700 mb-1">🌿 Green</p>
+            <p className="text-2xl font-bold text-green-700">{stats.green_count || 0}</p>
+          </Card>
+
+          <Card className="p-4 border-gray-300 bg-gray-100">
+            <p className="text-sm text-gray-700 mb-1">🥈 Silver</p>
+            <p className="text-2xl font-bold text-gray-700">{stats.silver_count || 0}</p>
+          </Card>
+
+          <Card className="p-4 border-yellow-300 bg-yellow-50">
+            <p className="text-sm text-yellow-700 mb-1">🏆 Gold</p>
+            <p className="text-2xl font-bold text-yellow-700">{stats.gold_count || 0}</p>
+          </Card>
+
+          <Card className="p-4 border-gray-700 bg-gray-800">
+            <p className="text-sm text-gray-300 mb-1">👑 Platinum</p>
+            <p className="text-2xl font-bold text-white">{stats.platinum_count || 0}</p>
+          </Card>
+
+          <Card className="p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <TrendingUp className="w-4 h-4 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">
+                {language === 'en' ? 'Total Spent' : 'Total Gasto'}
+              </p>
+            </div>
+            <p className="text-lg font-bold">{formatPrice(Number(stats.total_spent_all_time) || 0)}</p>
+          </Card>
+        </div>
+      )}
+
+      {/* Tier Benefits Summary */}
+      {tiers && tiers.length > 0 && (
+        <Card className="p-6">
+          <h3 className="text-lg font-semibold mb-4">
+            {language === 'en' ? 'Tier Configuration' : 'Configuração dos Níveis'}
+          </h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left py-2 px-3">{language === 'en' ? 'Tier' : 'Nível'}</th>
+                  <th className="text-left py-2 px-3">{language === 'en' ? 'Spend Range' : 'Faixa de Gasto'}</th>
+                  <th className="text-center py-2 px-3">{language === 'en' ? 'Free Shipping' : 'Frete Grátis'}</th>
+                  <th className="text-center py-2 px-3">{language === 'en' ? 'Express' : 'Expresso'}</th>
+                  <th className="text-center py-2 px-3">{language === 'en' ? 'Early Access' : 'Acesso Antec.'}</th>
+                  <th className="text-center py-2 px-3">{language === 'en' ? 'Birthday' : 'Aniversário'}</th>
+                  <th className="text-center py-2 px-3">{language === 'en' ? 'Concierge' : 'Concierge'}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {tiers.map((tier) => (
+                  <tr key={tier.id} className="border-b hover:bg-muted/50">
+                    <td className="py-2 px-3">{getTierBadge(tier.tier)}</td>
+                    <td className="py-2 px-3">
+                      {formatPrice(tier.minSpend)}
+                      {tier.maxSpend ? ` - ${formatPrice(tier.maxSpend)}` : '+'}
+                    </td>
+                    <td className="text-center py-2 px-3">
+                      {tier.freeStandardShipping ? '✅' : '❌'}
+                    </td>
+                    <td className="text-center py-2 px-3">
+                      {tier.freeExpressShipping ? '✅' : '❌'}
+                    </td>
+                    <td className="text-center py-2 px-3">
+                      {tier.earlyAccessHours > 0 ? `${tier.earlyAccessHours}h` : '❌'}
+                    </td>
+                    <td className="text-center py-2 px-3">
+                      {tier.birthdayReward ? '✅' : '❌'}
+                    </td>
+                    <td className="text-center py-2 px-3">
+                      {tier.personalConcierge ? '✅' : '❌'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+
+      {/* Members List */}
+      <Card className="p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold">
+            {language === 'en' ? 'Members' : 'Membros'}
+          </h3>
+          <Select value={tierFilter} onValueChange={setTierFilter}>
+            <SelectTrigger className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{language === 'en' ? 'All Tiers' : 'Todos'}</SelectItem>
+              <SelectItem value="green">🌿 Green</SelectItem>
+              <SelectItem value="silver">🥈 Silver</SelectItem>
+              <SelectItem value="gold">🏆 Gold</SelectItem>
+              <SelectItem value="platinum">👑 Platinum</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {membersLoading ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="w-6 h-6 animate-spin" />
+          </div>
+        ) : membersData?.members && membersData.members.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left py-2 px-3">{language === 'en' ? 'Member' : 'Membro'}</th>
+                  <th className="text-left py-2 px-3">{language === 'en' ? 'Tier' : 'Nível'}</th>
+                  <th className="text-right py-2 px-3">{language === 'en' ? 'This Year' : 'Este Ano'}</th>
+                  <th className="text-right py-2 px-3">{language === 'en' ? 'All Time' : 'Total'}</th>
+                  <th className="text-center py-2 px-3">{language === 'en' ? 'Orders' : 'Pedidos'}</th>
+                  <th className="text-left py-2 px-3">{language === 'en' ? 'Joined' : 'Entrou'}</th>
+                  <th className="text-center py-2 px-3">{language === 'en' ? 'Actions' : 'Ações'}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {membersData.members.map((item: any) => (
+                  <tr key={item.member.id} className="border-b hover:bg-muted/50">
+                    <td className="py-2 px-3">
+                      <div>
+                        <p className="font-medium">{item.user.name || 'N/A'}</p>
+                        <p className="text-xs text-muted-foreground">{item.user.email}</p>
+                      </div>
+                    </td>
+                    <td className="py-2 px-3">{getTierBadge(item.member.tier)}</td>
+                    <td className="text-right py-2 px-3 font-medium">
+                      {formatPrice(item.member.totalSpentCurrentYear)}
+                    </td>
+                    <td className="text-right py-2 px-3">
+                      {formatPrice(item.member.totalSpentAllTime)}
+                    </td>
+                    <td className="text-center py-2 px-3">{item.member.totalOrders}</td>
+                    <td className="py-2 px-3 text-muted-foreground">
+                      {formatDate(item.member.joinedAt)}
+                    </td>
+                    <td className="text-center py-2 px-3">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openDetail(item)}
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="text-center py-12 text-muted-foreground">
+            <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
+            <p>{language === 'en' ? 'No members found' : 'Nenhum membro encontrado'}</p>
+          </div>
+        )}
+
+        {membersData && (
+          <p className="text-sm text-muted-foreground mt-4">
+            {language === 'en'
+              ? `Showing ${membersData.members.length} of ${membersData.total} members`
+              : `Mostrando ${membersData.members.length} de ${membersData.total} membros`}
+          </p>
+        )}
+      </Card>
+
+      {/* Member Detail Dialog */}
+      <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Crown className="w-5 h-5" />
+              {language === 'en' ? 'Member Details' : 'Detalhes do Membro'}
+            </DialogTitle>
+          </DialogHeader>
+
+          {memberDetail && (
+            <div className="space-y-6">
+              {/* Member Info */}
+              <div className="flex items-center gap-4">
+                <div
+                  className="w-16 h-16 rounded-full flex items-center justify-center text-2xl"
+                  style={{
+                    background: tierConfig[memberDetail.tier]?.bg === 'bg-gray-800'
+                      ? '#1f2937'
+                      : tierConfig[memberDetail.tier]?.bg.replace('bg-', '').replace('-100', '').replace('-200', ''),
+                  }}
+                >
+                  {tierConfig[memberDetail.tier]?.icon}
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold">{memberDetail.name || 'N/A'}</h3>
+                  <p className="text-muted-foreground">{memberDetail.email}</p>
+                  <div className="mt-1">{getTierBadge(memberDetail.tier)}</div>
+                </div>
+              </div>
+
+              {/* Stats Grid */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <p className="text-sm text-muted-foreground">
+                    {language === 'en' ? 'This Year' : 'Este Ano'}
+                  </p>
+                  <p className="text-xl font-bold">{formatPrice(memberDetail.totalSpentCurrentYear)}</p>
+                </div>
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <p className="text-sm text-muted-foreground">
+                    {language === 'en' ? 'All Time' : 'Total'}
+                  </p>
+                  <p className="text-xl font-bold">{formatPrice(memberDetail.totalSpentAllTime)}</p>
+                </div>
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <p className="text-sm text-muted-foreground">
+                    {language === 'en' ? 'Orders' : 'Pedidos'}
+                  </p>
+                  <p className="text-xl font-bold">{memberDetail.totalOrders}</p>
+                </div>
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <p className="text-sm text-muted-foreground">
+                    {language === 'en' ? 'Member Since' : 'Membro Desde'}
+                  </p>
+                  <p className="text-lg font-semibold">{formatDate(memberDetail.joinedAt)}</p>
+                </div>
+              </div>
+
+              {/* Additional Info */}
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                {memberDetail.birthday && (
+                  <div>
+                    <p className="text-muted-foreground">{language === 'en' ? 'Birthday' : 'Aniversário'}</p>
+                    <p className="font-medium">{formatDate(memberDetail.birthday)}</p>
+                  </div>
+                )}
+                {memberDetail.whatsappNumber && (
+                  <div>
+                    <p className="text-muted-foreground">WhatsApp</p>
+                    <p className="font-medium">{memberDetail.whatsappNumber}</p>
+                  </div>
+                )}
+                {memberDetail.tierUpgradedAt && (
+                  <div>
+                    <p className="text-muted-foreground">
+                      {language === 'en' ? 'Last Tier Upgrade' : 'Última Promoção'}
+                    </p>
+                    <p className="font-medium">{formatDate(memberDetail.tierUpgradedAt)}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Activity Log */}
+              {memberActivity && memberActivity.length > 0 && (
+                <div>
+                  <h4 className="font-semibold mb-3">
+                    {language === 'en' ? 'Recent Activity' : 'Atividade Recente'}
+                  </h4>
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {memberActivity.map((activity: any) => (
+                      <div
+                        key={activity.id}
+                        className="flex justify-between items-center p-2 bg-muted/30 rounded text-sm"
+                      >
+                        <div>
+                          <p className="font-medium">{activity.description}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatDate(activity.createdAt)}
+                          </p>
+                        </div>
+                        {activity.amountSpent && (
+                          <span className="font-semibold text-green-600">
+                            +{formatPrice(activity.amountSpent)}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

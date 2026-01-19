@@ -14,7 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Globe, ShoppingCart, Instagram, Facebook, User, LogOut, Package, Shield, Search, Heart } from 'lucide-react';
+import { Globe, ShoppingCart, Instagram, Facebook, User, LogOut, Package, Shield, Search, Heart, Crown } from 'lucide-react';
 
 export default function Header() {
   const { language, setLanguage } = useLanguage();
@@ -54,6 +54,7 @@ export default function Header() {
     { href: '/pet-collection', label: 'Pet Collection' },
     { href: '/contact', label: 'Contact' },
     { href: '/gift-card', label: 'Gift Cards' },
+    { href: '/my-loyalty', label: 'The Green World' },
   ];
 
   // Note: Additional categories from database are intentionally NOT added here
@@ -140,6 +141,12 @@ export default function Header() {
                     <Link href="/orders" className="flex items-center cursor-pointer">
                       <Package className="h-4 w-4 mr-2" />
                       {language === 'en' ? 'My Orders' : 'Meus Pedidos'}
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/my-loyalty" className="flex items-center cursor-pointer">
+                      <Crown className="h-4 w-4 mr-2 text-amber-500" />
+                      The Green World
                     </Link>
                   </DropdownMenuItem>
                   {user?.role === 'admin' && (

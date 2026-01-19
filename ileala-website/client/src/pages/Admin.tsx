@@ -4,7 +4,7 @@ import { useLocation } from 'wouter';
 import {
   Loader2, Mail, Shield, Lock, Eye, EyeOff,
   LayoutDashboard, Users, Package, ShoppingCart, Palette, FileText, Image,
-  LogOut, Search, Bell, User, FolderOpen, Ticket, Settings, Send, Home, Gift
+  LogOut, Search, Bell, User, FolderOpen, Ticket, Settings, Send, Home, Gift, Crown
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
@@ -35,6 +35,7 @@ import CategoriesTab from '@/components/admin/CategoriesTab';
 import CollectionsTab from '@/components/admin/CollectionsTab';
 import CouponsTab from '@/components/admin/CouponsTab';
 import GiftCardsTab from '@/components/admin/GiftCardsTab';
+import LoyaltyTab from '@/components/admin/LoyaltyTab';
 import SettingsTab from '@/components/admin/SettingsTab';
 import SecurityTab from '@/components/admin/SecurityTab';
 import EmailMarketingTab from '@/components/admin/EmailMarketingTab';
@@ -51,6 +52,7 @@ const tabs = [
   { id: "collections", label: "Collections", icon: Palette },
   { id: "coupons", label: "Coupons", icon: Ticket },
   { id: "gift-cards", label: "Gift Cards", icon: Gift },
+  { id: "loyalty", label: "The Green World", icon: Crown },
   { id: "orders", label: "Orders", icon: ShoppingCart },
   { id: "artisans", label: "Artisans", icon: Palette },
   { id: "content", label: "Content", icon: FileText },
@@ -245,6 +247,12 @@ export default function Admin() {
         return (
           <ErrorBoundary>
             <GiftCardsTab />
+          </ErrorBoundary>
+        );
+      case 'loyalty':
+        return (
+          <ErrorBoundary>
+            <LoyaltyTab />
           </ErrorBoundary>
         );
       case 'orders':

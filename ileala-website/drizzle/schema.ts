@@ -453,3 +453,108 @@ export const giftCards = pgTable("gift_cards", {
 
 export type GiftCard = typeof giftCards.$inferSelect;
 export type InsertGiftCard = typeof giftCards.$inferInsert;
+
+// Loyalty Program - Member tiers and benefits
+export const loyaltyMembers = pgTable("loyalty_members", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").references(() => users.id).notNull().unique(),
+
+  // Tier information
+  tier: varchar("tier", { length: 20 }).default("green").notNull(), // green, silver, gold, platinum
+
+  // Spending tracking (in fils - annual reset)
+  totalSpentAllTime: integer("totalSpentAllTime").default(0).notNull(), // Total spent since joining
+  totalSpentCurrentYear: integer("totalSpentCurrentYear").default(0).notNull(), // Spent this year (for tier calculation)
+  yearStartDate: timestamp("yearStartDate").defaultNow().notNull(), // When current year started
+
+  // Order tracking
+  totalOrders: integer("totalOrders").default(0).notNull(),
+
+  // Benefits used
+  freeShippingUsed: integer("freeShippingUsed").default(0).notNull(), // Times free shipping used this year
+  birthdayGiftClaimed: integer("birthdayGiftClaimed").default(0).notNull(), // 1 if claimed this year
+
+  // Member info
+  birthday: timestamp("birthday"), // For birthday rewards
+  whatsappNumber: varchar("whatsappNumber", { length: 50 }), // For Platinum concierge
+  preferredLanguage: varchar("preferredLanguage", { length: 5 }).default("en"),
+
+  // Tier history
+  tierUpgradedAt: timestamp("tierUpgradedAt"), // Last upgrade date
+  previousTier: varchar("previousTier", { length: 20 }),
+
+  // Status
+  active: integer("active").default(1).notNull(),
+  joinedAt: timestamp("joinedAt").defaultNow().notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type InsertLoyaltyMember = typeof loyaltyMembers.$inferInsert;
+
+// Loyalty Tier Benefits - configurable benefits per tier
+export const loyaltyTierBenefits = pgTable("loyalty_tier_benefits", {
+  id: serial("id").primaryKey(),
+  tier: varchar("tier", { length: 20 }).notNull().unique(), // green, silver, gold, platinum
+
+  // Spending thresholds (in fils)
+  minSpend: integer("minSpend").default(0).notNull(), // Minimum spend to reach tier
+  maxSpend: integer("maxSpend"), // Max spend before next tier (null for platinum)
+
+  // Discount benefits
+  discountPercent: integer("discountPercent").default(0).notNull(), // Automatic discount %
+
+  // Shipping benefits
+  freeStandardShipping: integer("freeStandardShipping").default(0).notNull(), // 1 = yes
+  freeExpressShipping: integer("freeExpressShipping").default(0).notNull(), // 1 = yes
+
+  // Access benefits
+  earlyAccessHours: integer("earlyAccessHours").default(0).notNull(), // Hours before public launch
+  exclusiveProducts: integer("exclusiveProducts").default(0).notNull(), // 1 = access to exclusive
+
+  // Special benefits
+  birthdayReward: integer("birthdayReward").default(0).notNull(), // 1 = birthday gift
+  prioritySupport: integer("prioritySupport").default(0).notNull(), // 1 = priority queue
+  personalConcierge: integer("personalConcierge").default(0).notNull(), // 1 = WhatsApp concierge
+  eventInvites: integer("eventInvites").default(0).notNull(), // 1 = event access
+  surpriseGifts: integer("surpriseGifts").default(0).notNull(), // 1 = random luxury gifts
+
+  // Display
+  displayNameEN: varchar("displayNameEN", { length: 100 }).notNull(),
+  displayNamePT: varchar("displayNamePT", { length: 100 }).notNull(),
+  cardColor: varchar("cardColor", { length: 50 }).notNull(), // Hex color for card
+  cardGradient: varchar("cardGradient", { length: 255 }), // CSS gradient
+  iconUrl: varchar("iconUrl", { length: 512 }),
+
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+
+export type LoyaltyTierBenefit = typeof loyaltyTierBenefits.$inferSelect;
+export type InsertLoyaltyTierBenefit = typeof loyaltyTierBenefits.$inferInsert;
+
+// Loyalty Activity Log - track member activities
+export const loyaltyActivityLog = pgTable("loyalty_activity_log", {
+  id: serial("id").primaryKey(),
+  memberId: integer("memberId").references(() => loyaltyMembers.id).notNull(),
+
+  activityType: varchar("activityType", { length: 50 }).notNull(), // purchase, tier_upgrade, benefit_used, birthday_gift, etc.
+  description: text("description"),
+
+  // For purchases
+  orderId: integer("orderId").references(() => orders.id),
+  amountSpent: integer("amountSpent"), // In fils
+
+  // Tier changes
+  fromTier: varchar("fromTier", { length: 20 }),
+  toTier: varchar("toTier", { length: 20 }),
+
+  // Metadata
+  metadata: text("metadata"), // JSON for additional data
+
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type LoyaltyActivityLog = typeof loyaltyActivityLog.$inferSelect;
+export type InsertLoyaltyActivityLog = typeof loyaltyActivityLog.$inferInsert;

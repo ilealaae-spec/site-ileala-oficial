@@ -8,7 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { trpc } from '@/lib/trpc';
 import { useLocation } from 'wouter';
-import { Loader2, Lock, UserPlus, LogIn, Truck, MapPin, Gift } from 'lucide-react';
+import { Loader2, Lock, UserPlus, LogIn, Truck, MapPin, Gift, Crown } from 'lucide-react';
 import { toast } from 'sonner';
 import { useState } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
@@ -175,6 +175,18 @@ export default function Checkout() {
     const zone = SHIPPING_ZONES[selectedZone as keyof typeof SHIPPING_ZONES];
     if (!zone) return 0;
 
+    // Check if user has loyalty free shipping benefit
+    if (loyaltyShipping?.hasFreeShipping) {
+      // For UAE zones (standard shipping), Silver+ gets free shipping
+      if (selectedZone === 'uae') {
+        return 0; // Free shipping for Silver+ in UAE
+      }
+      // For international (express shipping), Gold+ gets free shipping
+      if (['gcc', 'europe', 'americas', 'asia'].includes(selectedZone)) {
+        return 0; // Free express for Gold+ internationally
+      }
+    }
+
     // For UAE, each location has its own shipping cost
     if (selectedZone === 'uae') {
       const location = zone.locations.find(l => l.id === selectedLocation);
@@ -183,6 +195,14 @@ export default function Checkout() {
 
     // For other zones, use the zone's shipping cost
     return zone.shippingCost || 0;
+  };
+
+  // Check if shipping is free due to loyalty
+  const isLoyaltyFreeShipping = () => {
+    if (!loyaltyShipping?.hasFreeShipping) return false;
+    if (selectedZone === 'uae') return true;
+    if (['gcc', 'europe', 'americas', 'asia'].includes(selectedZone)) return true;
+    return false;
   };
 
   // Get delivery time
@@ -199,6 +219,13 @@ export default function Checkout() {
   };
 
   const { data: cartItems, isLoading } = trpc.cart.items.useQuery();
+
+  // Check loyalty free shipping benefit
+  const { data: loyaltyShipping } = trpc.loyalty.checkFreeShipping.useQuery(
+    { shippingType: selectedZone === 'uae' ? 'standard' : 'express' },
+    { enabled: isAuthenticated }
+  );
+
   const createOrderMutation = trpc.orders.create.useMutation({
     onSuccess: async (data) => {
       // Create Stripe checkout session
@@ -583,17 +610,35 @@ export default function Checkout() {
                   {/* Shipping Cost Info */}
                   {selectedZone && selectedLocation && (
                     <div className={`flex items-center gap-3 p-4 rounded-lg ${getShippingCost() === 0 ? 'bg-green-50 border border-green-200' : 'bg-blue-50 border border-blue-200'}`}>
-                      <Truck className={`w-5 h-5 ${getShippingCost() === 0 ? 'text-green-600' : 'text-blue-600'}`} />
+                      {isLoyaltyFreeShipping() ? (
+                        <Crown className="w-5 h-5 text-amber-500" />
+                      ) : (
+                        <Truck className={`w-5 h-5 ${getShippingCost() === 0 ? 'text-green-600' : 'text-blue-600'}`} />
+                      )}
                       <div>
                         {getShippingCost() === 0 ? (
-                          <>
-                            <p className="text-sm font-semibold text-green-800">
-                              {language === 'en' ? '🎉 Free Delivery to Dubai!' : '🎉 Entrega Grátis para Dubai!'}
-                            </p>
-                            <p className="text-xs text-green-600">
-                              {language === 'en' ? `Estimated delivery: ${getDeliveryTime()}` : `Entrega estimada: ${getDeliveryTime()}`}
-                            </p>
-                          </>
+                          isLoyaltyFreeShipping() ? (
+                            <>
+                              <p className="text-sm font-semibold text-green-800 flex items-center gap-1">
+                                <Crown className="w-4 h-4 text-amber-500" />
+                                {language === 'en' ? 'Free Shipping - Loyalty Benefit!' : 'Frete Grátis - Benefício de Fidelidade!'}
+                              </p>
+                              <p className="text-xs text-green-600">
+                                {language === 'en'
+                                  ? `${loyaltyShipping?.tier?.toUpperCase()} member perk • Estimated delivery: ${getDeliveryTime()}`
+                                  : `Benefício ${loyaltyShipping?.tier?.toUpperCase()} • Entrega estimada: ${getDeliveryTime()}`}
+                              </p>
+                            </>
+                          ) : (
+                            <>
+                              <p className="text-sm font-semibold text-green-800">
+                                {language === 'en' ? '🎉 Free Delivery to Dubai!' : '🎉 Entrega Grátis para Dubai!'}
+                              </p>
+                              <p className="text-xs text-green-600">
+                                {language === 'en' ? `Estimated delivery: ${getDeliveryTime()}` : `Entrega estimada: ${getDeliveryTime()}`}
+                              </p>
+                            </>
+                          )
                         ) : (
                           <>
                             <p className="text-sm font-semibold text-blue-800">
@@ -923,12 +968,17 @@ export default function Checkout() {
                   {/* Shipping */}
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground flex items-center gap-1">
-                      <Truck className="w-4 h-4" />
+                      {isLoyaltyFreeShipping() ? (
+                        <Crown className="w-4 h-4 text-amber-500" />
+                      ) : (
+                        <Truck className="w-4 h-4" />
+                      )}
                       {language === 'en' ? 'Shipping' : 'Entrega'}
                     </span>
                     {selectedZone && selectedLocation ? (
                       getShippingCost() === 0 ? (
-                        <span className="text-green-600 font-semibold">
+                        <span className="text-green-600 font-semibold flex items-center gap-1">
+                          {isLoyaltyFreeShipping() && <Crown className="w-3 h-3 text-amber-500" />}
                           {language === 'en' ? 'FREE' : 'GRÁTIS'}
                         </span>
                       ) : (

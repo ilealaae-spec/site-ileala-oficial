@@ -2,7 +2,7 @@ import { eq, sql, and } from 'drizzle-orm';
 // Newsletter fix: omit name field if undefined - Build v2
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import { InsertUser, users, products, Product, InsertProduct, orders, Order, InsertOrder, orderItems, OrderItem, InsertOrderItem, cartItems, CartItem, InsertCartItem, coupons, Coupon, InsertCoupon, newsletter, Newsletter, InsertNewsletter, categories, Category, InsertCategory, collections, Collection, InsertCollection, siteSettings, SiteSetting, InsertSiteSetting, auditLogs, AuditLog, InsertAuditLog, wishlist, WishlistItem, InsertWishlistItem, emailCampaigns, EmailCampaign, InsertEmailCampaign, giftCards, GiftCard, InsertGiftCard } from "../drizzle/schema";
+import { InsertUser, users, products, Product, InsertProduct, orders, Order, InsertOrder, orderItems, OrderItem, InsertOrderItem, cartItems, CartItem, InsertCartItem, coupons, Coupon, InsertCoupon, newsletter, Newsletter, InsertNewsletter, categories, Category, InsertCategory, collections, Collection, InsertCollection, siteSettings, SiteSetting, InsertSiteSetting, auditLogs, AuditLog, InsertAuditLog, wishlist, WishlistItem, InsertWishlistItem, emailCampaigns, EmailCampaign, InsertEmailCampaign, giftCards, GiftCard, InsertGiftCard, loyaltyMembers, LoyaltyMember, InsertLoyaltyMember, loyaltyTierBenefits, LoyaltyTierBenefit, loyaltyActivityLog, LoyaltyActivityLog, InsertLoyaltyActivityLog } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { logger } from './_core/logger';
 
@@ -2729,5 +2729,392 @@ export async function seedPageBanners() {
   } catch (error) {
     logger.error("[Seed] Failed to seed page banners:", error);
     throw error;
+  }
+}
+
+// ============================================================================
+// LOYALTY PROGRAM FUNCTIONS
+// ============================================================================
+
+// Tier thresholds in fils (1 AED = 100 fils)
+const LOYALTY_TIERS = {
+  green: { min: 0, max: 149900, name: 'green' },
+  silver: { min: 150000, max: 399900, name: 'silver' },
+  gold: { min: 400000, max: 749900, name: 'gold' },
+  platinum: { min: 750000, max: Infinity, name: 'platinum' },
+};
+
+// Calculate tier based on annual spending (in fils)
+export function calculateTier(totalSpentCurrentYear: number): string {
+  if (totalSpentCurrentYear >= LOYALTY_TIERS.platinum.min) return 'platinum';
+  if (totalSpentCurrentYear >= LOYALTY_TIERS.gold.min) return 'gold';
+  if (totalSpentCurrentYear >= LOYALTY_TIERS.silver.min) return 'silver';
+  return 'green';
+}
+
+// Get or create loyalty member for a user
+export async function getOrCreateLoyaltyMember(userId: number): Promise<LoyaltyMember | null> {
+  const db = await getDb();
+  if (!db) return null;
+
+  try {
+    // Check if member exists
+    const existing = await db.select().from(loyaltyMembers).where(eq(loyaltyMembers.userId, userId)).limit(1);
+
+    if (existing.length > 0) {
+      return existing[0];
+    }
+
+    // Create new member
+    const [newMember] = await db.insert(loyaltyMembers).values({
+      userId,
+      tier: 'green',
+      totalSpentAllTime: 0,
+      totalSpentCurrentYear: 0,
+      yearStartDate: new Date(),
+      totalOrders: 0,
+      active: 1,
+      joinedAt: new Date(),
+    }).returning();
+
+    // Log the activity
+    await logLoyaltyActivity(newMember.id, 'member_joined', 'New member joined the loyalty program');
+
+    return newMember;
+  } catch (error) {
+    logger.error("[Loyalty] Failed to get or create member:", error);
+    return null;
+  }
+}
+
+// Get loyalty member by user ID
+export async function getLoyaltyMemberByUserId(userId: number): Promise<LoyaltyMember | null> {
+  const db = await getDb();
+  if (!db) return null;
+
+  try {
+    const [member] = await db.select().from(loyaltyMembers).where(eq(loyaltyMembers.userId, userId)).limit(1);
+    return member || null;
+  } catch (error) {
+    logger.error("[Loyalty] Failed to get member:", error);
+    return null;
+  }
+}
+
+// Get all tier benefits
+export async function getAllTierBenefits(): Promise<LoyaltyTierBenefit[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  try {
+    const benefits = await db.select().from(loyaltyTierBenefits);
+    return benefits;
+  } catch (error) {
+    logger.error("[Loyalty] Failed to get tier benefits:", error);
+    return [];
+  }
+}
+
+// Get benefits for a specific tier
+export async function getTierBenefits(tier: string): Promise<LoyaltyTierBenefit | null> {
+  const db = await getDb();
+  if (!db) return null;
+
+  try {
+    const [benefits] = await db.select().from(loyaltyTierBenefits).where(eq(loyaltyTierBenefits.tier, tier)).limit(1);
+    return benefits || null;
+  } catch (error) {
+    logger.error("[Loyalty] Failed to get tier benefits:", error);
+    return null;
+  }
+}
+
+// Update member spending after a purchase
+export async function updateMemberSpending(userId: number, orderAmount: number, orderId: number): Promise<{ member: LoyaltyMember | null; tierChanged: boolean; newTier: string | null }> {
+  const db = await getDb();
+  if (!db) return { member: null, tierChanged: false, newTier: null };
+
+  try {
+    // Get or create member
+    let member = await getOrCreateLoyaltyMember(userId);
+    if (!member) return { member: null, tierChanged: false, newTier: null };
+
+    // Check if we need to reset the year
+    const now = new Date();
+    const yearStart = new Date(member.yearStartDate);
+    const oneYearAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+
+    let newYearSpent = member.totalSpentCurrentYear + orderAmount;
+    let newYearStartDate = member.yearStartDate;
+
+    // Reset if year has passed
+    if (yearStart < oneYearAgo) {
+      newYearSpent = orderAmount;
+      newYearStartDate = now;
+    }
+
+    const oldTier = member.tier;
+    const newTier = calculateTier(newYearSpent);
+    const tierChanged = oldTier !== newTier;
+
+    // Update member
+    const [updatedMember] = await db.update(loyaltyMembers)
+      .set({
+        totalSpentAllTime: member.totalSpentAllTime + orderAmount,
+        totalSpentCurrentYear: newYearSpent,
+        yearStartDate: newYearStartDate,
+        totalOrders: member.totalOrders + 1,
+        tier: newTier,
+        previousTier: tierChanged ? oldTier : member.previousTier,
+        tierUpgradedAt: tierChanged ? now : member.tierUpgradedAt,
+        updatedAt: now,
+      })
+      .where(eq(loyaltyMembers.id, member.id))
+      .returning();
+
+    // Log the purchase
+    await logLoyaltyActivity(member.id, 'purchase', `Purchase completed`, orderId, orderAmount);
+
+    // Log tier upgrade if changed
+    if (tierChanged) {
+      await logLoyaltyActivity(member.id, 'tier_upgrade', `Upgraded from ${oldTier} to ${newTier}`, null, null, oldTier, newTier);
+    }
+
+    return { member: updatedMember, tierChanged, newTier: tierChanged ? newTier : null };
+  } catch (error) {
+    logger.error("[Loyalty] Failed to update member spending:", error);
+    return { member: null, tierChanged: false, newTier: null };
+  }
+}
+
+// Log loyalty activity
+export async function logLoyaltyActivity(
+  memberId: number,
+  activityType: string,
+  description: string,
+  orderId?: number | null,
+  amountSpent?: number | null,
+  fromTier?: string | null,
+  toTier?: string | null,
+  metadata?: any
+): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+
+  try {
+    await db.insert(loyaltyActivityLog).values({
+      memberId,
+      activityType,
+      description,
+      orderId: orderId || null,
+      amountSpent: amountSpent || null,
+      fromTier: fromTier || null,
+      toTier: toTier || null,
+      metadata: metadata ? JSON.stringify(metadata) : null,
+    });
+  } catch (error) {
+    logger.error("[Loyalty] Failed to log activity:", error);
+  }
+}
+
+// Get member activity log
+export async function getMemberActivityLog(memberId: number, limit: number = 50): Promise<LoyaltyActivityLog[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  try {
+    const activities = await db.select()
+      .from(loyaltyActivityLog)
+      .where(eq(loyaltyActivityLog.memberId, memberId))
+      .orderBy(sql`${loyaltyActivityLog.createdAt} DESC`)
+      .limit(limit);
+    return activities;
+  } catch (error) {
+    logger.error("[Loyalty] Failed to get activity log:", error);
+    return [];
+  }
+}
+
+// Update member birthday
+export async function updateMemberBirthday(userId: number, birthday: Date): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+
+  try {
+    await db.update(loyaltyMembers)
+      .set({ birthday, updatedAt: new Date() })
+      .where(eq(loyaltyMembers.userId, userId));
+    return true;
+  } catch (error) {
+    logger.error("[Loyalty] Failed to update birthday:", error);
+    return false;
+  }
+}
+
+// Update member WhatsApp (for Platinum concierge)
+export async function updateMemberWhatsApp(userId: number, whatsappNumber: string): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+
+  try {
+    await db.update(loyaltyMembers)
+      .set({ whatsappNumber, updatedAt: new Date() })
+      .where(eq(loyaltyMembers.userId, userId));
+    return true;
+  } catch (error) {
+    logger.error("[Loyalty] Failed to update WhatsApp:", error);
+    return false;
+  }
+}
+
+// Claim birthday gift
+export async function claimBirthdayGift(userId: number): Promise<{ success: boolean; message: string }> {
+  const db = await getDb();
+  if (!db) return { success: false, message: 'Database not available' };
+
+  try {
+    const member = await getLoyaltyMemberByUserId(userId);
+    if (!member) return { success: false, message: 'Member not found' };
+
+    // Check if already claimed this year
+    if (member.birthdayGiftClaimed === 1) {
+      return { success: false, message: 'Birthday gift already claimed this year' };
+    }
+
+    // Check tier has birthday benefit
+    const benefits = await getTierBenefits(member.tier);
+    if (!benefits || benefits.birthdayReward !== 1) {
+      return { success: false, message: 'Birthday reward not available for your tier' };
+    }
+
+    // Mark as claimed
+    await db.update(loyaltyMembers)
+      .set({ birthdayGiftClaimed: 1, updatedAt: new Date() })
+      .where(eq(loyaltyMembers.id, member.id));
+
+    await logLoyaltyActivity(member.id, 'birthday_gift_claimed', 'Claimed birthday gift');
+
+    return { success: true, message: 'Birthday gift claimed successfully!' };
+  } catch (error) {
+    logger.error("[Loyalty] Failed to claim birthday gift:", error);
+    return { success: false, message: 'Failed to claim gift' };
+  }
+}
+
+// Get all loyalty members (admin)
+export async function getAllLoyaltyMembers(filters?: { tier?: string; limit?: number; offset?: number }): Promise<{ members: any[]; total: number }> {
+  const db = await getDb();
+  if (!db) return { members: [], total: 0 };
+
+  try {
+    let query = db.select({
+      member: loyaltyMembers,
+      user: {
+        id: users.id,
+        name: users.name,
+        email: users.email,
+      }
+    })
+    .from(loyaltyMembers)
+    .innerJoin(users, eq(loyaltyMembers.userId, users.id));
+
+    if (filters?.tier && filters.tier !== 'all') {
+      query = query.where(eq(loyaltyMembers.tier, filters.tier)) as any;
+    }
+
+    const allMembers = await query.orderBy(sql`${loyaltyMembers.totalSpentAllTime} DESC`);
+
+    const startIndex = filters?.offset || 0;
+    const endIndex = filters?.limit ? startIndex + filters.limit : allMembers.length;
+    const paginatedMembers = allMembers.slice(startIndex, endIndex);
+
+    return {
+      members: paginatedMembers,
+      total: allMembers.length
+    };
+  } catch (error) {
+    logger.error("[Loyalty] Failed to get all members:", error);
+    return { members: [], total: 0 };
+  }
+}
+
+// Get loyalty program stats (admin)
+export async function getLoyaltyStats(): Promise<any> {
+  const db = await getDb();
+  if (!db) return null;
+
+  try {
+    const sqlClient = await getSql();
+    if (!sqlClient) return null;
+
+    const stats = await sqlClient`
+      SELECT
+        COUNT(*) as total_members,
+        COUNT(*) FILTER (WHERE tier = 'green') as green_count,
+        COUNT(*) FILTER (WHERE tier = 'silver') as silver_count,
+        COUNT(*) FILTER (WHERE tier = 'gold') as gold_count,
+        COUNT(*) FILTER (WHERE tier = 'platinum') as platinum_count,
+        COALESCE(SUM("totalSpentAllTime"), 0) as total_spent_all_time,
+        COALESCE(SUM("totalSpentCurrentYear"), 0) as total_spent_current_year,
+        COALESCE(AVG("totalSpentAllTime"), 0) as avg_spent_per_member
+      FROM loyalty_members
+      WHERE active = 1
+    `;
+
+    return stats[0] || null;
+  } catch (error) {
+    logger.error("[Loyalty] Failed to get stats:", error);
+    return null;
+  }
+}
+
+// Check if member has free shipping benefit
+export async function memberHasFreeShipping(userId: number, shippingType: 'standard' | 'express'): Promise<boolean> {
+  try {
+    const member = await getLoyaltyMemberByUserId(userId);
+    if (!member) return false;
+
+    const benefits = await getTierBenefits(member.tier);
+    if (!benefits) return false;
+
+    if (shippingType === 'standard') {
+      return benefits.freeStandardShipping === 1;
+    } else {
+      return benefits.freeExpressShipping === 1;
+    }
+  } catch (error) {
+    logger.error("[Loyalty] Failed to check shipping benefit:", error);
+    return false;
+  }
+}
+
+// Get member's next tier info
+export async function getNextTierInfo(userId: number): Promise<{ nextTier: string | null; amountNeeded: number; progress: number } | null> {
+  try {
+    const member = await getLoyaltyMemberByUserId(userId);
+    if (!member) return null;
+
+    const currentTier = member.tier;
+    const currentSpent = member.totalSpentCurrentYear;
+
+    if (currentTier === 'platinum') {
+      return { nextTier: null, amountNeeded: 0, progress: 100 };
+    }
+
+    const tiers = ['green', 'silver', 'gold', 'platinum'];
+    const currentIndex = tiers.indexOf(currentTier);
+    const nextTier = tiers[currentIndex + 1];
+
+    const nextTierThreshold = LOYALTY_TIERS[nextTier as keyof typeof LOYALTY_TIERS].min;
+    const currentTierThreshold = LOYALTY_TIERS[currentTier as keyof typeof LOYALTY_TIERS].min;
+
+    const amountNeeded = Math.max(0, nextTierThreshold - currentSpent);
+    const rangeSize = nextTierThreshold - currentTierThreshold;
+    const progress = Math.min(100, Math.round(((currentSpent - currentTierThreshold) / rangeSize) * 100));
+
+    return { nextTier, amountNeeded, progress };
+  } catch (error) {
+    logger.error("[Loyalty] Failed to get next tier info:", error);
+    return null;
   }
 }

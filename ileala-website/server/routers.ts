@@ -2308,6 +2308,137 @@ export const appRouter = router({
         return stats;
       }),
     }),
+
+    // Loyalty Program Admin Routes
+    loyalty: router({
+      // Get all loyalty members
+      list: protectedProcedure
+        .input(z.object({
+          tier: z.string().optional(),
+          limit: z.number().optional(),
+          offset: z.number().optional(),
+        }).optional())
+        .query(async ({ ctx, input }) => {
+          if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+          return await db.getAllLoyaltyMembers(input);
+        }),
+
+      // Get loyalty program stats
+      stats: protectedProcedure.query(async ({ ctx }) => {
+        if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+        return await db.getLoyaltyStats();
+      }),
+
+      // Get all tier configurations
+      tiers: protectedProcedure.query(async ({ ctx }) => {
+        if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+        return await db.getAllTierBenefits();
+      }),
+
+      // Get member details
+      getMember: protectedProcedure
+        .input(z.object({ memberId: z.number() }))
+        .query(async ({ ctx, input }) => {
+          if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+          const sqlClient = await db.getSql();
+          if (!sqlClient) throw new Error('Database not available');
+
+          const members = await sqlClient`
+            SELECT lm.*, u.name, u.email
+            FROM loyalty_members lm
+            JOIN users u ON lm."userId" = u.id
+            WHERE lm.id = ${input.memberId}
+          `;
+          return members[0] || null;
+        }),
+
+      // Get member activity log
+      getMemberActivity: protectedProcedure
+        .input(z.object({ memberId: z.number(), limit: z.number().optional() }))
+        .query(async ({ ctx, input }) => {
+          if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+          return await db.getMemberActivityLog(input.memberId, input.limit || 50);
+        }),
+    }),
+  }),
+
+  // Loyalty Program Public Routes (for logged-in users)
+  loyalty: router({
+    // Get my loyalty status
+    myStatus: protectedProcedure.query(async ({ ctx }) => {
+      if (!ctx.user) throw new Error('Not authenticated');
+
+      const member = await db.getOrCreateLoyaltyMember(ctx.user.id);
+      if (!member) return null;
+
+      const benefits = await db.getTierBenefits(member.tier);
+      const nextTierInfo = await db.getNextTierInfo(ctx.user.id);
+      const allTiers = await db.getAllTierBenefits();
+
+      return {
+        member,
+        benefits,
+        nextTierInfo,
+        allTiers,
+      };
+    }),
+
+    // Get tier benefits (public info)
+    getTierBenefits: protectedProcedure.query(async () => {
+      return await db.getAllTierBenefits();
+    }),
+
+    // Update my birthday
+    updateBirthday: protectedProcedure
+      .input(z.object({ birthday: z.string() }))
+      .mutation(async ({ ctx, input }) => {
+        if (!ctx.user) throw new Error('Not authenticated');
+        const success = await db.updateMemberBirthday(ctx.user.id, new Date(input.birthday));
+        return { success };
+      }),
+
+    // Update my WhatsApp (for Platinum concierge)
+    updateWhatsApp: protectedProcedure
+      .input(z.object({ whatsappNumber: z.string() }))
+      .mutation(async ({ ctx, input }) => {
+        if (!ctx.user) throw new Error('Not authenticated');
+
+        // Verify member is Platinum
+        const member = await db.getLoyaltyMemberByUserId(ctx.user.id);
+        if (!member || member.tier !== 'platinum') {
+          throw new Error('WhatsApp concierge is only available for Platinum members');
+        }
+
+        const success = await db.updateMemberWhatsApp(ctx.user.id, input.whatsappNumber);
+        return { success };
+      }),
+
+    // Claim birthday gift
+    claimBirthdayGift: protectedProcedure.mutation(async ({ ctx }) => {
+      if (!ctx.user) throw new Error('Not authenticated');
+      return await db.claimBirthdayGift(ctx.user.id);
+    }),
+
+    // Get my activity history
+    myActivity: protectedProcedure
+      .input(z.object({ limit: z.number().optional() }).optional())
+      .query(async ({ ctx, input }) => {
+        if (!ctx.user) throw new Error('Not authenticated');
+
+        const member = await db.getLoyaltyMemberByUserId(ctx.user.id);
+        if (!member) return [];
+
+        return await db.getMemberActivityLog(member.id, input?.limit || 20);
+      }),
+
+    // Check if user has free shipping benefit
+    checkFreeShipping: protectedProcedure
+      .input(z.object({ shippingType: z.enum(['standard', 'express']) }))
+      .query(async ({ ctx, input }) => {
+        if (!ctx.user) return { hasFreeShipping: false };
+        const hasFreeShipping = await db.memberHasFreeShipping(ctx.user.id, input.shippingType);
+        return { hasFreeShipping };
+      }),
   }),
 
   // Stripe payment router
