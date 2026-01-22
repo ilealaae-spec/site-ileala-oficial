@@ -454,8 +454,8 @@ export default function GiftCardsTab() {
               onClick={() => openDetail(card)}
             >
               <div className="flex items-start gap-4">
-                <div className="p-3 bg-purple-100 rounded-lg">
-                  <Gift className="w-6 h-6 text-purple-700" />
+                <div className="p-3 bg-sage-100 rounded-lg">
+                  <Gift className="w-6 h-6 text-sage-700" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-2">
@@ -472,7 +472,7 @@ export default function GiftCardsTab() {
                   </div>
 
                   <div className="space-y-2 text-sm">
-                    <p className="text-lg font-semibold text-purple-700">
+                    <p className="text-lg font-semibold text-sage-700">
                       {formatPrice(card.amount)}
                     </p>
 
@@ -558,11 +558,11 @@ export default function GiftCardsTab() {
           {selectedCard && (
             <div className="space-y-6">
               {/* Code and Status */}
-              <div className="text-center p-6 bg-gradient-to-br from-purple-100 to-purple-50 rounded-xl">
-                <p className="text-sm text-purple-600 mb-2">
+              <div className="text-center p-6 bg-gradient-to-br from-sage-100 to-sage-50 rounded-xl">
+                <p className="text-sm text-sage-700 mb-2">
                   {language === 'en' ? 'Gift Card Code' : 'Código do Vale'}
                 </p>
-                <p className="text-3xl font-bold font-mono text-purple-800">{selectedCard.code}</p>
+                <p className="text-3xl font-bold font-mono text-sage-800">{selectedCard.code}</p>
                 <div className="flex items-center justify-center gap-2 mt-4">
                   {getStatusBadge(selectedCard.status)}
                   {getEmailStatusBadge(selectedCard)}
