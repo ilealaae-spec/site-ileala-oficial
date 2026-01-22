@@ -317,13 +317,12 @@ export default function MyLoyalty() {
             {/* Loyalty Card Visual */}
             <div
               className="rounded-2xl p-8 shadow-2xl relative overflow-hidden h-64"
-              style={{
-                backgroundImage: currentTierConfig.backgroundImage
-                  ? `url(${currentTierConfig.backgroundImage})`
-                  : undefined,
+              style={currentTierConfig.backgroundImage ? {
+                backgroundImage: `url(${currentTierConfig.backgroundImage})`,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
-                background: !currentTierConfig.backgroundImage ? currentTierConfig.gradient : undefined,
+              } : {
+                background: currentTierConfig.gradient,
               }}
             >
               {/* Subtle overlay for better text readability */}
@@ -681,11 +680,12 @@ export default function MyLoyalty() {
                     className={`rounded-2xl p-6 text-center transition-all cursor-pointer hover:scale-105 relative overflow-hidden ${
                       isCurrentTier ? 'ring-2 ring-primary' : ''
                     } ${isSelected ? 'ring-2 ring-yellow-400 scale-105 shadow-lg' : ''}`}
-                    style={{
-                      backgroundImage: backgroundImage ? `url(${backgroundImage})` : undefined,
+                    style={backgroundImage ? {
+                      backgroundImage: `url(${backgroundImage})`,
                       backgroundSize: 'cover',
                       backgroundPosition: 'center',
-                      background: !backgroundImage ? (config?.gradient || '#ccc') : undefined,
+                    } : {
+                      background: config?.gradient || '#ccc',
                     }}
                   >
                     {/* Overlay for text readability */}
