@@ -760,7 +760,7 @@ export const appRouter = router({
             deviceType: session.deviceType || 'Unknown',
             browser: session.browser || 'Unknown',
             os: session.os || 'Unknown',
-            lastActivityAt: session.lastActivityAt || session.lastActivity || new Date(),
+            lastActivityAt: session.lastActivity || new Date(),
             createdAt: session.createdAt,
           })),
         };
@@ -1520,7 +1520,7 @@ export const appRouter = router({
         return {
           giftCardId: giftCard.id,
           code: giftCard.code,
-          amount: giftCard.amount,
+          amount: input.amount, // Use input amount since createGiftCard returns only id and code
         };
       }),
 
@@ -1782,6 +1782,40 @@ export const appRouter = router({
 
   // Admin router (protected - only for admin users)
   admin: router({
+    // Customers management
+    customers: router({
+      list: protectedProcedure.query(async ({ ctx }) => {
+        if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+        return await db.getAllUsers();
+      }),
+    }),
+
+    // Promote user to admin (requires secret code)
+    promoteToAdmin: publicProcedure
+      .input(z.object({
+        email: z.string().email(),
+        secret: z.string(),
+      }))
+      .mutation(async ({ input }) => {
+        // Verify secret code from environment
+        const adminSecret = process.env.ADMIN_PROMOTION_SECRET;
+        if (!adminSecret || input.secret !== adminSecret) {
+          throw new Error('Invalid secret code');
+        }
+
+        const user = await db.getUserByEmail(input.email);
+        if (!user) {
+          throw new Error('User not found');
+        }
+
+        if (user.role === 'admin') {
+          throw new Error('User is already an admin');
+        }
+
+        await db.updateUserProfile(user.id, { role: 'admin' } as any);
+        return { success: true, message: `User ${input.email} has been promoted to admin` };
+      }),
+
     // Products management
     products: router({
       list: protectedProcedure.query(async ({ ctx }) => {
@@ -2523,9 +2557,10 @@ export const appRouter = router({
     checkFreeShipping: protectedProcedure
       .input(z.object({ shippingType: z.enum(['standard', 'express']) }))
       .query(async ({ ctx, input }) => {
-        if (!ctx.user) return { hasFreeShipping: false };
+        if (!ctx.user) return { hasFreeShipping: false, tier: null };
         const hasFreeShipping = await db.memberHasFreeShipping(ctx.user.id, input.shippingType);
-        return { hasFreeShipping };
+        const member = await db.getLoyaltyMemberByUserId(ctx.user.id);
+        return { hasFreeShipping, tier: member?.tier || null };
       }),
   }),
 
@@ -2618,7 +2653,7 @@ export const appRouter = router({
                 order.customerEmail,
                 order.customerName || 'Customer',
                 orderId,
-                order.total,
+                order.totalAmount,
                 orderItems.map((item: any) => ({
                   name: item.product?.nameEN || 'Product',
                   quantity: item.quantity,
@@ -2997,16 +3032,16 @@ export const appRouter = router({
         if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
         
         const result = await db.createCategory(input);
-        
+
         // Audit log
         const audit = createAuditLogger(ctx);
         await audit.log({
           action: 'create',
           entity: 'category',
-          entityId: result[0]?.id,
+          entityId: result?.id,
           changes: { after: input },
         });
-        
+
         return result;
       }),
     update: protectedProcedure

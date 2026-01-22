@@ -30,14 +30,11 @@ export default function Shop() {
   }, [location]);
   
   // Fetch products from PostgreSQL via tRPC
-  const { data: products = [], isLoading: loading, error: queryError } = trpc.products.list.useQuery(undefined, {
+  const { data: productsData, isLoading: loading, error: queryError } = trpc.products.list.useQuery(undefined, {
     staleTime: 5 * 60 * 1000, // 5 minutes - prevent constant refetching
     refetchOnWindowFocus: false, // Prevent refetch on window focus
   });
-  
-  const { data: profileValidation } = trpc.auth.validateProfile.useQuery(undefined, {
-    enabled: isAuthenticated,
-  });
+  const products = (productsData || []) as any[];
 
   // Format price: database stores price directly in AED
   const formatPrice = (price: number) => {
@@ -45,21 +42,21 @@ export default function Shop() {
   };
 
   // Get product name based on language
-  const getProductName = (product: typeof products[0]) => {
+  const getProductName = (product: any) => {
     if (language === 'pt' && product.namePT) return product.namePT;
     if (language === 'en' && product.nameEN) return product.nameEN;
     return product.name;
   };
 
   // Get product description based on language
-  const getProductDescription = (product: typeof products[0]) => {
+  const getProductDescription = (product: any) => {
     if (language === 'pt' && product.descriptionPT) return product.descriptionPT;
     if (language === 'en' && product.descriptionEN) return product.descriptionEN;
     return '';
   };
 
   // Filter products based on search query
-  const filteredProducts = products?.filter((product) => {
+  const filteredProducts = products?.filter((product: any) => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
     const name = getProductName(product).toLowerCase();

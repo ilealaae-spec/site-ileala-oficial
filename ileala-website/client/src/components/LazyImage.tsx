@@ -61,7 +61,6 @@ export default function LazyImage({
       naturalWidth: img.naturalWidth,
       naturalHeight: img.naturalHeight,
       complete: img.complete,
-      error: img.error
     });
     setHasError(true);
   };

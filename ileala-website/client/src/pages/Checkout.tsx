@@ -194,7 +194,7 @@ export default function Checkout() {
     }
 
     // For other zones, use the zone's shipping cost
-    return zone.shippingCost || 0;
+    return (zone as any).shippingCost || 0;
   };
 
   // Check if shipping is free due to loyalty
@@ -559,7 +559,7 @@ export default function Checkout() {
                                 </span>
                               ) : (
                                 <span className="ml-2 text-xs text-muted-foreground">
-                                  {zone.shippingCost} AED
+                                  {(zone as any).shippingCost || 0} AED
                                 </span>
                               )}
                             </div>

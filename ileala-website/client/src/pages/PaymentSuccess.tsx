@@ -22,25 +22,33 @@ export default function PaymentSuccess() {
   }, [location]);
 
   // Verificar pagamento quando sessionId estiver disponível
-  const { data: paymentData, isLoading: verifyingPayment } = trpc.payment.verifyPayment.useQuery(
+  const { data: paymentData, isLoading: verifyingPayment, error: paymentError } = trpc.payment.verifyPayment.useQuery(
     { sessionId: sessionIdState || '' },
-    { 
+    {
       enabled: !!sessionIdState,
       retry: 2,
-      onSuccess: (data) => {
-        console.log('[PaymentSuccess] Payment verified:', data);
-        if (data.paymentStatus === 'paid') {
-          toast.success(language === 'en' ? 'Payment confirmed! Order created successfully.' : 'Pagamento confirmado! Pedido criado com sucesso.');
-        }
-        setLoading(false);
-      },
-      onError: (error) => {
-        console.error('[PaymentSuccess] Error verifying payment:', error);
-        toast.error(language === 'en' ? 'Failed to verify payment' : 'Falha ao verificar pagamento');
-        setLoading(false);
-      },
     }
   );
+
+  // Handle payment verification result
+  useEffect(() => {
+    if (paymentData) {
+      console.log('[PaymentSuccess] Payment verified:', paymentData);
+      if (paymentData.paymentStatus === 'paid') {
+        toast.success(language === 'en' ? 'Payment confirmed! Order created successfully.' : 'Pagamento confirmado! Pedido criado com sucesso.');
+      }
+      setLoading(false);
+    }
+  }, [paymentData, language]);
+
+  // Handle payment verification error
+  useEffect(() => {
+    if (paymentError) {
+      console.error('[PaymentSuccess] Error verifying payment:', paymentError);
+      toast.error(language === 'en' ? 'Failed to verify payment' : 'Falha ao verificar pagamento');
+      setLoading(false);
+    }
+  }, [paymentError, language]);
 
   useEffect(() => {
     if (sessionIdState && !verifyingPayment && paymentData) {
