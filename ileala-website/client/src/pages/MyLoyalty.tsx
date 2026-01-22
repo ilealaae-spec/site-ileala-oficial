@@ -122,10 +122,10 @@ export default function MyLoyalty() {
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {(() => {
                 const defaultTiers = [
-                  { tier: 'green', displayName: 'Green', gradient: 'linear-gradient(135deg, #255238 0%, #1a3d28 100%)', textColor: 'text-white', range: '0 - 1,499 AED', benefits: ['Newsletter Exclusiva', 'Acesso a Vendas Privadas'] },
-                  { tier: 'silver', displayName: 'Silver', gradient: 'linear-gradient(135deg, #C0C0C0 0%, #808080 100%)', textColor: 'text-gray-900', range: '1,500 - 3,999 AED', benefits: ['Frete Padrão Grátis (UAE)', 'Presente de Aniversário'] },
-                  { tier: 'gold', displayName: 'Gold', gradient: 'linear-gradient(135deg, #FFD700 0%, #B8860B 100%)', textColor: 'text-gray-900', range: '4,000 - 7,499 AED', benefits: ['Frete Expresso Grátis', 'Acesso Antecipado 24h', 'Suporte Prioritário'] },
-                  { tier: 'platinum', displayName: 'Black', gradient: 'linear-gradient(135deg, #2C2C2C 0%, #1a1a1a 50%, #3d3d3d 100%)', textColor: 'text-white', range: '7,500+ AED', benefits: ['Concierge WhatsApp VIP', 'Convites para Eventos', 'Presentes Surpresa'] },
+                  { tier: 'green', displayName: 'Green', gradient: 'linear-gradient(135deg, #3A5F4F 0%, #2D4A3E 50%, #1E3329 100%)', textColor: 'text-white', range: '0 - 1,499 AED', benefits: ['Newsletter Exclusiva', 'Acesso a Vendas Privadas'] },
+                  { tier: 'silver', displayName: 'Silver', gradient: 'linear-gradient(135deg, #D8D8D8 0%, #A8A8A8 50%, #888888 100%)', textColor: 'text-gray-900', range: '1,500 - 3,999 AED', benefits: ['Frete Padrão Grátis (UAE)', 'Presente de Aniversário'] },
+                  { tier: 'gold', displayName: 'Gold', gradient: 'linear-gradient(135deg, #E8D48A 0%, #C5A849 50%, #9A7B2F 100%)', textColor: 'text-gray-900', range: '4,000 - 7,499 AED', benefits: ['Frete Expresso Grátis', 'Acesso Antecipado 24h', 'Suporte Prioritário'] },
+                  { tier: 'platinum', displayName: 'Black', gradient: 'linear-gradient(135deg, #5A5A5A 0%, #3D3D3D 50%, #2C2C2C 100%)', textColor: 'text-white', range: '7,500+ AED', benefits: ['Concierge WhatsApp VIP', 'Convites para Eventos', 'Presentes Surpresa'] },
                 ];
 
                 return defaultTiers.map((t) => {
@@ -201,19 +201,19 @@ export default function MyLoyalty() {
 
   const tierConfig: Record<string, { gradient: string; textColor: string }> = {
     green: {
-      gradient: 'linear-gradient(135deg, #255238 0%, #1a3d28 100%)',
+      gradient: 'linear-gradient(135deg, #3A5F4F 0%, #2D4A3E 50%, #1E3329 100%)',
       textColor: 'text-white',
     },
     silver: {
-      gradient: 'linear-gradient(135deg, #C0C0C0 0%, #808080 100%)',
+      gradient: 'linear-gradient(135deg, #D8D8D8 0%, #A8A8A8 50%, #888888 100%)',
       textColor: 'text-gray-900',
     },
     gold: {
-      gradient: 'linear-gradient(135deg, #FFD700 0%, #B8860B 100%)',
+      gradient: 'linear-gradient(135deg, #E8D48A 0%, #C5A849 50%, #9A7B2F 100%)',
       textColor: 'text-gray-900',
     },
     platinum: {
-      gradient: 'linear-gradient(135deg, #2C2C2C 0%, #1a1a1a 50%, #3d3d3d 100%)',
+      gradient: 'linear-gradient(135deg, #5A5A5A 0%, #3D3D3D 50%, #2C2C2C 100%)',
       textColor: 'text-white',
     },
   };

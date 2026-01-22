@@ -710,27 +710,31 @@ export async function sendTierUpgradeEmail(
   const siteUrl = getSiteUrl();
   const displayName = name || 'Valued Customer';
 
-  // Tier display names and colors
-  const tierInfo: Record<string, { displayName: string; color: string; gradient: string }> = {
+  // Tier display names and colors (matching brand metal card colors)
+  const tierInfo: Record<string, { displayName: string; color: string; gradient: string; textColor: string }> = {
     green: {
       displayName: 'Green',
-      color: '#255238',
-      gradient: 'linear-gradient(135deg, #255238 0%, #1a3d28 100%)',
+      color: '#2D4A3E',
+      gradient: 'linear-gradient(135deg, #3A5F4F 0%, #2D4A3E 50%, #1E3329 100%)',
+      textColor: '#ffffff',
     },
     silver: {
       displayName: 'Silver',
-      color: '#808080',
-      gradient: 'linear-gradient(135deg, #C0C0C0 0%, #808080 100%)',
+      color: '#A8A8A8',
+      gradient: 'linear-gradient(135deg, #D8D8D8 0%, #A8A8A8 50%, #888888 100%)',
+      textColor: '#333333',
     },
     gold: {
       displayName: 'Gold',
-      color: '#B8860B',
-      gradient: 'linear-gradient(135deg, #FFD700 0%, #B8860B 100%)',
+      color: '#C5A849',
+      gradient: 'linear-gradient(135deg, #E8D48A 0%, #C5A849 50%, #9A7B2F 100%)',
+      textColor: '#333333',
     },
     platinum: {
       displayName: 'Black',
-      color: '#1a1a1a',
-      gradient: 'linear-gradient(135deg, #2C2C2C 0%, #1a1a1a 50%, #3d3d3d 100%)',
+      color: '#3D3D3D',
+      gradient: 'linear-gradient(135deg, #5A5A5A 0%, #3D3D3D 50%, #2C2C2C 100%)',
+      textColor: '#ffffff',
     },
   };
 

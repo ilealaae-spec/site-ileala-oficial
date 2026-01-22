@@ -24,12 +24,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-// Tier card config for gradients and icons
+// Tier card config for gradients and icons (matching brand metal card colors)
 const tierCardConfig: Record<string, { gradient: string }> = {
-  green: { gradient: 'linear-gradient(135deg, #255238 0%, #1a3d28 100%)' },
-  silver: { gradient: 'linear-gradient(135deg, #C0C0C0 0%, #808080 100%)' },
-  gold: { gradient: 'linear-gradient(135deg, #FFD700 0%, #B8860B 100%)' },
-  platinum: { gradient: 'linear-gradient(135deg, #2C2C2C 0%, #1a1a1a 50%, #3d3d3d 100%)' },
+  green: { gradient: 'linear-gradient(135deg, #3A5F4F 0%, #2D4A3E 50%, #1E3329 100%)' },
+  silver: { gradient: 'linear-gradient(135deg, #D8D8D8 0%, #A8A8A8 50%, #888888 100%)' },
+  gold: { gradient: 'linear-gradient(135deg, #E8D48A 0%, #C5A849 50%, #9A7B2F 100%)' },
+  platinum: { gradient: 'linear-gradient(135deg, #5A5A5A 0%, #3D3D3D 50%, #2C2C2C 100%)' },
 };
 
 // Component for tier card with image upload
