@@ -34,8 +34,11 @@ export default function GiftCard() {
   const { data: cardSubtitleSetting } = trpc.settings.get.useQuery({ key: 'gift-card-subtitle' });
   const { data: cardValueLabelSetting } = trpc.settings.get.useQuery({ key: 'gift-card-value-label' });
   const { data: cardValidTextSetting } = trpc.settings.get.useQuery({ key: 'gift-card-valid-text' });
+  // Icon/logo setting
+  const { data: cardIconSetting } = trpc.settings.get.useQuery({ key: 'gift-card-icon' });
 
   const giftCardImage = giftCardImageSetting?.value;
+  const cardIcon = cardIconSetting?.value;
   const minValue = minValueSetting?.value ? parseInt(minValueSetting.value) : 50;
   const maxValue = maxValueSetting?.value ? parseInt(maxValueSetting.value) : 2000;
   // Custom text values with defaults
@@ -396,7 +399,11 @@ export default function GiftCard() {
                             <p className="text-sm uppercase tracking-widest" style={{ color: '#ceae54' }}>{cardTitle}</p>
                             <h2 className="text-3xl font-bold mt-1" style={{ color: '#ceae54' }}>{cardSubtitle}</h2>
                           </div>
-                          <Gift className="w-10 h-10" style={{ color: '#ceae54', opacity: 0.6 }} />
+                          {cardIcon ? (
+                            <img src={cardIcon} alt="Icon" className="w-10 h-10 object-contain" style={{ opacity: 0.8 }} />
+                          ) : (
+                            <Gift className="w-10 h-10" style={{ color: '#ceae54', opacity: 0.6 }} />
+                          )}
                         </div>
 
                         <div className="text-center">
@@ -417,7 +424,11 @@ export default function GiftCard() {
                           <p className="text-sm uppercase tracking-widest" style={{ color: '#ceae54', opacity: 0.8 }}>{cardTitle}</p>
                           <h2 className="text-3xl font-bold mt-1" style={{ color: '#ceae54' }}>{cardSubtitle}</h2>
                         </div>
-                        <Gift className="w-10 h-10" style={{ color: '#ceae54', opacity: 0.4 }} />
+                        {cardIcon ? (
+                          <img src={cardIcon} alt="Icon" className="w-10 h-10 object-contain" style={{ opacity: 0.6 }} />
+                        ) : (
+                          <Gift className="w-10 h-10" style={{ color: '#ceae54', opacity: 0.4 }} />
+                        )}
                       </div>
 
                       <div className="text-center py-8">

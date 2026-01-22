@@ -38,7 +38,9 @@ export default function GiftCardsTab() {
   const [cardSubtitle, setCardSubtitle] = useState('ILE ALA');
   const [cardValueLabel, setCardValueLabel] = useState('VALUE');
   const [cardValidText, setCardValidText] = useState('Valid for 1 year');
+  const [isUploadingIcon, setIsUploadingIcon] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const iconInputRef = useRef<HTMLInputElement>(null);
 
   const utils = trpc.useUtils();
   const { data: giftCards, isLoading } = trpc.admin.giftCards.list.useQuery({ status: statusFilter });
@@ -53,6 +55,8 @@ export default function GiftCardsTab() {
   const { data: cardSubtitleSetting, refetch: refetchCardSubtitle } = trpc.settings.get.useQuery({ key: 'gift-card-subtitle' });
   const { data: cardValueLabelSetting, refetch: refetchCardValueLabel } = trpc.settings.get.useQuery({ key: 'gift-card-value-label' });
   const { data: cardValidTextSetting, refetch: refetchCardValidText } = trpc.settings.get.useQuery({ key: 'gift-card-valid-text' });
+  // Icon/logo setting
+  const { data: cardIconSetting, refetch: refetchCardIcon } = trpc.settings.get.useQuery({ key: 'gift-card-icon' });
 
   // Initialize values from settings
   useEffect(() => {
@@ -159,6 +163,56 @@ export default function GiftCardsTab() {
     };
     reader.onerror = () => {
       setIsUploading(false);
+      toast.error(language === 'en' ? 'Failed to read file' : 'Erro ao ler arquivo');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Handle icon upload
+  const handleIconUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error(language === 'en' ? 'Please select an image file' : 'Selecione um arquivo de imagem');
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error(language === 'en' ? 'Icon must be less than 2MB' : 'Ícone deve ter menos de 2MB');
+      return;
+    }
+
+    setIsUploadingIcon(true);
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = (reader.result as string).split(',')[1];
+      uploadMutation.mutate({
+        fileName: `gift-card-icon-${Date.now()}-${file.name}`,
+        fileData: base64,
+        contentType: file.type,
+      }, {
+        onSuccess: (data: { url: string }) => {
+          updateSettingMutation.mutate({ key: 'gift-card-icon', value: data.url }, {
+            onSuccess: () => {
+              setIsUploadingIcon(false);
+              toast.success(language === 'en' ? 'Icon updated!' : 'Ícone atualizado!');
+              refetchCardIcon();
+            },
+            onError: () => {
+              setIsUploadingIcon(false);
+              toast.error(language === 'en' ? 'Failed to save icon' : 'Erro ao salvar ícone');
+            }
+          });
+        },
+        onError: () => {
+          setIsUploadingIcon(false);
+          toast.error(language === 'en' ? 'Failed to upload icon' : 'Erro ao enviar ícone');
+        }
+      });
+    };
+    reader.onerror = () => {
+      setIsUploadingIcon(false);
       toast.error(language === 'en' ? 'Failed to read file' : 'Erro ao ler arquivo');
     };
     reader.readAsDataURL(file);
@@ -433,6 +487,81 @@ export default function GiftCardsTab() {
               </Button>
               <p className="text-xs text-muted-foreground mt-2">
                 {language === 'en' ? 'Max 5MB. JPG, PNG or WebP' : 'Máx 5MB. JPG, PNG ou WebP'}
+              </p>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* Icon/Logo Card */}
+      <Card className="p-6">
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <Gift className="w-5 h-5" />
+              {language === 'en' ? 'Card Icon/Logo' : 'Ícone/Logo do Cartão'}
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              {language === 'en'
+                ? 'Upload a custom icon or logo to appear on the gift card (replaces default gift icon)'
+                : 'Envie um ícone ou logo personalizado para aparecer no vale presente (substitui o ícone padrão)'}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-col md:flex-row gap-6 items-start">
+          {/* Current Icon Preview */}
+          <div className="w-32">
+            <Label className="mb-2 block">{language === 'en' ? 'Current Icon' : 'Ícone Atual'}</Label>
+            <div className="w-20 h-20 rounded-lg overflow-hidden bg-muted border flex items-center justify-center">
+              {cardIconSetting?.value ? (
+                <img
+                  src={cardIconSetting.value}
+                  alt="Card Icon"
+                  className="w-full h-full object-contain"
+                />
+              ) : (
+                <Gift className="w-10 h-10 text-muted-foreground" />
+              )}
+            </div>
+          </div>
+
+          {/* Upload Section */}
+          <div className="flex-1">
+            <Label className="mb-2 block">{language === 'en' ? 'Upload New Icon' : 'Enviar Novo Ícone'}</Label>
+            <div className="border-2 border-dashed rounded-lg p-4 text-center hover:border-primary/50 transition-colors">
+              <input
+                ref={iconInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleIconUpload}
+                className="hidden"
+              />
+              <p className="text-sm text-muted-foreground mb-3">
+                {language === 'en'
+                  ? 'Recommended: 100x100px, PNG with transparency'
+                  : 'Recomendado: 100x100px, PNG com transparência'}
+              </p>
+              <Button
+                onClick={() => iconInputRef.current?.click()}
+                disabled={isUploadingIcon}
+                variant="outline"
+                size="sm"
+              >
+                {isUploadingIcon ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    {language === 'en' ? 'Uploading...' : 'Enviando...'}
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4 mr-2" />
+                    {language === 'en' ? 'Choose Icon' : 'Escolher Ícone'}
+                  </>
+                )}
+              </Button>
+              <p className="text-xs text-muted-foreground mt-2">
+                {language === 'en' ? 'Max 2MB. PNG, JPG or SVG' : 'Máx 2MB. PNG, JPG ou SVG'}
               </p>
             </div>
           </div>
