@@ -1479,7 +1479,7 @@ export const appRouter = router({
     // Purchase a gift card
     purchase: protectedProcedure
       .input(z.object({
-        amount: z.number().min(5000, 'Minimum gift card value is 50 AED').max(1000000, 'Maximum gift card value is 10000 AED'), // 50-10000 AED in fils
+        amount: z.number().positive(), // Validation done in mutation using settings
         recipientEmail: z.string().email('Invalid recipient email'),
         recipientName: z.string().max(255).optional(),
         senderName: z.string().max(255).optional(),
@@ -1489,6 +1489,19 @@ export const appRouter = router({
       }))
       .mutation(async ({ input, ctx }) => {
         if (!ctx.user) throw new Error('Not authenticated');
+
+        // Get min/max values from settings (default: 50-2000 AED = 5000-200000 fils)
+        const minSetting = await db.getSettingByKey('gift-card-min-value');
+        const maxSetting = await db.getSettingByKey('gift-card-max-value');
+        const minValue = minSetting ? parseInt(minSetting.value) * 100 : 5000; // Convert AED to fils
+        const maxValue = maxSetting ? parseInt(maxSetting.value) * 100 : 200000;
+
+        if (input.amount < minValue) {
+          throw new Error(`Minimum gift card value is ${minValue / 100} AED`);
+        }
+        if (input.amount > maxValue) {
+          throw new Error(`Maximum gift card value is ${maxValue / 100} AED`);
+        }
 
         // Parse scheduled date if provided
         let scheduledDate: Date | null = null;
