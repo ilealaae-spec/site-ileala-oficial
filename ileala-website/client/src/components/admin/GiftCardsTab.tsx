@@ -30,8 +30,14 @@ export default function GiftCardsTab() {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [isSavingText, setIsSavingText] = useState(false);
   const [minValue, setMinValue] = useState('50');
   const [maxValue, setMaxValue] = useState('2000');
+  // Text customization states
+  const [cardTitle, setCardTitle] = useState('GIFT CARD');
+  const [cardSubtitle, setCardSubtitle] = useState('ILE ALA');
+  const [cardValueLabel, setCardValueLabel] = useState('VALUE');
+  const [cardValidText, setCardValidText] = useState('Valid for 1 year');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const utils = trpc.useUtils();
@@ -42,12 +48,21 @@ export default function GiftCardsTab() {
   const { data: giftCardImageSetting, refetch: refetchGiftCardImage } = trpc.settings.get.useQuery({ key: 'gift-card-image' });
   const { data: minValueSetting, refetch: refetchMinValue } = trpc.settings.get.useQuery({ key: 'gift-card-min-value' });
   const { data: maxValueSetting, refetch: refetchMaxValue } = trpc.settings.get.useQuery({ key: 'gift-card-max-value' });
+  // Text customization settings
+  const { data: cardTitleSetting, refetch: refetchCardTitle } = trpc.settings.get.useQuery({ key: 'gift-card-title' });
+  const { data: cardSubtitleSetting, refetch: refetchCardSubtitle } = trpc.settings.get.useQuery({ key: 'gift-card-subtitle' });
+  const { data: cardValueLabelSetting, refetch: refetchCardValueLabel } = trpc.settings.get.useQuery({ key: 'gift-card-value-label' });
+  const { data: cardValidTextSetting, refetch: refetchCardValidText } = trpc.settings.get.useQuery({ key: 'gift-card-valid-text' });
 
   // Initialize values from settings
   useEffect(() => {
     if (minValueSetting?.value) setMinValue(minValueSetting.value);
     if (maxValueSetting?.value) setMaxValue(maxValueSetting.value);
-  }, [minValueSetting, maxValueSetting]);
+    if (cardTitleSetting?.value) setCardTitle(cardTitleSetting.value);
+    if (cardSubtitleSetting?.value) setCardSubtitle(cardSubtitleSetting.value);
+    if (cardValueLabelSetting?.value) setCardValueLabel(cardValueLabelSetting.value);
+    if (cardValidTextSetting?.value) setCardValidText(cardValidTextSetting.value);
+  }, [minValueSetting, maxValueSetting, cardTitleSetting, cardSubtitleSetting, cardValueLabelSetting, cardValidTextSetting]);
 
   const cancelMutation = trpc.admin.giftCards.cancel.useMutation({
     onSuccess: () => {
@@ -175,6 +190,26 @@ export default function GiftCardsTab() {
       toast.error(error.message || (language === 'en' ? 'Failed to save' : 'Erro ao salvar'));
     } finally {
       setIsSavingSettings(false);
+    }
+  };
+
+  // Save text customization settings
+  const handleSaveTextSettings = async () => {
+    setIsSavingText(true);
+    try {
+      await updateSettingMutation.mutateAsync({ key: 'gift-card-title', value: cardTitle });
+      await updateSettingMutation.mutateAsync({ key: 'gift-card-subtitle', value: cardSubtitle });
+      await updateSettingMutation.mutateAsync({ key: 'gift-card-value-label', value: cardValueLabel });
+      await updateSettingMutation.mutateAsync({ key: 'gift-card-valid-text', value: cardValidText });
+      refetchCardTitle();
+      refetchCardSubtitle();
+      refetchCardValueLabel();
+      refetchCardValidText();
+      toast.success(language === 'en' ? 'Card text saved!' : 'Texto do cartão salvo!');
+    } catch (error: any) {
+      toast.error(error.message || (language === 'en' ? 'Failed to save' : 'Erro ao salvar'));
+    } finally {
+      setIsSavingText(false);
     }
   };
 
@@ -402,6 +437,72 @@ export default function GiftCardsTab() {
             </div>
           </div>
         </div>
+      </Card>
+
+      {/* Text Customization Card */}
+      <Card className="p-6">
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <CreditCard className="w-5 h-5" />
+              {language === 'en' ? 'Card Text Customization' : 'Personalização do Texto'}
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              {language === 'en'
+                ? 'Customize the text that appears on the gift card'
+                : 'Personalize o texto que aparece no vale presente'}
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div>
+            <Label className="mb-2 block">{language === 'en' ? 'Title (small text)' : 'Título (texto pequeno)'}</Label>
+            <Input
+              value={cardTitle}
+              onChange={(e) => setCardTitle(e.target.value)}
+              placeholder="GIFT CARD"
+            />
+          </div>
+          <div>
+            <Label className="mb-2 block">{language === 'en' ? 'Subtitle (brand name)' : 'Subtítulo (nome da marca)'}</Label>
+            <Input
+              value={cardSubtitle}
+              onChange={(e) => setCardSubtitle(e.target.value)}
+              placeholder="ILE ALA"
+            />
+          </div>
+          <div>
+            <Label className="mb-2 block">{language === 'en' ? 'Value Label' : 'Rótulo do Valor'}</Label>
+            <Input
+              value={cardValueLabel}
+              onChange={(e) => setCardValueLabel(e.target.value)}
+              placeholder="VALUE"
+            />
+          </div>
+          <div>
+            <Label className="mb-2 block">{language === 'en' ? 'Validity Text' : 'Texto de Validade'}</Label>
+            <Input
+              value={cardValidText}
+              onChange={(e) => setCardValidText(e.target.value)}
+              placeholder="Valid for 1 year"
+            />
+          </div>
+        </div>
+
+        <Button onClick={handleSaveTextSettings} disabled={isSavingText}>
+          {isSavingText ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              {language === 'en' ? 'Saving...' : 'Salvando...'}
+            </>
+          ) : (
+            <>
+              <Save className="w-4 h-4 mr-2" />
+              {language === 'en' ? 'Save Text' : 'Salvar Texto'}
+            </>
+          )}
+        </Button>
       </Card>
 
       {/* Value Settings Card */}

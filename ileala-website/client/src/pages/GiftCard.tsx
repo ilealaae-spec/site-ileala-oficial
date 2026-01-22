@@ -29,10 +29,20 @@ export default function GiftCard() {
   const { data: giftCardImageSetting } = trpc.settings.get.useQuery({ key: 'gift-card-image' });
   const { data: minValueSetting } = trpc.settings.get.useQuery({ key: 'gift-card-min-value' });
   const { data: maxValueSetting } = trpc.settings.get.useQuery({ key: 'gift-card-max-value' });
+  // Text customization settings
+  const { data: cardTitleSetting } = trpc.settings.get.useQuery({ key: 'gift-card-title' });
+  const { data: cardSubtitleSetting } = trpc.settings.get.useQuery({ key: 'gift-card-subtitle' });
+  const { data: cardValueLabelSetting } = trpc.settings.get.useQuery({ key: 'gift-card-value-label' });
+  const { data: cardValidTextSetting } = trpc.settings.get.useQuery({ key: 'gift-card-valid-text' });
 
   const giftCardImage = giftCardImageSetting?.value;
   const minValue = minValueSetting?.value ? parseInt(minValueSetting.value) : 50;
   const maxValue = maxValueSetting?.value ? parseInt(maxValueSetting.value) : 2000;
+  // Custom text values with defaults
+  const cardTitle = cardTitleSetting?.value || 'GIFT CARD';
+  const cardSubtitle = cardSubtitleSetting?.value || 'ILE ALA';
+  const cardValueLabel = cardValueLabelSetting?.value || 'VALUE';
+  const cardValidText = cardValidTextSetting?.value || 'Valid for 1 year';
 
   const purchaseMutation = trpc.giftCards.purchase.useMutation();
   const checkoutMutation = trpc.giftCards.createCheckoutSession.useMutation();
@@ -380,61 +390,61 @@ export default function GiftCard() {
                         className="w-full h-auto"
                       />
                       <div className="absolute inset-0 bg-black/30" />
-                      <div className="absolute inset-0 p-8 text-white flex flex-col justify-between">
+                      <div className="absolute inset-0 p-8 flex flex-col justify-between">
                         <div className="flex justify-between items-start">
                           <div>
-                            <p className="text-white/80 text-sm uppercase tracking-widest">Gift Card</p>
-                            <h2 className="text-3xl font-bold mt-1">ILE ALA</h2>
+                            <p className="text-sm uppercase tracking-widest" style={{ color: '#ceae54' }}>{cardTitle}</p>
+                            <h2 className="text-3xl font-bold mt-1" style={{ color: '#ceae54' }}>{cardSubtitle}</h2>
                           </div>
-                          <Gift className="w-10 h-10 text-white/60" />
+                          <Gift className="w-10 h-10" style={{ color: '#ceae54', opacity: 0.6 }} />
                         </div>
 
                         <div className="text-center">
-                          <p className="text-white/80 text-sm uppercase tracking-wider mb-2">Value</p>
-                          <p className="text-5xl font-bold">AED {formData.amount.toFixed(2)}</p>
+                          <p className="text-sm uppercase tracking-wider mb-2" style={{ color: '#ceae54', opacity: 0.8 }}>{cardValueLabel}</p>
+                          <p className="text-5xl font-bold" style={{ color: '#ceae54' }}>AED {formData.amount.toFixed(2)}</p>
                         </div>
 
-                        <div className="text-sm text-white/80 flex justify-between">
+                        <div className="text-sm flex justify-between" style={{ color: '#ceae54', opacity: 0.8 }}>
                           <span>Code: GC-XXXXXXXXXXXX</span>
-                          <span>Valid for 1 year</span>
+                          <span>{cardValidText}</span>
                         </div>
                       </div>
                     </div>
                   ) : (
-                    <div className="bg-gradient-to-br from-[#172d20] to-[#255238] p-8 text-white">
+                    <div className="bg-gradient-to-br from-[#172d20] to-[#255238] p-8">
                       <div className="flex justify-between items-start mb-8">
                         <div>
-                          <p className="text-white/60 text-sm uppercase tracking-widest">Gift Card</p>
-                          <h2 className="text-3xl font-bold mt-1">ILE ALA</h2>
+                          <p className="text-sm uppercase tracking-widest" style={{ color: '#ceae54', opacity: 0.8 }}>{cardTitle}</p>
+                          <h2 className="text-3xl font-bold mt-1" style={{ color: '#ceae54' }}>{cardSubtitle}</h2>
                         </div>
-                        <Gift className="w-10 h-10 text-white/40" />
+                        <Gift className="w-10 h-10" style={{ color: '#ceae54', opacity: 0.4 }} />
                       </div>
 
                       <div className="text-center py-8">
-                        <p className="text-white/60 text-sm uppercase tracking-wider mb-2">Value</p>
-                        <p className="text-5xl font-bold">AED {formData.amount.toFixed(2)}</p>
+                        <p className="text-sm uppercase tracking-wider mb-2" style={{ color: '#ceae54', opacity: 0.6 }}>{cardValueLabel}</p>
+                        <p className="text-5xl font-bold" style={{ color: '#ceae54' }}>AED {formData.amount.toFixed(2)}</p>
                       </div>
 
                       {formData.recipientName && (
-                        <div className="mt-6 pt-6 border-t border-white/20">
-                          <p className="text-white/60 text-sm">For:</p>
-                          <p className="text-lg font-medium">{formData.recipientName}</p>
+                        <div className="mt-6 pt-6 border-t" style={{ borderColor: 'rgba(206, 174, 84, 0.3)' }}>
+                          <p className="text-sm" style={{ color: '#ceae54', opacity: 0.6 }}>For:</p>
+                          <p className="text-lg font-medium" style={{ color: '#ceae54' }}>{formData.recipientName}</p>
                         </div>
                       )}
 
                       {formData.message && (
-                        <div className="mt-4 p-4 bg-white/10 rounded-lg">
-                          <p className="text-sm italic">"{formData.message}"</p>
+                        <div className="mt-4 p-4 rounded-lg" style={{ backgroundColor: 'rgba(206, 174, 84, 0.1)' }}>
+                          <p className="text-sm italic" style={{ color: '#ceae54' }}>"{formData.message}"</p>
                           {formData.senderName && (
-                            <p className="text-sm text-white/60 mt-2 text-right">— {formData.senderName}</p>
+                            <p className="text-sm mt-2 text-right" style={{ color: '#ceae54', opacity: 0.6 }}>— {formData.senderName}</p>
                           )}
                         </div>
                       )}
 
-                      <div className="mt-8 pt-4 border-t border-white/20">
-                        <div className="flex items-center justify-between text-sm text-white/60">
+                      <div className="mt-8 pt-4 border-t" style={{ borderColor: 'rgba(206, 174, 84, 0.3)' }}>
+                        <div className="flex items-center justify-between text-sm" style={{ color: '#ceae54', opacity: 0.6 }}>
                           <span>Code: GC-XXXXXXXXXXXX</span>
-                          <span>Valid for 1 year</span>
+                          <span>{cardValidText}</span>
                         </div>
                       </div>
                     </div>
