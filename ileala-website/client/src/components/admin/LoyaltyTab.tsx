@@ -2,7 +2,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { trpc } from '@/lib/trpc';
-import { Loader2, Crown, Users, TrendingUp, Search, Eye, Pencil, ArrowUpDown, Save, X, Upload, Image as ImageIcon } from 'lucide-react';
+import { Loader2, Crown, Users, TrendingUp, Search, Eye, Pencil, ArrowUpDown, Save, X, Upload, Image as ImageIcon, DollarSign } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -172,6 +172,9 @@ export default function LoyaltyTab() {
   const [newMemberTier, setNewMemberTier] = useState('green');
   const [isUploading, setIsUploading] = useState(false);
   const [isUploadingTierImage, setIsUploadingTierImage] = useState(false);
+  const [isEditSpendingOpen, setIsEditSpendingOpen] = useState(false);
+  const [spendingCurrentYear, setSpendingCurrentYear] = useState('');
+  const [spendingAllTime, setSpendingAllTime] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const tierImageInputRef = useRef<HTMLInputElement>(null);
 
@@ -267,6 +270,24 @@ export default function LoyaltyTab() {
     },
     onError: (error) => {
       toast.error(error.message || (language === 'en' ? 'Failed to delete member' : 'Erro ao excluir membro'));
+    },
+  });
+
+  // Update member spending mutation
+  const updateSpendingMutation = trpc.admin.loyalty.updateMemberSpending.useMutation({
+    onSuccess: (data) => {
+      if (data.success) {
+        toast.success(language === 'en' ? 'Spending updated successfully!' : 'Valores atualizados com sucesso!');
+        refetchMembers();
+        setIsEditSpendingOpen(false);
+        setSpendingCurrentYear('');
+        setSpendingAllTime('');
+      } else {
+        toast.error(data.message);
+      }
+    },
+    onError: (error) => {
+      toast.error(error.message || (language === 'en' ? 'Failed to update spending' : 'Erro ao atualizar valores'));
     },
   });
 
@@ -840,6 +861,19 @@ export default function LoyaltyTab() {
                           title={language === 'en' ? 'Change Tier' : 'Alterar Nível'}
                         >
                           <Pencil className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedMember(item);
+                            setSpendingCurrentYear((item.member.totalSpentCurrentYear / 100).toFixed(0));
+                            setSpendingAllTime((item.member.totalSpentAllTime / 100).toFixed(0));
+                            setIsEditSpendingOpen(true);
+                          }}
+                          title={language === 'en' ? 'Edit Spending' : 'Editar Valores'}
+                        >
+                          <DollarSign className="w-4 h-4" />
                         </Button>
                       </div>
                     </td>
@@ -1427,6 +1461,99 @@ export default function LoyaltyTab() {
                   <Users className="w-4 h-4 mr-2" />
                 )}
                 {language === 'en' ? 'Add Member' : 'Adicionar Membro'}
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Spending Dialog */}
+      <Dialog open={isEditSpendingOpen} onOpenChange={(open) => {
+        setIsEditSpendingOpen(open);
+        if (!open) {
+          setSpendingCurrentYear('');
+          setSpendingAllTime('');
+        }
+      }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <DollarSign className="w-5 h-5" />
+              {language === 'en' ? 'Edit Spending Values' : 'Editar Valores Gastos'}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="p-3 bg-muted/50 rounded-lg">
+              <p className="font-medium">{selectedMember?.user?.name || 'N/A'}</p>
+              <p className="text-sm text-muted-foreground">{selectedMember?.user?.email}</p>
+              <div className="mt-2">
+                {language === 'en' ? 'Current tier: ' : 'Nível atual: '}
+                {getTierBadge(selectedMember?.member?.tier || 'green')}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>{language === 'en' ? 'Spent This Year (AED)' : 'Gasto Este Ano (AED)'}</Label>
+              <Input
+                type="number"
+                min="0"
+                placeholder="0"
+                value={spendingCurrentYear}
+                onChange={(e) => setSpendingCurrentYear(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                {language === 'en'
+                  ? 'Current value: ' + formatPrice(selectedMember?.member?.totalSpentCurrentYear || 0)
+                  : 'Valor atual: ' + formatPrice(selectedMember?.member?.totalSpentCurrentYear || 0)}
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>{language === 'en' ? 'Total Spent All Time (AED)' : 'Total Gasto (AED)'}</Label>
+              <Input
+                type="number"
+                min="0"
+                placeholder="0"
+                value={spendingAllTime}
+                onChange={(e) => setSpendingAllTime(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                {language === 'en'
+                  ? 'Current value: ' + formatPrice(selectedMember?.member?.totalSpentAllTime || 0)
+                  : 'Valor atual: ' + formatPrice(selectedMember?.member?.totalSpentAllTime || 0)}
+              </p>
+            </div>
+
+            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-sm text-yellow-800">
+                {language === 'en'
+                  ? '⚠️ This will manually update the spending values. Use with caution.'
+                  : '⚠️ Isso atualizará manualmente os valores gastos. Use com cuidado.'}
+              </p>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsEditSpendingOpen(false)}>
+                {language === 'en' ? 'Cancel' : 'Cancelar'}
+              </Button>
+              <Button
+                onClick={() => {
+                  if (!selectedMember?.member?.id) return;
+                  updateSpendingMutation.mutate({
+                    memberId: selectedMember.member.id,
+                    totalSpentCurrentYear: spendingCurrentYear ? parseFloat(spendingCurrentYear) * 100 : undefined,
+                    totalSpentAllTime: spendingAllTime ? parseFloat(spendingAllTime) * 100 : undefined,
+                  });
+                }}
+                disabled={updateSpendingMutation.isPending || (!spendingCurrentYear && !spendingAllTime)}
+              >
+                {updateSpendingMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4 mr-2" />
+                )}
+                {language === 'en' ? 'Save Changes' : 'Salvar Alterações'}
               </Button>
             </DialogFooter>
           </div>

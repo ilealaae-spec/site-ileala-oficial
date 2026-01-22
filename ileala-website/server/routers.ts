@@ -2603,6 +2603,60 @@ export const appRouter = router({
           if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
           return await db.deleteLoyaltyMember(input.memberId);
         }),
+
+      // Update member spending values manually
+      updateMemberSpending: protectedProcedure
+        .input(z.object({
+          memberId: z.number(),
+          totalSpentCurrentYear: z.number().min(0).optional(),
+          totalSpentAllTime: z.number().min(0).optional(),
+        }))
+        .mutation(async ({ ctx, input }) => {
+          if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+          if (!ctx.user?.id) throw new Error('Admin ID required');
+
+          const sqlClient = await db.getSql();
+          if (!sqlClient) throw new Error('Database not available');
+
+          // Build update object
+          const updates: Record<string, any> = {};
+          if (input.totalSpentCurrentYear !== undefined) {
+            updates.totalSpentCurrentYear = input.totalSpentCurrentYear;
+          }
+          if (input.totalSpentAllTime !== undefined) {
+            updates.totalSpentAllTime = input.totalSpentAllTime;
+          }
+
+          if (Object.keys(updates).length === 0) {
+            return { success: false, message: 'No values to update' };
+          }
+
+          // Update member spending
+          await sqlClient`
+            UPDATE loyalty_members
+            SET
+              "totalSpentCurrentYear" = COALESCE(${updates.totalSpentCurrentYear ?? null}, "totalSpentCurrentYear"),
+              "totalSpentAllTime" = COALESCE(${updates.totalSpentAllTime ?? null}, "totalSpentAllTime"),
+              "updatedAt" = NOW()
+            WHERE id = ${input.memberId}
+          `;
+
+          // Log the activity
+          await sqlClient`
+            INSERT INTO loyalty_activity_log ("memberId", "activityType", description, metadata, "createdAt")
+            VALUES (
+              ${input.memberId},
+              'manual_adjustment',
+              ${'Spending values updated manually by admin'},
+              ${JSON.stringify({ adminId: ctx.user.id, updates })},
+              NOW()
+            )
+          `;
+
+          logger.info(`[Loyalty] Admin ${ctx.user.id} updated spending for member ${input.memberId}:`, updates);
+
+          return { success: true, message: 'Spending updated successfully' };
+        }),
     }),
   }),
 
