@@ -2557,6 +2557,27 @@ export const appRouter = router({
           const success = await db.updateMemberStatus(input.memberId, input.active);
           return { success };
         }),
+
+      // Add member manually by email
+      addMember: protectedProcedure
+        .input(z.object({
+          email: z.string().email(),
+          tier: z.enum(['green', 'silver', 'gold', 'platinum']).optional().default('green'),
+        }))
+        .mutation(async ({ ctx, input }) => {
+          if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+          return await db.addLoyaltyMemberByEmail(input.email, input.tier);
+        }),
+
+      // Delete member
+      deleteMember: protectedProcedure
+        .input(z.object({
+          memberId: z.number(),
+        }))
+        .mutation(async ({ ctx, input }) => {
+          if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+          return await db.deleteLoyaltyMember(input.memberId);
+        }),
     }),
   }),
 

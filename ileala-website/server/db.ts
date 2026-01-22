@@ -3235,3 +3235,62 @@ export async function updateMemberStatus(memberId: number, active: number): Prom
     return false;
   }
 }
+
+// Add loyalty member by email (admin function)
+export async function addLoyaltyMemberByEmail(email: string, tier: string = 'green'): Promise<{ success: boolean; message: string; member?: any }> {
+  const db = await getDb();
+  if (!db) return { success: false, message: 'Database not available' };
+
+  try {
+    // Find user by email
+    const [user] = await db.select().from(users).where(eq(users.email, email.toLowerCase()));
+
+    if (!user) {
+      return { success: false, message: 'User not found with this email. User must have an account first.' };
+    }
+
+    // Check if already a member
+    const [existingMember] = await db.select().from(loyaltyMembers).where(eq(loyaltyMembers.userId, user.id));
+
+    if (existingMember) {
+      return { success: false, message: 'This user is already a loyalty member.' };
+    }
+
+    // Create new member
+    const [newMember] = await db.insert(loyaltyMembers).values({
+      userId: user.id,
+      tier: tier as any,
+      totalSpentCurrentYear: 0,
+      totalSpentAllTime: 0,
+      totalOrders: 0,
+      active: 1,
+      joinedAt: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }).returning();
+
+    return { success: true, message: 'Member added successfully!', member: newMember };
+  } catch (error) {
+    logger.error("[Loyalty] Failed to add member by email:", error);
+    return { success: false, message: 'Failed to add member' };
+  }
+}
+
+// Delete loyalty member (admin function)
+export async function deleteLoyaltyMember(memberId: number): Promise<{ success: boolean; message: string }> {
+  const db = await getDb();
+  if (!db) return { success: false, message: 'Database not available' };
+
+  try {
+    // First delete any activity logs
+    await db.delete(loyaltyActivity).where(eq(loyaltyActivity.memberId, memberId));
+
+    // Then delete the member
+    await db.delete(loyaltyMembers).where(eq(loyaltyMembers.id, memberId));
+
+    return { success: true, message: 'Member deleted successfully!' };
+  } catch (error) {
+    logger.error("[Loyalty] Failed to delete member:", error);
+    return { success: false, message: 'Failed to delete member' };
+  }
+}

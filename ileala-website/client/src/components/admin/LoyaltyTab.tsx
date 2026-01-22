@@ -166,6 +166,9 @@ export default function LoyaltyTab() {
   const [isChangeTierOpen, setIsChangeTierOpen] = useState(false);
   const [newTier, setNewTier] = useState('');
   const [tierChangeReason, setTierChangeReason] = useState('');
+  const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
+  const [newMemberEmail, setNewMemberEmail] = useState('');
+  const [newMemberTier, setNewMemberTier] = useState('green');
   const [isUploading, setIsUploading] = useState(false);
   const [isUploadingTierImage, setIsUploadingTierImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -228,6 +231,41 @@ export default function LoyaltyTab() {
     },
     onError: (error) => {
       toast.error(error.message || (language === 'en' ? 'Failed to change tier' : 'Erro ao alterar nível'));
+    },
+  });
+
+  // Add member mutation
+  const addMemberMutation = trpc.admin.loyalty.addMember.useMutation({
+    onSuccess: (data) => {
+      if (data.success) {
+        toast.success(data.message);
+        refetchMembers();
+        setIsAddMemberOpen(false);
+        setNewMemberEmail('');
+        setNewMemberTier('green');
+      } else {
+        toast.error(data.message);
+      }
+    },
+    onError: (error) => {
+      toast.error(error.message || (language === 'en' ? 'Failed to add member' : 'Erro ao adicionar membro'));
+    },
+  });
+
+  // Delete member mutation
+  const deleteMemberMutation = trpc.admin.loyalty.deleteMember.useMutation({
+    onSuccess: (data) => {
+      if (data.success) {
+        toast.success(data.message);
+        refetchMembers();
+        setIsDetailOpen(false);
+        setSelectedMember(null);
+      } else {
+        toast.error(data.message);
+      }
+    },
+    onError: (error) => {
+      toast.error(error.message || (language === 'en' ? 'Failed to delete member' : 'Erro ao excluir membro'));
     },
   });
 
@@ -706,18 +744,28 @@ export default function LoyaltyTab() {
           <h3 className="text-lg font-semibold">
             {language === 'en' ? 'Members' : 'Membros'}
           </h3>
-          <Select value={tierFilter} onValueChange={setTierFilter}>
-            <SelectTrigger className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{language === 'en' ? 'All Tiers' : 'Todos'}</SelectItem>
-              <SelectItem value="green">Green</SelectItem>
-              <SelectItem value="silver">Silver</SelectItem>
-              <SelectItem value="gold">Gold</SelectItem>
-              <SelectItem value="platinum">Platinum</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsAddMemberOpen(true)}
+            >
+              <Users className="w-4 h-4 mr-2" />
+              {language === 'en' ? 'Add Member' : 'Adicionar Membro'}
+            </Button>
+            <Select value={tierFilter} onValueChange={setTierFilter}>
+              <SelectTrigger className="w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{language === 'en' ? 'All Tiers' : 'Todos'}</SelectItem>
+                <SelectItem value="green">Green</SelectItem>
+                <SelectItem value="silver">Silver</SelectItem>
+                <SelectItem value="gold">Gold</SelectItem>
+                <SelectItem value="platinum">Platinum</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {membersLoading ? (
@@ -803,26 +851,35 @@ export default function LoyaltyTab() {
               {/* Member Info */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div
-                    className="w-16 h-16 rounded-full flex items-center justify-center text-2xl"
-                    style={{
-                      background: tierConfig[memberDetail.tier]?.bg === 'bg-gray-800'
-                        ? '#1f2937'
-                        : tierConfig[memberDetail.tier]?.bg.replace('bg-', '').replace('-100', '').replace('-200', ''),
-                    }}
-                  >
-                    {tierConfig[memberDetail.tier]?.icon}
-                  </div>
                   <div>
                     <h3 className="text-xl font-bold">{memberDetail.name || 'N/A'}</h3>
                     <p className="text-muted-foreground">{memberDetail.email}</p>
                     <div className="mt-1">{getTierBadge(memberDetail.tier)}</div>
                   </div>
                 </div>
-                <Button variant="outline" size="sm" onClick={openChangeTier}>
-                  <ArrowUpDown className="w-4 h-4 mr-2" />
-                  {language === 'en' ? 'Change Tier' : 'Alterar Nível'}
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={openChangeTier}>
+                    <ArrowUpDown className="w-4 h-4 mr-2" />
+                    {language === 'en' ? 'Change Tier' : 'Alterar Nível'}
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => {
+                      if (confirm(language === 'en' ? 'Are you sure you want to delete this member? This action cannot be undone.' : 'Tem certeza que deseja excluir este membro? Esta ação não pode ser desfeita.')) {
+                        deleteMemberMutation.mutate({ memberId: selectedMember?.member?.id });
+                      }
+                    }}
+                    disabled={deleteMemberMutation.isPending}
+                  >
+                    {deleteMemberMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <X className="w-4 h-4 mr-2" />
+                    )}
+                    {language === 'en' ? 'Delete' : 'Excluir'}
+                  </Button>
+                </div>
               </div>
 
               {/* Stats Grid */}
@@ -1255,6 +1312,74 @@ export default function LoyaltyTab() {
                   <ArrowUpDown className="w-4 h-4 mr-2" />
                 )}
                 {language === 'en' ? 'Change Tier' : 'Alterar Nível'}
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Member Dialog */}
+      <Dialog open={isAddMemberOpen} onOpenChange={(open) => {
+        setIsAddMemberOpen(open);
+        if (!open) {
+          setNewMemberEmail('');
+          setNewMemberTier('green');
+        }
+      }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Users className="w-5 h-5" />
+              {language === 'en' ? 'Add Member' : 'Adicionar Membro'}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              {language === 'en'
+                ? 'Add an existing user to the loyalty program. The user must have an account.'
+                : 'Adicione um usuário existente ao programa de fidelidade. O usuário deve ter uma conta.'}
+            </p>
+
+            <div className="space-y-2">
+              <Label>{language === 'en' ? 'User Email' : 'Email do Usuário'}</Label>
+              <Input
+                type="email"
+                placeholder="user@example.com"
+                value={newMemberEmail}
+                onChange={(e) => setNewMemberEmail(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>{language === 'en' ? 'Initial Tier' : 'Nível Inicial'}</Label>
+              <Select value={newMemberTier} onValueChange={setNewMemberTier}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="green">Green</SelectItem>
+                  <SelectItem value="silver">Silver</SelectItem>
+                  <SelectItem value="gold">Gold</SelectItem>
+                  <SelectItem value="platinum">Platinum</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsAddMemberOpen(false)}>
+                {language === 'en' ? 'Cancel' : 'Cancelar'}
+              </Button>
+              <Button
+                onClick={() => addMemberMutation.mutate({ email: newMemberEmail, tier: newMemberTier as any })}
+                disabled={addMemberMutation.isPending || !newMemberEmail.trim()}
+              >
+                {addMemberMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Users className="w-4 h-4 mr-2" />
+                )}
+                {language === 'en' ? 'Add Member' : 'Adicionar Membro'}
               </Button>
             </DialogFooter>
           </div>
