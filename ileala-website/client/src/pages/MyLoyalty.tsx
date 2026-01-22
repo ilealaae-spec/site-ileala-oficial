@@ -655,27 +655,39 @@ export default function MyLoyalty() {
                 const config = tierConfig[tier.tier];
                 const isCurrentTier = tier.tier === member?.tier;
                 const isSelected = selectedTierView === tier.tier;
+                const hasImage = tier.iconUrl;
                 return (
                   <div
                     key={tier.id}
                     onClick={() => setSelectedTierView(isSelected ? null : tier.tier)}
-                    className={`rounded-xl p-4 text-center transition-all cursor-pointer hover:scale-105 ${
+                    className={`rounded-xl p-4 text-center transition-all cursor-pointer hover:scale-105 relative overflow-hidden ${
                       isCurrentTier ? 'ring-2 ring-primary' : ''
                     } ${isSelected ? 'ring-2 ring-yellow-400 scale-105 shadow-lg' : ''}`}
-                    style={{ background: config?.gradient || '#ccc' }}
+                    style={{ background: hasImage ? undefined : (config?.gradient || '#ccc') }}
                   >
-                    <p className={`font-bold text-lg mb-1 ${config?.textColor}`}>
-                      {getTierDisplayName(tier, language)}
-                    </p>
-                    <p className={`text-sm opacity-80 ${config?.textColor}`}>
-                      {formatPrice(tier.minSpend)}
-                      {tier.maxSpend ? ` - ${formatPrice(tier.maxSpend)}` : '+'}
-                    </p>
-                    {isCurrentTier && (
-                      <p className={`text-xs mt-2 font-semibold ${config?.textColor}`}>
-                        {language === 'en' ? 'YOUR LEVEL' : 'SEU NÍVEL'}
-                      </p>
+                    {hasImage && (
+                      <>
+                        <div
+                          className="absolute inset-0 bg-cover bg-center"
+                          style={{ backgroundImage: `url(${tier.iconUrl})` }}
+                        />
+                        <div className="absolute inset-0 bg-black/40" />
+                      </>
                     )}
+                    <div className="relative z-10">
+                      <p className={`font-bold text-lg mb-1 ${hasImage ? 'text-white' : config?.textColor}`}>
+                        {getTierDisplayName(tier, language)}
+                      </p>
+                      <p className={`text-sm opacity-80 ${hasImage ? 'text-white' : config?.textColor}`}>
+                        {formatPrice(tier.minSpend)}
+                        {tier.maxSpend ? ` - ${formatPrice(tier.maxSpend)}` : '+'}
+                      </p>
+                      {isCurrentTier && (
+                        <p className={`text-xs mt-2 font-semibold ${hasImage ? 'text-white' : config?.textColor}`}>
+                          {language === 'en' ? 'YOUR LEVEL' : 'SEU NÍVEL'}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 );
               })}
