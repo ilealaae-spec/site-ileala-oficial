@@ -2729,7 +2729,7 @@ export const appRouter = router({
       .input(z.object({
         sessionId: z.string(),
       }))
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }) => {
         if (!stripe) {
           throw new Error('Stripe is not configured. Please set STRIPE_SECRET_KEY environment variable.');
         }
@@ -2757,6 +2757,30 @@ export const appRouter = router({
                   price: item.priceAtPurchase,
                 }))
               );
+
+              // Update loyalty program and check for tier upgrade
+              if (order.userId) {
+                try {
+                  // Convert AED to fils (multiply by 100) for loyalty tracking
+                  const amountInFils = Math.round(order.totalAmount * 100);
+                  const loyaltyResult = await db.updateMemberSpending(order.userId, amountInFils, orderId);
+
+                  // If tier changed, send congratulations email
+                  if (loyaltyResult.tierChanged && loyaltyResult.newTier && loyaltyResult.member) {
+                    const { sendTierUpgradeEmail } = await import('./email');
+                    await sendTierUpgradeEmail(
+                      order.customerEmail,
+                      order.customerName || 'Valued Customer',
+                      loyaltyResult.newTier,
+                      loyaltyResult.member.previousTier || 'green'
+                    );
+                    logger.info(`[Loyalty] Tier upgrade email sent to ${order.customerEmail} (${loyaltyResult.member.previousTier} -> ${loyaltyResult.newTier})`);
+                  }
+                } catch (loyaltyError) {
+                  logger.error('[Loyalty] Failed to update member spending or send tier email:', loyaltyError);
+                  // Don't fail payment verification if loyalty update fails
+                }
+              }
             }
           } catch {
             // Don't fail payment verification if email fails
