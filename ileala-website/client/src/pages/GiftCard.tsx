@@ -25,22 +25,30 @@ export default function GiftCard() {
     scheduledDate: '',
   });
 
-  // Fetch gift card image from settings
+  // Fetch gift card settings
   const { data: giftCardImageSetting } = trpc.settings.get.useQuery({ key: 'gift-card-image' });
+  const { data: minValueSetting } = trpc.settings.get.useQuery({ key: 'gift-card-min-value' });
+  const { data: maxValueSetting } = trpc.settings.get.useQuery({ key: 'gift-card-max-value' });
+
   const giftCardImage = giftCardImageSetting?.value;
+  const minValue = minValueSetting?.value ? parseInt(minValueSetting.value) : 50;
+  const maxValue = maxValueSetting?.value ? parseInt(maxValueSetting.value) : 2000;
 
   const purchaseMutation = trpc.giftCards.purchase.useMutation();
   const checkoutMutation = trpc.giftCards.createCheckoutSession.useMutation();
 
-  const presetAmounts = [50, 100, 200, 500, 1000];
+  // Generate preset amounts based on min/max
+  const presetAmounts = [minValue, 100, 200, 500, maxValue].filter((v, i, arr) =>
+    v >= minValue && v <= maxValue && arr.indexOf(v) === i
+  ).sort((a, b) => a - b).slice(0, 5);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (formData.amount < 50 || formData.amount > 10000) {
+    if (formData.amount < minValue || formData.amount > maxValue) {
       toast.error(language === 'en'
-        ? 'Amount must be between 50 and 10,000 AED'
-        : 'O valor deve estar entre 50 e 10.000 AED');
+        ? `Amount must be between ${minValue} and ${maxValue.toLocaleString()} AED`
+        : `O valor deve estar entre ${minValue} e ${maxValue.toLocaleString()} AED`);
       return;
     }
 
@@ -103,7 +111,7 @@ export default function GiftCard() {
       description: 'Send a digital gift card to someone special. They\'ll receive it via email and can use it on any purchase.',
       amountLabel: 'Select Amount (AED)',
       customAmount: 'Custom Amount',
-      minMax: 'Min 50 AED - Max 10,000 AED',
+      minMax: `Min ${minValue} AED - Max ${maxValue.toLocaleString()} AED`,
       recipientEmail: 'Recipient Email',
       recipientEmailPlaceholder: 'friend@email.com',
       recipientName: 'Recipient Name (Optional)',
@@ -134,7 +142,7 @@ export default function GiftCard() {
       description: 'Envie um vale presente digital para alguém especial. Eles receberão por email e podem usar em qualquer compra.',
       amountLabel: 'Selecione o Valor (AED)',
       customAmount: 'Valor Personalizado',
-      minMax: 'Mín 50 AED - Máx 10.000 AED',
+      minMax: `Mín ${minValue} AED - Máx ${maxValue.toLocaleString('pt-BR')} AED`,
       recipientEmail: 'Email do Destinatário',
       recipientEmailPlaceholder: 'amigo@email.com',
       recipientName: 'Nome do Destinatário (Opcional)',
@@ -218,8 +226,8 @@ export default function GiftCard() {
                           id="amount"
                           name="amount"
                           type="number"
-                          min={50}
-                          max={10000}
+                          min={minValue}
+                          max={maxValue}
                           step={1}
                           value={formData.amount}
                           onChange={handleChange}

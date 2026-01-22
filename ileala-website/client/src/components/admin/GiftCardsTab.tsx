@@ -2,10 +2,11 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { trpc } from '@/lib/trpc';
-import { Loader2, Gift, Copy, Mail, RefreshCw, XCircle, Calendar, User, CreditCard, Upload, Image as ImageIcon } from 'lucide-react';
+import { Loader2, Gift, Copy, Mail, RefreshCw, XCircle, Calendar, User, CreditCard, Upload, Image as ImageIcon, CheckCircle, AlertCircle, Clock, Save, Settings } from 'lucide-react';
 import { toast } from 'sonner';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -28,14 +29,25 @@ export default function GiftCardsTab() {
   const [selectedCard, setSelectedCard] = useState<any>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [minValue, setMinValue] = useState('50');
+  const [maxValue, setMaxValue] = useState('2000');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const utils = trpc.useUtils();
   const { data: giftCards, isLoading } = trpc.admin.giftCards.list.useQuery({ status: statusFilter });
   const { data: stats } = trpc.admin.giftCards.stats.useQuery();
 
-  // Fetch gift card image setting
+  // Fetch gift card settings
   const { data: giftCardImageSetting, refetch: refetchGiftCardImage } = trpc.settings.get.useQuery({ key: 'gift-card-image' });
+  const { data: minValueSetting, refetch: refetchMinValue } = trpc.settings.get.useQuery({ key: 'gift-card-min-value' });
+  const { data: maxValueSetting, refetch: refetchMaxValue } = trpc.settings.get.useQuery({ key: 'gift-card-max-value' });
+
+  // Initialize values from settings
+  useEffect(() => {
+    if (minValueSetting?.value) setMinValue(minValueSetting.value);
+    if (maxValueSetting?.value) setMaxValue(maxValueSetting.value);
+  }, [minValueSetting, maxValueSetting]);
 
   const cancelMutation = trpc.admin.giftCards.cancel.useMutation({
     onSuccess: () => {
@@ -114,6 +126,35 @@ export default function GiftCardsTab() {
     reader.readAsDataURL(file);
   };
 
+  // Save min/max value settings
+  const handleSaveValueSettings = async () => {
+    const min = parseInt(minValue);
+    const max = parseInt(maxValue);
+
+    if (isNaN(min) || isNaN(max) || min <= 0 || max <= 0) {
+      toast.error(language === 'en' ? 'Please enter valid values' : 'Digite valores válidos');
+      return;
+    }
+
+    if (min >= max) {
+      toast.error(language === 'en' ? 'Minimum must be less than maximum' : 'Mínimo deve ser menor que máximo');
+      return;
+    }
+
+    setIsSavingSettings(true);
+    try {
+      await updateSettingMutation.mutateAsync({ key: 'gift-card-min-value', value: minValue });
+      await updateSettingMutation.mutateAsync({ key: 'gift-card-max-value', value: maxValue });
+      refetchMinValue();
+      refetchMaxValue();
+      toast.success(language === 'en' ? 'Value limits saved!' : 'Limites de valor salvos!');
+    } catch (error: any) {
+      toast.error(error.message || (language === 'en' ? 'Failed to save' : 'Erro ao salvar'));
+    } finally {
+      setIsSavingSettings(false);
+    }
+  };
+
   const copyCode = (code: string) => {
     navigator.clipboard.writeText(code);
     toast.success(language === 'en' ? 'Code copied!' : 'Código copiado!');
@@ -145,6 +186,36 @@ export default function GiftCardsTab() {
     return (
       <span className={`text-xs px-2 py-1 rounded ${config.bg} ${config.text}`}>
         {language === 'en' ? config.label.en : config.label.pt}
+      </span>
+    );
+  };
+
+  // Email delivery status indicator
+  const getEmailStatusBadge = (card: any) => {
+    if (card.deliveredAt) {
+      return (
+        <span className="flex items-center gap-1 text-xs px-2 py-1 rounded bg-green-100 text-green-700" title={`${language === 'en' ? 'Delivered' : 'Entregue'}: ${formatDate(card.deliveredAt)}`}>
+          <CheckCircle className="w-3 h-3" />
+          {language === 'en' ? 'Email Sent' : 'Email Enviado'}
+        </span>
+      );
+    }
+    if (card.deliveryType === 'scheduled' && card.scheduledDate) {
+      const scheduledDate = new Date(card.scheduledDate);
+      const now = new Date();
+      if (scheduledDate > now) {
+        return (
+          <span className="flex items-center gap-1 text-xs px-2 py-1 rounded bg-orange-100 text-orange-700" title={formatDate(card.scheduledDate)}>
+            <Clock className="w-3 h-3" />
+            {language === 'en' ? 'Scheduled' : 'Agendado'}
+          </span>
+        );
+      }
+    }
+    return (
+      <span className="flex items-center gap-1 text-xs px-2 py-1 rounded bg-red-100 text-red-700">
+        <AlertCircle className="w-3 h-3" />
+        {language === 'en' ? 'Not Sent' : 'Não Enviado'}
       </span>
     );
   };
@@ -270,6 +341,62 @@ export default function GiftCardsTab() {
         </div>
       </Card>
 
+      {/* Value Settings Card */}
+      <Card className="p-6">
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <Settings className="w-5 h-5" />
+              {language === 'en' ? 'Value Limits' : 'Limites de Valor'}
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              {language === 'en'
+                ? 'Set minimum and maximum gift card values customers can purchase'
+                : 'Defina os valores mínimo e máximo que clientes podem comprar'}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-end gap-4">
+          <div className="w-40">
+            <Label className="mb-2 block">{language === 'en' ? 'Minimum (AED)' : 'Mínimo (AED)'}</Label>
+            <Input
+              type="number"
+              value={minValue}
+              onChange={(e) => setMinValue(e.target.value)}
+              min="1"
+              className="font-mono"
+            />
+          </div>
+          <div className="w-40">
+            <Label className="mb-2 block">{language === 'en' ? 'Maximum (AED)' : 'Máximo (AED)'}</Label>
+            <Input
+              type="number"
+              value={maxValue}
+              onChange={(e) => setMaxValue(e.target.value)}
+              min="1"
+              className="font-mono"
+            />
+          </div>
+          <Button
+            onClick={handleSaveValueSettings}
+            disabled={isSavingSettings}
+          >
+            {isSavingSettings ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                {language === 'en' ? 'Saving...' : 'Salvando...'}
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4 mr-2" />
+                {language === 'en' ? 'Save Limits' : 'Salvar Limites'}
+              </>
+            )}
+          </Button>
+        </div>
+      </Card>
+
       {/* Stats Cards */}
       {stats && (
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
@@ -365,9 +492,10 @@ export default function GiftCardsTab() {
                       {language === 'en' ? 'Expires:' : 'Expira:'} {formatDate(card.validUntil)}
                     </p>
 
-                    <div className="flex items-center gap-2 pt-2">
+                    <div className="flex flex-wrap items-center gap-2 pt-2">
                       {getStatusBadge(card.status)}
-                      {card.deliveryType === 'scheduled' && !card.deliveredAt && (
+                      {getEmailStatusBadge(card)}
+                      {card.deliveryType === 'scheduled' && !card.deliveredAt && card.scheduledDate && new Date(card.scheduledDate) > new Date() && (
                         <span className="text-xs px-2 py-1 rounded bg-orange-100 text-orange-700">
                           {language === 'en' ? 'Scheduled' : 'Agendado'}
                         </span>
@@ -435,7 +563,10 @@ export default function GiftCardsTab() {
                   {language === 'en' ? 'Gift Card Code' : 'Código do Vale'}
                 </p>
                 <p className="text-3xl font-bold font-mono text-purple-800">{selectedCard.code}</p>
-                <div className="mt-4">{getStatusBadge(selectedCard.status)}</div>
+                <div className="flex items-center justify-center gap-2 mt-4">
+                  {getStatusBadge(selectedCard.status)}
+                  {getEmailStatusBadge(selectedCard)}
+                </div>
               </div>
 
               {/* Values */}
