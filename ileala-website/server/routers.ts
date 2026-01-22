@@ -942,8 +942,12 @@ export const appRouter = router({
       .query(async ({ input, ctx }) => {
         if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
         const subscribers = await db.getAllNewsletterSubscribers(input?.activeOnly ?? true);
-        console.log('[Newsletter] Returning subscribers:', JSON.stringify(subscribers.slice(0, 2)));
-        return subscribers;
+        console.log('[Newsletter] Raw subscribers sample:', JSON.stringify(subscribers.slice(0, 2)));
+        // Ensure id is always returned as a number
+        return subscribers.map((sub: any) => ({
+          ...sub,
+          id: Number(sub.id) || 0,
+        }));
       }),
     stats: protectedProcedure.query(async ({ ctx }) => {
       if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
