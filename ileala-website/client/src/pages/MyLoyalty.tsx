@@ -289,17 +289,6 @@ export default function MyLoyalty() {
 
   const t = content[language];
 
-  // Get tier display name
-  const getTierDisplayName = (tier: string) => {
-    const names: Record<string, { en: string; pt: string }> = {
-      green: { en: 'Green Member', pt: 'Membro Green' },
-      silver: { en: 'Silver Member', pt: 'Membro Silver' },
-      gold: { en: 'Gold Member', pt: 'Membro Gold' },
-      platinum: { en: 'Black Member', pt: 'Membro Black' },
-    };
-    return names[tier]?.[language] || tier;
-  };
-
   return (
     <div className="w-full">
       {/* Hero Section for logged in users */}
