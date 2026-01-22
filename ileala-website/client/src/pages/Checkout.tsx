@@ -276,7 +276,7 @@ export default function Checkout() {
     const subtotal = calculateTotal();
     const discount = appliedCoupon?.discount || 0;
     const shipping = getShippingCost();
-    const giftCardDiscount = appliedGiftCard?.amountToUse || 0;
+    const giftCardDiscount = (appliedGiftCard?.amountToUse || 0) / 100; // Convert fils to AED
     return Math.max(0, subtotal - discount + shipping - giftCardDiscount); // VAT already included, no need to add
   };
 
@@ -325,14 +325,14 @@ export default function Checkout() {
 
     try {
       const result = await validateGiftCardQuery.refetch();
-      if (result.data?.valid && result.data.balance > 0) {
+      if (result.data?.valid && result.data.giftCard && result.data.giftCard.balanceRemaining > 0) {
         // Calculate how much of the gift card to use (up to the remaining total after coupon)
         const totalAfterCoupon = calculateTotal() - (appliedCoupon?.discount || 0) + getShippingCost();
-        const amountToUse = Math.min(result.data.balance, totalAfterCoupon);
+        const amountToUse = Math.min(result.data.giftCard.balanceRemaining, totalAfterCoupon * 100); // Convert AED to fils
 
         setAppliedGiftCard({
           code: giftCardCode.toUpperCase(),
-          balance: result.data.balance,
+          balance: result.data.giftCard.balanceRemaining,
           amountToUse,
         });
         setGiftCardError('');
@@ -405,6 +405,8 @@ export default function Checkout() {
       shippingAddress: fullAddress,
       couponCode: appliedCoupon?.code,
       shippingCost: getShippingCost(),
+      giftCardCode: appliedGiftCard?.code,
+      giftCardAmount: appliedGiftCard?.amountToUse,
     });
   };
 

@@ -1652,6 +1652,8 @@ export const appRouter = router({
         customerPhone: phoneSchema,
         couponCode: couponCodeSchema.optional(),
         shippingCost: z.number().min(0).max(500).optional().default(0),
+        giftCardCode: z.string().min(10).optional(),
+        giftCardAmount: z.number().min(0).optional(), // Amount to use in fils
       }))
       .mutation(async ({ input, ctx }) => {
         if (!ctx.user) throw new Error('Not authenticated');
@@ -1677,6 +1679,29 @@ export const appRouter = router({
         const shippingCost = input.shippingCost || 0;
         totalAmount = totalAmount + shippingCost;
 
+        // Apply gift card if provided
+        let giftCardDiscountAmount = 0;
+        let validatedGiftCard: Awaited<ReturnType<typeof db.validateGiftCard>>['giftCard'] | null = null;
+
+        if (input.giftCardCode && input.giftCardAmount && input.giftCardAmount > 0) {
+          const giftCardValidation = await db.validateGiftCard(input.giftCardCode);
+          if (!giftCardValidation.valid || !giftCardValidation.giftCard) {
+            throw new Error(giftCardValidation.message || 'Invalid gift card');
+          }
+
+          validatedGiftCard = giftCardValidation.giftCard;
+
+          // Ensure we don't use more than the gift card balance or the order total
+          const maxGiftCardAmount = Math.min(
+            input.giftCardAmount,
+            validatedGiftCard.balanceRemaining,
+            totalAmount * 100 // Convert to fils for comparison
+          );
+
+          giftCardDiscountAmount = maxGiftCardAmount; // In fils
+          totalAmount = Math.max(0, totalAmount - (giftCardDiscountAmount / 100)); // Convert fils to AED
+        }
+
         // Create order (shippingCost is already included in totalAmount)
         const orderId = await db.createOrder({
           userId: ctx.user.id,
@@ -1701,11 +1726,22 @@ export const appRouter = router({
             priceAtPurchase: item.price,
           });
         }
-        
+
+        // Apply gift card redemption (deduct balance)
+        if (input.giftCardCode && giftCardDiscountAmount > 0) {
+          try {
+            await db.applyGiftCard(input.giftCardCode, giftCardDiscountAmount, orderId);
+            console.log(`[Order ${orderId}] Gift card ${input.giftCardCode} applied: ${giftCardDiscountAmount / 100} AED`);
+          } catch (error) {
+            console.error(`[Order ${orderId}] Failed to apply gift card:`, error);
+            // Don't fail the order, but log the error
+          }
+        }
+
         // Clear cart
         await db.clearCart(ctx.user.id);
-        
-        return { orderId };
+
+        return { orderId, giftCardApplied: giftCardDiscountAmount > 0 ? giftCardDiscountAmount / 100 : 0 };
       }),
     byId: protectedProcedure
       .input(z.object({ id: z.number() }))
