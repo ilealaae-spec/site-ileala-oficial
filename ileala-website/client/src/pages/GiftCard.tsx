@@ -397,7 +397,7 @@ export default function GiftCard() {
                         <div className="flex justify-between items-start">
                           <div>
                             <p className="text-sm uppercase tracking-widest" style={{ color: '#C0A96B' }}>{cardTitle}</p>
-                            <img src="/ile-ala-logo.svg" alt="Ile Ala" className="mt-2" style={{ width: '120px', height: 'auto' }} />
+                            <img src="/ile-ala-logo-cropped.svg" alt="Ile Ala" className="mt-1" style={{ width: '120px', height: 'auto' }} />
                           </div>
                           {cardIcon ? (
                             <img src={cardIcon} alt="Icon" className="w-10 h-10 object-contain" style={{ opacity: 0.8 }} />
@@ -422,7 +422,7 @@ export default function GiftCard() {
                       <div className="flex justify-between items-start mb-8">
                         <div>
                           <p className="text-sm uppercase tracking-widest" style={{ color: '#C0A96B', opacity: 0.8 }}>{cardTitle}</p>
-                          <img src="/ile-ala-logo.svg" alt="Ile Ala" className="mt-2" style={{ width: '120px', height: 'auto' }} />
+                          <img src="/ile-ala-logo-cropped.svg" alt="Ile Ala" className="mt-1" style={{ width: '120px', height: 'auto' }} />
                         </div>
                         {cardIcon ? (
                           <img src={cardIcon} alt="Icon" className="w-10 h-10 object-contain" style={{ opacity: 0.6 }} />
@@ -431,7 +431,7 @@ export default function GiftCard() {
                         )}
                       </div>
 
-                      <div className="text-center py-8">
+                      <div className="text-center py-4">
                         <p className="text-sm uppercase tracking-wider mb-2" style={{ color: '#C0A96B', opacity: 0.6 }}>{cardValueLabel}</p>
                         <p className="text-5xl font-bold" style={{ color: '#C0A96B' }}>AED {formData.amount.toFixed(2)}</p>
                       </div>
