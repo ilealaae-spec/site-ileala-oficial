@@ -182,7 +182,22 @@ export default function MyLoyalty() {
   const member = data?.member;
   const benefits = data?.benefits;
   const nextTierInfo = data?.nextTierInfo;
-  const allTiers = data?.allTiers || [];
+
+  // Sort tiers in correct order: green, silver, gold, platinum(black)
+  const tierOrder = ['green', 'silver', 'gold', 'platinum'];
+  const allTiers = (data?.allTiers || []).sort((a: any, b: any) =>
+    tierOrder.indexOf(a.tier) - tierOrder.indexOf(b.tier)
+  );
+
+  // Helper to get display name (converts Platinum to Black)
+  const getTierDisplayName = (tier: any, lang: string) => {
+    const name = lang === 'en' ? tier.displayNameEN : tier.displayNamePT;
+    // Replace Platinum with Black in display names
+    if (tier.tier === 'platinum') {
+      return lang === 'en' ? 'Black Member' : 'Membro Black';
+    }
+    return name;
+  };
 
   const tierConfig: Record<string, { gradient: string; textColor: string }> = {
     green: {
@@ -650,7 +665,7 @@ export default function MyLoyalty() {
                     style={{ background: config?.gradient || '#ccc' }}
                   >
                     <p className={`font-bold text-lg mb-1 ${config?.textColor}`}>
-                      {language === 'en' ? tier.displayNameEN : tier.displayNamePT}
+                      {getTierDisplayName(tier, language)}
                     </p>
                     <p className={`text-sm opacity-80 ${config?.textColor}`}>
                       {formatPrice(tier.minSpend)}
@@ -676,7 +691,7 @@ export default function MyLoyalty() {
                 <div className="mt-8 pt-6 border-t">
                   <div className="mb-6">
                     <h4 className="text-lg font-bold">
-                      {language === 'en' ? selectedTier.displayNameEN : selectedTier.displayNamePT}
+                      {getTierDisplayName(selectedTier, language)}
                     </h4>
                     <p className="text-sm text-muted-foreground">
                       {formatPrice(selectedTier.minSpend)}
