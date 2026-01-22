@@ -25,11 +25,11 @@ import {
 } from '@/components/ui/select';
 
 // Tier card config for gradients and icons
-const tierCardConfig: Record<string, { gradient: string; icon: string }> = {
-  green: { gradient: 'linear-gradient(135deg, #255238 0%, #1a3d28 100%)', icon: '🌿' },
-  silver: { gradient: 'linear-gradient(135deg, #C0C0C0 0%, #808080 100%)', icon: '🥈' },
-  gold: { gradient: 'linear-gradient(135deg, #FFD700 0%, #B8860B 100%)', icon: '🏆' },
-  platinum: { gradient: 'linear-gradient(135deg, #2C2C2C 0%, #1a1a1a 50%, #3d3d3d 100%)', icon: '👑' },
+const tierCardConfig: Record<string, { gradient: string }> = {
+  green: { gradient: 'linear-gradient(135deg, #255238 0%, #1a3d28 100%)' },
+  silver: { gradient: 'linear-gradient(135deg, #C0C0C0 0%, #808080 100%)' },
+  gold: { gradient: 'linear-gradient(135deg, #FFD700 0%, #B8860B 100%)' },
+  platinum: { gradient: 'linear-gradient(135deg, #2C2C2C 0%, #1a1a1a 50%, #3d3d3d 100%)' },
 };
 
 // Component for tier card with image upload
@@ -112,7 +112,6 @@ function TierCardWithUpload({ tier, language, onUpdate }: { tier: any; language:
           </>
         )}
         <div className="relative z-10 text-center">
-          <span className="text-3xl block mb-1">{config.icon}</span>
           <span className="text-lg font-bold capitalize">{tier.tier}</span>
         </div>
       </div>
@@ -281,18 +280,17 @@ export default function LoyaltyTab() {
     });
   };
 
-  const tierConfig: Record<string, { bg: string; text: string; icon: string }> = {
-    green: { bg: 'bg-green-100', text: 'text-green-800', icon: '🌿' },
-    silver: { bg: 'bg-gray-200', text: 'text-gray-800', icon: '🥈' },
-    gold: { bg: 'bg-yellow-100', text: 'text-yellow-800', icon: '🏆' },
-    platinum: { bg: 'bg-gray-800', text: 'text-white', icon: '👑' },
+  const tierConfig: Record<string, { bg: string; text: string }> = {
+    green: { bg: 'bg-green-100', text: 'text-green-800' },
+    silver: { bg: 'bg-gray-200', text: 'text-gray-800' },
+    gold: { bg: 'bg-yellow-100', text: 'text-yellow-800' },
+    platinum: { bg: 'bg-gray-800', text: 'text-white' },
   };
 
   const getTierBadge = (tier: string) => {
     const config = tierConfig[tier] || tierConfig.green;
     return (
       <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm font-medium ${config.bg} ${config.text}`}>
-        <span>{config.icon}</span>
         {tier.charAt(0).toUpperCase() + tier.slice(1)}
       </span>
     );
@@ -587,22 +585,22 @@ export default function LoyaltyTab() {
           </Card>
 
           <Card className="p-4 border-green-200 bg-green-50">
-            <p className="text-sm text-green-700 mb-1">🌿 Green</p>
+            <p className="text-sm text-green-700 mb-1">Green</p>
             <p className="text-2xl font-bold text-green-700">{stats.green_count || 0}</p>
           </Card>
 
           <Card className="p-4 border-gray-300 bg-gray-100">
-            <p className="text-sm text-gray-700 mb-1">🥈 Silver</p>
+            <p className="text-sm text-gray-700 mb-1">Silver</p>
             <p className="text-2xl font-bold text-gray-700">{stats.silver_count || 0}</p>
           </Card>
 
           <Card className="p-4 border-yellow-300 bg-yellow-50">
-            <p className="text-sm text-yellow-700 mb-1">🏆 Gold</p>
+            <p className="text-sm text-yellow-700 mb-1">Gold</p>
             <p className="text-2xl font-bold text-yellow-700">{stats.gold_count || 0}</p>
           </Card>
 
           <Card className="p-4 border-gray-700 bg-gray-800">
-            <p className="text-sm text-gray-300 mb-1">👑 Platinum</p>
+            <p className="text-sm text-gray-300 mb-1">Platinum</p>
             <p className="text-2xl font-bold text-white">{stats.platinum_count || 0}</p>
           </Card>
 
@@ -714,10 +712,10 @@ export default function LoyaltyTab() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{language === 'en' ? 'All Tiers' : 'Todos'}</SelectItem>
-              <SelectItem value="green">🌿 Green</SelectItem>
-              <SelectItem value="silver">🥈 Silver</SelectItem>
-              <SelectItem value="gold">🏆 Gold</SelectItem>
-              <SelectItem value="platinum">👑 Platinum</SelectItem>
+              <SelectItem value="green">Green</SelectItem>
+              <SelectItem value="silver">Silver</SelectItem>
+              <SelectItem value="gold">Gold</SelectItem>
+              <SelectItem value="platinum">Platinum</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -1225,10 +1223,10 @@ export default function LoyaltyTab() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="green">🌿 Green</SelectItem>
-                  <SelectItem value="silver">🥈 Silver</SelectItem>
-                  <SelectItem value="gold">🏆 Gold</SelectItem>
-                  <SelectItem value="platinum">👑 Platinum</SelectItem>
+                  <SelectItem value="green">Green</SelectItem>
+                  <SelectItem value="silver">Silver</SelectItem>
+                  <SelectItem value="gold">Gold</SelectItem>
+                  <SelectItem value="platinum">Platinum</SelectItem>
                 </SelectContent>
               </Select>
             </div>

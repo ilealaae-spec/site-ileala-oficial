@@ -122,10 +122,10 @@ export default function MyLoyalty() {
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {(() => {
                 const defaultTiers = [
-                  { tier: 'green', icon: '🌿', gradient: 'linear-gradient(135deg, #255238 0%, #1a3d28 100%)', textColor: 'text-white', range: '0 - 1,499 AED', benefits: ['Newsletter Exclusiva', 'Acesso a Vendas Privadas'] },
-                  { tier: 'silver', icon: '🥈', gradient: 'linear-gradient(135deg, #C0C0C0 0%, #808080 100%)', textColor: 'text-gray-900', range: '1,500 - 3,999 AED', benefits: ['Frete Padrão Grátis (UAE)', 'Presente de Aniversário'] },
-                  { tier: 'gold', icon: '🏆', gradient: 'linear-gradient(135deg, #FFD700 0%, #B8860B 100%)', textColor: 'text-gray-900', range: '4,000 - 7,499 AED', benefits: ['Frete Expresso Grátis', 'Acesso Antecipado 24h', 'Suporte Prioritário'] },
-                  { tier: 'platinum', icon: '👑', gradient: 'linear-gradient(135deg, #2C2C2C 0%, #1a1a1a 50%, #3d3d3d 100%)', textColor: 'text-white', range: '7,500+ AED', benefits: ['Concierge WhatsApp VIP', 'Convites para Eventos', 'Presentes Surpresa'] },
+                  { tier: 'green', gradient: 'linear-gradient(135deg, #255238 0%, #1a3d28 100%)', textColor: 'text-white', range: '0 - 1,499 AED', benefits: ['Newsletter Exclusiva', 'Acesso a Vendas Privadas'] },
+                  { tier: 'silver', gradient: 'linear-gradient(135deg, #C0C0C0 0%, #808080 100%)', textColor: 'text-gray-900', range: '1,500 - 3,999 AED', benefits: ['Frete Padrão Grátis (UAE)', 'Presente de Aniversário'] },
+                  { tier: 'gold', gradient: 'linear-gradient(135deg, #FFD700 0%, #B8860B 100%)', textColor: 'text-gray-900', range: '4,000 - 7,499 AED', benefits: ['Frete Expresso Grátis', 'Acesso Antecipado 24h', 'Suporte Prioritário'] },
+                  { tier: 'platinum', gradient: 'linear-gradient(135deg, #2C2C2C 0%, #1a1a1a 50%, #3d3d3d 100%)', textColor: 'text-white', range: '7,500+ AED', benefits: ['Concierge WhatsApp VIP', 'Convites para Eventos', 'Presentes Surpresa'] },
                 ];
 
                 return defaultTiers.map((t) => {
@@ -150,7 +150,6 @@ export default function MyLoyalty() {
                         </>
                       )}
                       <div className="relative z-10">
-                        <span className="text-4xl mb-4 block">{t.icon}</span>
                         <h3 className="text-xl font-bold mb-2 capitalize">{t.tier}</h3>
                         <p className="text-sm opacity-80 mb-4">{t.range}</p>
                         <ul className="text-sm text-left space-y-2 opacity-90">
@@ -185,26 +184,22 @@ export default function MyLoyalty() {
   const nextTierInfo = data?.nextTierInfo;
   const allTiers = data?.allTiers || [];
 
-  const tierConfig: Record<string, { gradient: string; textColor: string; icon: string }> = {
+  const tierConfig: Record<string, { gradient: string; textColor: string }> = {
     green: {
       gradient: 'linear-gradient(135deg, #255238 0%, #1a3d28 100%)',
       textColor: 'text-white',
-      icon: '🌿',
     },
     silver: {
       gradient: 'linear-gradient(135deg, #C0C0C0 0%, #808080 100%)',
       textColor: 'text-gray-900',
-      icon: '🥈',
     },
     gold: {
       gradient: 'linear-gradient(135deg, #FFD700 0%, #B8860B 100%)',
       textColor: 'text-gray-900',
-      icon: '🏆',
     },
     platinum: {
       gradient: 'linear-gradient(135deg, #2C2C2C 0%, #1a1a1a 50%, #3d3d3d 100%)',
       textColor: 'text-white',
-      icon: '👑',
     },
   };
 
@@ -326,14 +321,11 @@ export default function MyLoyalty() {
 
               <div className={`relative z-10 h-full flex flex-col justify-between ${currentTierConfig.textColor}`}>
                 <div>
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className="text-3xl">{currentTierConfig.icon}</span>
-                    <div>
-                      <p className="text-sm opacity-80 tracking-widest">THE GREEN WORLD</p>
-                      <p className="text-2xl font-bold uppercase tracking-wider">
-                        {member?.tier?.toUpperCase() || 'GREEN'}
-                      </p>
-                    </div>
+                  <div className="mb-2">
+                    <p className="text-sm opacity-80 tracking-widest">THE GREEN WORLD</p>
+                    <p className="text-2xl font-bold uppercase tracking-wider">
+                      {member?.tier?.toUpperCase() || 'GREEN'}
+                    </p>
                   </div>
                 </div>
 
@@ -657,7 +649,6 @@ export default function MyLoyalty() {
                     } ${isSelected ? 'ring-2 ring-yellow-400 scale-105 shadow-lg' : ''}`}
                     style={{ background: config?.gradient || '#ccc' }}
                   >
-                    <p className={`text-3xl mb-2 ${config?.textColor}`}>{config?.icon}</p>
                     <p className={`font-bold text-lg mb-1 ${config?.textColor}`}>
                       {language === 'en' ? tier.displayNameEN : tier.displayNamePT}
                     </p>
@@ -683,17 +674,14 @@ export default function MyLoyalty() {
 
               return (
                 <div className="mt-8 pt-6 border-t">
-                  <div className="flex items-center gap-3 mb-6">
-                    <span className="text-3xl">{config?.icon}</span>
-                    <div>
-                      <h4 className="text-lg font-bold">
-                        {language === 'en' ? selectedTier.displayNameEN : selectedTier.displayNamePT}
-                      </h4>
-                      <p className="text-sm text-muted-foreground">
-                        {formatPrice(selectedTier.minSpend)}
-                        {selectedTier.maxSpend ? ` - ${formatPrice(selectedTier.maxSpend)}` : '+'} {language === 'en' ? 'spent' : 'gastos'}
-                      </p>
-                    </div>
+                  <div className="mb-6">
+                    <h4 className="text-lg font-bold">
+                      {language === 'en' ? selectedTier.displayNameEN : selectedTier.displayNamePT}
+                    </h4>
+                    <p className="text-sm text-muted-foreground">
+                      {formatPrice(selectedTier.minSpend)}
+                      {selectedTier.maxSpend ? ` - ${formatPrice(selectedTier.maxSpend)}` : '+'} {language === 'en' ? 'spent' : 'gastos'}
+                    </p>
                   </div>
 
                   <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
