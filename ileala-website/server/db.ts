@@ -2,7 +2,7 @@ import { eq, sql, and } from 'drizzle-orm';
 // Newsletter fix: omit name field if undefined - Build v2
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import { InsertUser, users, products, Product, InsertProduct, orders, Order, InsertOrder, orderItems, OrderItem, InsertOrderItem, cartItems, CartItem, InsertCartItem, coupons, Coupon, InsertCoupon, newsletter, Newsletter, InsertNewsletter, categories, Category, InsertCategory, collections, Collection, InsertCollection, siteSettings, SiteSetting, InsertSiteSetting, auditLogs, AuditLog, InsertAuditLog, wishlist, WishlistItem, InsertWishlistItem, emailCampaigns, EmailCampaign, InsertEmailCampaign, giftCards, GiftCard, InsertGiftCard, loyaltyMembers, LoyaltyMember, InsertLoyaltyMember, loyaltyTierBenefits, LoyaltyTierBenefit, loyaltyActivityLog, LoyaltyActivityLog, InsertLoyaltyActivityLog } from "../drizzle/schema";
+import { InsertUser, users, products, Product, InsertProduct, orders, Order, InsertOrder, orderItems, OrderItem, InsertOrderItem, cartItems, CartItem, InsertCartItem, coupons, Coupon, InsertCoupon, newsletter, Newsletter, InsertNewsletter, categories, Category, InsertCategory, collections, Collection, InsertCollection, siteSettings, SiteSetting, InsertSiteSetting, auditLogs, AuditLog, InsertAuditLog, wishlist, WishlistItem, InsertWishlistItem, emailCampaigns, EmailCampaign, InsertEmailCampaign, giftCards, GiftCard, InsertGiftCard, loyaltyMembers, LoyaltyMember, InsertLoyaltyMember, loyaltyTierBenefits, LoyaltyTierBenefit, loyaltyActivityLog, LoyaltyActivityLog, InsertLoyaltyActivityLog, userSessions, loginHistory } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { logger } from './_core/logger';
 
@@ -1085,14 +1085,34 @@ export async function deleteUser(userId: number) {
     throw new Error("Database not available");
   }
 
-  // Delete user's related data first
-  await db.delete(cartItems).where(eq(cartItems.userId, userId));
-  await db.delete(orders).where(eq(orders.userId, userId));
-  
-  // Delete the user
-  await db.delete(users).where(eq(users.id, userId));
-  
-  return { success: true };
+  try {
+    // Get all orders for this user to delete their items first
+    const userOrders = await db.select({ id: orders.id }).from(orders).where(eq(orders.userId, userId));
+
+    // Delete order items for all user's orders
+    for (const order of userOrders) {
+      await db.delete(orderItems).where(eq(orderItems.orderId, order.id));
+    }
+
+    // Delete user's related data (order matters due to foreign keys)
+    await db.delete(cartItems).where(eq(cartItems.userId, userId));
+    await db.delete(orders).where(eq(orders.userId, userId));
+    await db.delete(wishlist).where(eq(wishlist.userId, userId));
+    await db.delete(loyaltyMembers).where(eq(loyaltyMembers.userId, userId));
+    await db.delete(userSessions).where(eq(userSessions.userId, userId));
+    await db.delete(loginHistory).where(eq(loginHistory.userId, userId));
+
+    // Set userId to null in audit logs (keep the logs but anonymize)
+    await db.update(auditLogs).set({ userId: null }).where(eq(auditLogs.userId, userId));
+
+    // Delete the user
+    await db.delete(users).where(eq(users.id, userId));
+
+    return { success: true };
+  } catch (error) {
+    logger.error("[Database] Failed to delete user:", error);
+    throw error;
+  }
 }
 
 export async function updateUserRole(userId: number, role: 'user' | 'admin') {
