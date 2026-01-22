@@ -396,24 +396,24 @@ export default function GiftCard() {
                       <div className="absolute inset-0 p-8 flex flex-col justify-between">
                         <div className="flex justify-between items-start">
                           <div>
-                            <p className="text-sm uppercase tracking-widest" style={{ color: '#ceae54' }}>{cardTitle}</p>
-                            <h2 className="text-3xl font-bold mt-1" style={{ color: '#ceae54' }}>{cardSubtitle}</h2>
+                            <p className="text-sm uppercase tracking-widest" style={{ color: '#C0A96B' }}>{cardTitle}</p>
+                            <img src="/ile-ala-logo.svg" alt="Ile Ala" className="h-8 mt-1" />
                           </div>
                           {cardIcon ? (
                             <img src={cardIcon} alt="Icon" className="w-10 h-10 object-contain" style={{ opacity: 0.8 }} />
                           ) : (
-                            <Gift className="w-10 h-10" style={{ color: '#ceae54', opacity: 0.6 }} />
+                            <Gift className="w-10 h-10" style={{ color: '#C0B25C', opacity: 0.6 }} />
                           )}
                         </div>
 
                         <div className="text-center">
-                          <p className="text-sm uppercase tracking-wider mb-2" style={{ color: '#ceae54', opacity: 0.8 }}>{cardValueLabel}</p>
-                          <p className="text-5xl font-bold" style={{ color: '#ceae54' }}>AED {formData.amount.toFixed(2)}</p>
+                          <p className="text-sm uppercase tracking-wider mb-2" style={{ color: '#C0A96B', opacity: 0.8 }}>{cardValueLabel}</p>
+                          <p className="text-5xl font-bold" style={{ color: '#C0A96B' }}>AED {formData.amount.toFixed(2)}</p>
                         </div>
 
-                        <div className="text-sm flex justify-between" style={{ color: '#ceae54', opacity: 0.8 }}>
-                          <span>Code: GC-XXXXXXXXXXXX</span>
-                          <span>{cardValidText}</span>
+                        <div className="text-sm flex justify-between" style={{ opacity: 0.8 }}>
+                          <span style={{ color: '#C0A96B' }}>Code: GC-XXXXXXXXXXXX</span>
+                          <span style={{ color: '#C0A96B' }}>{cardValidText}</span>
                         </div>
                       </div>
                     </div>
@@ -421,41 +421,41 @@ export default function GiftCard() {
                     <div className="bg-gradient-to-br from-[#172d20] to-[#255238] p-8">
                       <div className="flex justify-between items-start mb-8">
                         <div>
-                          <p className="text-sm uppercase tracking-widest" style={{ color: '#ceae54', opacity: 0.8 }}>{cardTitle}</p>
-                          <h2 className="text-3xl font-bold mt-1" style={{ color: '#ceae54' }}>{cardSubtitle}</h2>
+                          <p className="text-sm uppercase tracking-widest" style={{ color: '#C0A96B', opacity: 0.8 }}>{cardTitle}</p>
+                          <img src="/ile-ala-logo.svg" alt="Ile Ala" className="h-8 mt-1" />
                         </div>
                         {cardIcon ? (
                           <img src={cardIcon} alt="Icon" className="w-10 h-10 object-contain" style={{ opacity: 0.6 }} />
                         ) : (
-                          <Gift className="w-10 h-10" style={{ color: '#ceae54', opacity: 0.4 }} />
+                          <Gift className="w-10 h-10" style={{ color: '#C0B25C', opacity: 0.4 }} />
                         )}
                       </div>
 
                       <div className="text-center py-8">
-                        <p className="text-sm uppercase tracking-wider mb-2" style={{ color: '#ceae54', opacity: 0.6 }}>{cardValueLabel}</p>
-                        <p className="text-5xl font-bold" style={{ color: '#ceae54' }}>AED {formData.amount.toFixed(2)}</p>
+                        <p className="text-sm uppercase tracking-wider mb-2" style={{ color: '#C0A96B', opacity: 0.6 }}>{cardValueLabel}</p>
+                        <p className="text-5xl font-bold" style={{ color: '#C0A96B' }}>AED {formData.amount.toFixed(2)}</p>
                       </div>
 
                       {formData.recipientName && (
                         <div className="mt-6 pt-6 border-t" style={{ borderColor: 'rgba(206, 174, 84, 0.3)' }}>
-                          <p className="text-sm" style={{ color: '#ceae54', opacity: 0.6 }}>For:</p>
-                          <p className="text-lg font-medium" style={{ color: '#ceae54' }}>{formData.recipientName}</p>
+                          <p className="text-sm" style={{ color: '#C0A96B', opacity: 0.6 }}>For:</p>
+                          <p className="text-lg font-medium" style={{ color: '#C0A96B' }}>{formData.recipientName}</p>
                         </div>
                       )}
 
                       {formData.message && (
                         <div className="mt-4 p-4 rounded-lg" style={{ backgroundColor: 'rgba(206, 174, 84, 0.1)' }}>
-                          <p className="text-sm italic" style={{ color: '#ceae54' }}>"{formData.message}"</p>
+                          <p className="text-sm italic" style={{ color: '#C0A96B' }}>"{formData.message}"</p>
                           {formData.senderName && (
-                            <p className="text-sm mt-2 text-right" style={{ color: '#ceae54', opacity: 0.6 }}>— {formData.senderName}</p>
+                            <p className="text-sm mt-2 text-right" style={{ color: '#C0A96B', opacity: 0.6 }}>— {formData.senderName}</p>
                           )}
                         </div>
                       )}
 
                       <div className="mt-8 pt-4 border-t" style={{ borderColor: 'rgba(206, 174, 84, 0.3)' }}>
-                        <div className="flex items-center justify-between text-sm" style={{ color: '#ceae54', opacity: 0.6 }}>
-                          <span>Code: GC-XXXXXXXXXXXX</span>
-                          <span>{cardValidText}</span>
+                        <div className="flex items-center justify-between text-sm" style={{ opacity: 0.6 }}>
+                          <span style={{ color: '#C0A96B' }}>Code: GC-XXXXXXXXXXXX</span>
+                          <span style={{ color: '#C0A96B' }}>{cardValidText}</span>
                         </div>
                       </div>
                     </div>
