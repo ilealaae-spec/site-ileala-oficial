@@ -138,9 +138,8 @@ export default function MyLoyalty() {
                       className={`rounded-2xl text-center ${t.textColor} relative overflow-hidden`}
                       style={{
                         background: hasImage ? undefined : t.gradient,
-                        width: '100%',
-                        minHeight: '252px',
-                        maxWidth: '326px',
+                        width: '326px',
+                        height: '252px',
                         margin: '0 auto',
                       }}
                     >
@@ -153,7 +152,7 @@ export default function MyLoyalty() {
                           <div className="absolute inset-0 bg-black/40" />
                         </>
                       )}
-                      <div className="relative z-10 p-6 h-full flex flex-col justify-between" style={{ minHeight: '252px' }}>
+                      <div className="relative z-10 p-6 h-full flex flex-col justify-between">
                         <div>
                           <h3 className="text-xl font-bold mb-2">{(t as any).displayName || t.tier}</h3>
                           <p className="text-sm opacity-80 mb-4">{t.range}</p>
@@ -682,9 +681,8 @@ export default function MyLoyalty() {
                     } ${isSelected ? 'ring-2 ring-yellow-400 scale-105 shadow-lg' : ''}`}
                     style={{
                       background: hasImage ? undefined : (config?.gradient || '#ccc'),
-                      width: '100%',
-                      minHeight: '252px',
-                      maxWidth: '326px',
+                      width: '326px',
+                      height: '252px',
                       margin: '0 auto',
                     }}
                   >
@@ -697,7 +695,7 @@ export default function MyLoyalty() {
                         <div className="absolute inset-0 bg-black/40" />
                       </>
                     )}
-                    <div className="relative z-10 p-6 h-full flex flex-col justify-between" style={{ minHeight: '252px' }}>
+                    <div className="relative z-10 p-6 h-full flex flex-col justify-between">
                       <div>
                         <h3 className={`text-xl font-bold mb-2 ${hasImage ? 'text-white' : config?.textColor}`}>
                           {getTierDisplayName(tier, language)}
