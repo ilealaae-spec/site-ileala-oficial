@@ -16,6 +16,21 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Globe, ShoppingCart, Instagram, Facebook, User, LogOut, Package, Shield, Search, Heart, Crown } from 'lucide-react';
 
+// Tier icons mapping
+const tierIcons: Record<string, string> = {
+  green: '/images/tiers/green.png',
+  silver: '/images/tiers/silver.png',
+  gold: '/images/tiers/gold.png',
+  platinum: '/images/tiers/black.png',
+};
+
+const tierDisplayNames: Record<string, string> = {
+  green: 'Green',
+  silver: 'Silver',
+  gold: 'Gold',
+  platinum: 'Black',
+};
+
 export default function Header() {
   const { language, setLanguage } = useLanguage();
   const { totalItems } = useCart();
@@ -28,6 +43,12 @@ export default function Header() {
     enabled: isAuthenticated,
   });
   const wishlistCount = wishlistItems?.length || 0;
+
+  // Get loyalty status for tier badge
+  const { data: loyaltyStatus } = trpc.loyalty.myStatus.useQuery(undefined, {
+    enabled: isAuthenticated,
+  });
+  const userTier = loyaltyStatus?.member?.tier || 'green';
 
   const handleLogout = async () => {
     await logout();
@@ -119,15 +140,31 @@ export default function Header() {
             {isAuthenticated && user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-9 w-9 p-0">
-                    <User className="h-4 w-4" />
+                  <Button variant="ghost" size="sm" className="h-auto px-2 py-1 gap-2">
+                    <img
+                      src={tierIcons[userTier]}
+                      alt={`${tierDisplayNames[userTier]} Member`}
+                      className="h-6 w-6 object-contain"
+                    />
+                    <div className="hidden md:flex flex-col items-start text-left">
+                      <span className="text-xs font-medium leading-tight">{user?.name?.split(' ')[0] || 'User'}</span>
+                      <span className="text-[10px] text-muted-foreground leading-tight">{tierDisplayNames[userTier]} Member</span>
+                    </div>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuLabel className="font-normal">
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">{user?.name || (language === 'en' ? 'My Account' : 'Minha Conta')}</p>
-                      <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={tierIcons[userTier]}
+                        alt={`${tierDisplayNames[userTier]} Member`}
+                        className="h-10 w-10 object-contain"
+                      />
+                      <div className="flex flex-col">
+                        <p className="text-sm font-medium leading-none">{user?.name || (language === 'en' ? 'My Account' : 'Minha Conta')}</p>
+                        <p className="text-xs font-medium text-[#255238] mt-0.5">{tierDisplayNames[userTier]} Member</p>
+                        <p className="text-[10px] leading-none text-muted-foreground mt-1">{user?.email}</p>
+                      </div>
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />

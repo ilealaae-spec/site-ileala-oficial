@@ -239,7 +239,7 @@ export const appRouter = router({
 
         // Verify credentials
         const user = await db.verifyUserCredentials(email, password);
-        
+
         if (!user) {
           // Record failed attempt for rate limiting
           recordFailedAttempt(clientIp);
@@ -258,6 +258,11 @@ export const appRouter = router({
           }
 
           throw new Error('Invalid email or password');
+        }
+
+        // Check if email is verified
+        if (!user.emailVerified) {
+          throw new Error('Please verify your email before logging in. Check your inbox for the verification link.');
         }
                 // Clear rate limit on successful login
         clearRateLimit(clientIp);
@@ -368,28 +373,16 @@ export const appRouter = router({
         
         // Generate email verification token
         const token = await db.generateEmailVerificationToken(user.id);
-        
+
         // Send verification email
         const { sendVerificationEmail } = await import('./email');
         await sendVerificationEmail(user.email, token, user.name || 'Customer');
-        
-        // Set session cookie
-        const sessionData = {
-          id: user.id,
-          email: user.email,
-          name: user.name || null,
-          role: user.role || 'user',
-        };
-        
-        const cookieOptions = getSessionCookieOptions(ctx.req);
-        ctx.res.cookie(COOKIE_NAME, JSON.stringify(sessionData), {
-          ...cookieOptions,
-          maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year
-        });
-        
+
+        // DO NOT auto-login - require email verification first
         return {
           success: true,
-          user: sessionData,
+          requiresVerification: true,
+          message: 'Account created! Please check your email to verify your account before logging in.',
         };
       }),
     verifyEmail: publicProcedure

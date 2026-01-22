@@ -64,28 +64,16 @@ export async function sendVerificationEmail(email: string, token: string, name: 
               <p>Thank you for creating an account with ILE ALA. To complete your registration and start shopping, please verify your email address.</p>
               
               <div style="text-align: center; margin: 30px 0;">
-                <!-- Button usando tabela para melhor compatibilidade com clientes de email -->
                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">
                   <tr>
                     <td style="background: #255238; border-radius: 5px; text-align: center;">
-                      <a href="${verificationUrl}" style="display: block; padding: 14px 30px; color: #ffffff; text-decoration: none; font-weight: bold; font-size: 16px; border-radius: 5px; cursor: pointer;">
-                        Verify Email Address
+                      <a href="${verificationUrl}" style="display: block; padding: 16px 40px; color: #ffffff; text-decoration: none; font-weight: bold; font-size: 16px; border-radius: 5px;">
+                        Verify My Email
                       </a>
                     </td>
                   </tr>
                 </table>
               </div>
-              
-              <!-- Fallback: Link de texto que sempre funciona -->
-              <div style="text-align: center; margin: 20px 0; padding: 15px; background: #f5f5f5; border-radius: 5px;">
-                <p style="color: #666; font-size: 12px; margin: 0 0 10px 0;">If the button doesn't work, click this link:</p>
-                <a href="${verificationUrl}" style="color: #255238; text-decoration: underline; font-size: 14px; word-break: break-all; display: block;">
-                  ${verificationUrl}
-                </a>
-              </div>
-              
-              <p style="color: #666; font-size: 14px; margin-top: 20px;">Or copy and paste this link into your browser:</p>
-              <p style="color: #255238; font-size: 12px; word-break: break-all; background: #f9f9f9; padding: 10px; border-radius: 3px; font-family: monospace;">${verificationUrl}</p>
               
               <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;">
               
@@ -829,7 +817,7 @@ export async function sendTierUpgradeEmail(
             <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">
               <tr>
                 <td style="background: #255238; border-radius: 5px; text-align: center;">
-                  <a href="${siteUrl}/the-green-world" style="display: block; padding: 16px 40px; color: #ffffff; text-decoration: none; font-weight: bold; font-size: 16px; border-radius: 5px;">
+                  <a href="${siteUrl}/my-loyalty" style="display: block; padding: 16px 40px; color: #ffffff; text-decoration: none; font-weight: bold; font-size: 16px; border-radius: 5px;">
                     View My Benefits
                   </a>
                 </td>

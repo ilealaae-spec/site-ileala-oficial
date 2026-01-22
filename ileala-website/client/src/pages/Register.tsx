@@ -40,16 +40,29 @@ export default function Register() {
   const registerMutation = trpc.auth.register.useMutation({
     onSuccess: (data) => {
       console.log('[Register] Registration successful:', data);
-      toast.success(language === 'en' ? 'Account created successfully! Please check your email to verify your account.' : 'Conta criada com sucesso! Por favor, verifique seu email para confirmar sua conta.');
-      utils.auth.me.invalidate();
-      
-      // Aguardar um pouco antes de redirecionar para garantir que o cookie foi definido
-      setTimeout(() => {
-        const params = new URLSearchParams(window.location.search);
-        const redirect = params.get('redirect') || '/cart';
-        console.log('[Register] Redirecting to:', redirect);
-        setLocation(redirect);
-      }, 500);
+
+      // Check if email verification is required
+      if (data.requiresVerification) {
+        toast.success(
+          language === 'en'
+            ? 'Account created! Please check your email to verify your account before logging in.'
+            : 'Conta criada! Por favor, verifique seu email para confirmar sua conta antes de fazer login.',
+          { duration: 8000 }
+        );
+        // Redirect to login page instead of auto-login
+        setTimeout(() => {
+          setLocation('/login');
+        }, 2000);
+      } else {
+        // Legacy behavior - if backend returns user data, proceed with login
+        toast.success(language === 'en' ? 'Account created successfully!' : 'Conta criada com sucesso!');
+        utils.auth.me.invalidate();
+        setTimeout(() => {
+          const params = new URLSearchParams(window.location.search);
+          const redirect = params.get('redirect') || '/';
+          setLocation(redirect);
+        }, 500);
+      }
     },
     onError: (error) => {
       console.error('[Register] Registration error:', error);

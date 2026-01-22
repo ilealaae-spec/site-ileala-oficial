@@ -818,13 +818,30 @@ export default function LoyaltyTab() {
                       {formatDate(item.member.joinedAt)}
                     </td>
                     <td className="text-center py-2 px-3">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openDetail(item)}
-                      >
-                        <Eye className="w-4 h-4" />
-                      </Button>
+                      <div className="flex items-center justify-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openDetail(item)}
+                          title={language === 'en' ? 'View Details' : 'Ver Detalhes'}
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedMember(item);
+                            setNewTier(item.member.tier);
+                            setTierChangeReason('');
+                            setSendUpgradeEmail(true);
+                            setIsChangeTierOpen(true);
+                          }}
+                          title={language === 'en' ? 'Change Tier' : 'Alterar Nível'}
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
