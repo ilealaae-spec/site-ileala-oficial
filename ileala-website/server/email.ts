@@ -29,6 +29,20 @@ const getSiteUrl = () => {
   return 'https://www.ileala.ae';
 };
 
+// Email logo URL - hosted on site for consistent branding
+const getEmailLogoUrl = () => `${getSiteUrl()}/images/email-logo.png`;
+
+// Reusable email header with logo
+const getEmailHeader = (bgGradient?: string) => {
+  const gradient = bgGradient || 'linear-gradient(135deg, #255238 0%, #172d20 100%)';
+  const logoUrl = getEmailLogoUrl();
+  return `
+    <div style="background: ${gradient}; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+      <img src="${logoUrl}" alt="ILE ALA" style="max-width: 120px; height: auto;" />
+    </div>
+  `;
+};
+
 export async function sendVerificationEmail(email: string, token: string, name: string) {
   const siteUrl = getSiteUrl();
   // Codificar o token para URL
@@ -54,10 +68,8 @@ export async function sendVerificationEmail(email: string, token: string, name: 
             <title>Verify your email</title>
           </head>
           <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <div style="background: linear-gradient(135deg, #255238 0%, #172d20 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-              <h1 style="color: white; margin: 0; font-size: 28px;">ILE ALA</h1>
-            </div>
-            
+            ${getEmailHeader()}
+
             <div style="background: #ffffff; padding: 40px; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 10px 10px;">
               <h2 style="color: #255238; margin-top: 0;">Welcome, ${name}!</h2>
               
@@ -122,10 +134,8 @@ export async function sendWelcomeEmail(email: string, name: string) {
             <title>Welcome to ILE ALA</title>
           </head>
           <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <div style="background: linear-gradient(135deg, #255238 0%, #172d20 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-              <h1 style="color: white; margin: 0; font-size: 28px;">ILE ALA</h1>
-            </div>
-            
+            ${getEmailHeader()}
+
             <div style="background: #ffffff; padding: 40px; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 10px 10px;">
               <h2 style="color: #255238; margin-top: 0;">Welcome to ILE ALA, ${name}!</h2>
               
@@ -216,10 +226,8 @@ export async function sendOrderConfirmationEmail(
             <title>Order Confirmation</title>
           </head>
           <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <div style="background: linear-gradient(135deg, #255238 0%, #172d20 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-              <h1 style="color: white; margin: 0; font-size: 28px;">ILE ALA</h1>
-            </div>
-            
+            ${getEmailHeader()}
+
             <div style="background: #ffffff; padding: 40px; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 10px 10px;">
               <h2 style="color: #255238; margin-top: 0;">Thank you for your order, ${name}!</h2>
               
@@ -312,10 +320,8 @@ export async function sendNewsletterConfirmationEmail(email: string, name?: stri
             <title>Newsletter Subscription Confirmed</title>
           </head>
           <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <div style="background: linear-gradient(135deg, #255238 0%, #172d20 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-              <h1 style="color: white; margin: 0; font-size: 28px;">ILE ALA</h1>
-            </div>
-            
+            ${getEmailHeader()}
+
             <div style="background: #ffffff; padding: 40px; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 10px 10px;">
               <h2 style="color: #255238; margin-top: 0;">Thank you for subscribing, ${displayName}!</h2>
               
@@ -397,10 +403,8 @@ export async function sendPasswordResetEmail(email: string, token: string, name:
             <title>Reset your password</title>
           </head>
           <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <div style="background: linear-gradient(135deg, #255238 0%, #172d20 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-              <h1 style="color: white; margin: 0; font-size: 28px;">ILE ALA</h1>
-            </div>
-            
+            ${getEmailHeader()}
+
             <div style="background: #ffffff; padding: 40px; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 10px 10px;">
               <h2 style="color: #255238; margin-top: 0;">Reset Your Password</h2>
               
@@ -511,9 +515,7 @@ export async function sendCampaignEmail(
         <title>${subject}</title>
       </head>
       <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
-        <div style="background: linear-gradient(135deg, #255238 0%, #172d20 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-          <h1 style="color: white; margin: 0; font-size: 28px;">ILE ALA</h1>
-        </div>
+        ${getEmailHeader()}
 
         <div style="background: #ffffff; padding: 40px; border: 1px solid #e0e0e0; border-top: none;">
           <p style="color: #666; font-size: 14px; margin-bottom: 20px;">Hello ${displayName},</p>
@@ -605,9 +607,9 @@ export async function sendGiftCardEmail(
         <title>You received a Gift Card from ILE ALA!</title>
       </head>
       <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
-        <div style="background: linear-gradient(135deg, #255238 0%, #172d20 100%); padding: 40px 30px; text-align: center; border-radius: 10px 10px 0 0;">
-          <h1 style="color: white; margin: 0; font-size: 28px;">ILE ALA</h1>
-          <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 16px;">Gift Card</p>
+        <div style="background: linear-gradient(135deg, #255238 0%, #172d20 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+          <img src="${getEmailLogoUrl()}" alt="ILE ALA" style="max-width: 120px; height: auto;" />
+          <p style="color: rgba(255,255,255,0.9); margin: 15px 0 0 0; font-size: 16px;">Gift Card</p>
         </div>
 
         <div style="background: #ffffff; padding: 40px; border: 1px solid #e0e0e0; border-top: none;">
@@ -784,9 +786,9 @@ export async function sendTierUpgradeEmail(
         <title>Congratulations on your new tier!</title>
       </head>
       <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
-        <div style="background: ${newTierInfo.gradient}; padding: 40px 30px; text-align: center; border-radius: 10px 10px 0 0;">
-          <h1 style="color: white; margin: 0; font-size: 28px;">ILE ALA</h1>
-          <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 16px;">The Green World</p>
+        <div style="background: ${newTierInfo.gradient}; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+          <img src="${getEmailLogoUrl()}" alt="ILE ALA" style="max-width: 120px; height: auto;" />
+          <p style="color: rgba(255,255,255,0.9); margin: 15px 0 0 0; font-size: 16px;">The Green World</p>
         </div>
 
         <div style="background: #ffffff; padding: 40px; border: 1px solid #e0e0e0; border-top: none;">
