@@ -30,9 +30,19 @@ export default function NewsletterTab() {
     },
   });
 
-  const handleDelete = (id: number | string, email: string) => {
+  const handleDelete = (id: number | string | undefined, email: string) => {
+    console.log('[Newsletter] Attempting to delete:', { id, email, idType: typeof id });
+    if (id === undefined || id === null) {
+      toast.error('Cannot delete: subscriber ID is missing');
+      return;
+    }
+    const numericId = typeof id === 'string' ? parseInt(id, 10) : id;
+    if (isNaN(numericId)) {
+      toast.error('Cannot delete: invalid subscriber ID');
+      return;
+    }
     if (confirm(`${language === 'en' ? 'Delete' : 'Remover'} ${email}?`)) {
-      deleteMutation.mutate({ id: Number(id) });
+      deleteMutation.mutate({ id: numericId });
     }
   };
 
@@ -63,6 +73,9 @@ export default function NewsletterTab() {
     
     toast.success(language === 'en' ? 'CSV exported!' : 'CSV exportado!');
   };
+
+  // Debug: Log subscribers to check structure
+  console.log('[Newsletter] Raw subscribers:', subscribers);
 
   const filteredSubscribers = subscribers?.filter(sub =>
     sub.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
