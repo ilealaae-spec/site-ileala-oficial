@@ -112,7 +112,7 @@ function TierCardWithUpload({ tier, language, onUpdate }: { tier: any; language:
           </>
         )}
         <div className="relative z-10 text-center">
-          <span className="text-lg font-bold capitalize">{tier.tier}</span>
+          <span className="text-lg font-bold capitalize">{tier.tier === 'platinum' ? 'Black' : tier.tier}</span>
         </div>
       </div>
 
@@ -325,11 +325,20 @@ export default function LoyaltyTab() {
     platinum: { bg: 'bg-gray-800', text: 'text-white' },
   };
 
+  // Display name mapping (platinum -> Black)
+  const getTierDisplayName = (tier: string) => {
+    if (tier === 'platinum') return 'Black';
+    return tier.charAt(0).toUpperCase() + tier.slice(1);
+  };
+
+  // Order for sorting tiers
+  const tierOrder = ['green', 'silver', 'gold', 'platinum'];
+
   const getTierBadge = (tier: string) => {
     const config = tierConfig[tier] || tierConfig.green;
     return (
       <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm font-medium ${config.bg} ${config.text}`}>
-        {tier.charAt(0).toUpperCase() + tier.slice(1)}
+        {getTierDisplayName(tier)}
       </span>
     );
   };
@@ -638,7 +647,7 @@ export default function LoyaltyTab() {
           </Card>
 
           <Card className="p-4 border-gray-700 bg-gray-800">
-            <p className="text-sm text-gray-300 mb-1">Platinum</p>
+            <p className="text-sm text-gray-300 mb-1">Black</p>
             <p className="text-2xl font-bold text-white">{stats.platinum_count || 0}</p>
           </Card>
 
@@ -666,7 +675,7 @@ export default function LoyaltyTab() {
               : 'Envie imagens para cada cartão de nível. Elas aparecerão na página de fidelidade.'}
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {tiers.map((tier) => (
+            {[...tiers].sort((a, b) => tierOrder.indexOf(a.tier) - tierOrder.indexOf(b.tier)).map((tier) => (
               <TierCardWithUpload
                 key={tier.id}
                 tier={tier}
@@ -762,7 +771,7 @@ export default function LoyaltyTab() {
                 <SelectItem value="green">Green</SelectItem>
                 <SelectItem value="silver">Silver</SelectItem>
                 <SelectItem value="gold">Gold</SelectItem>
-                <SelectItem value="platinum">Platinum</SelectItem>
+                <SelectItem value="platinum">Black</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -1283,7 +1292,7 @@ export default function LoyaltyTab() {
                   <SelectItem value="green">Green</SelectItem>
                   <SelectItem value="silver">Silver</SelectItem>
                   <SelectItem value="gold">Gold</SelectItem>
-                  <SelectItem value="platinum">Platinum</SelectItem>
+                  <SelectItem value="platinum">Black</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -1361,7 +1370,7 @@ export default function LoyaltyTab() {
                   <SelectItem value="green">Green</SelectItem>
                   <SelectItem value="silver">Silver</SelectItem>
                   <SelectItem value="gold">Gold</SelectItem>
-                  <SelectItem value="platinum">Platinum</SelectItem>
+                  <SelectItem value="platinum">Black</SelectItem>
                 </SelectContent>
               </Select>
             </div>

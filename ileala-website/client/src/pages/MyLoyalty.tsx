@@ -122,10 +122,10 @@ export default function MyLoyalty() {
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {(() => {
                 const defaultTiers = [
-                  { tier: 'green', gradient: 'linear-gradient(135deg, #255238 0%, #1a3d28 100%)', textColor: 'text-white', range: '0 - 1,499 AED', benefits: ['Newsletter Exclusiva', 'Acesso a Vendas Privadas'] },
-                  { tier: 'silver', gradient: 'linear-gradient(135deg, #C0C0C0 0%, #808080 100%)', textColor: 'text-gray-900', range: '1,500 - 3,999 AED', benefits: ['Frete Padrão Grátis (UAE)', 'Presente de Aniversário'] },
-                  { tier: 'gold', gradient: 'linear-gradient(135deg, #FFD700 0%, #B8860B 100%)', textColor: 'text-gray-900', range: '4,000 - 7,499 AED', benefits: ['Frete Expresso Grátis', 'Acesso Antecipado 24h', 'Suporte Prioritário'] },
-                  { tier: 'platinum', gradient: 'linear-gradient(135deg, #2C2C2C 0%, #1a1a1a 50%, #3d3d3d 100%)', textColor: 'text-white', range: '7,500+ AED', benefits: ['Concierge WhatsApp VIP', 'Convites para Eventos', 'Presentes Surpresa'] },
+                  { tier: 'green', displayName: 'Green', gradient: 'linear-gradient(135deg, #255238 0%, #1a3d28 100%)', textColor: 'text-white', range: '0 - 1,499 AED', benefits: ['Newsletter Exclusiva', 'Acesso a Vendas Privadas'] },
+                  { tier: 'silver', displayName: 'Silver', gradient: 'linear-gradient(135deg, #C0C0C0 0%, #808080 100%)', textColor: 'text-gray-900', range: '1,500 - 3,999 AED', benefits: ['Frete Padrão Grátis (UAE)', 'Presente de Aniversário'] },
+                  { tier: 'gold', displayName: 'Gold', gradient: 'linear-gradient(135deg, #FFD700 0%, #B8860B 100%)', textColor: 'text-gray-900', range: '4,000 - 7,499 AED', benefits: ['Frete Expresso Grátis', 'Acesso Antecipado 24h', 'Suporte Prioritário'] },
+                  { tier: 'platinum', displayName: 'Black', gradient: 'linear-gradient(135deg, #2C2C2C 0%, #1a1a1a 50%, #3d3d3d 100%)', textColor: 'text-white', range: '7,500+ AED', benefits: ['Concierge WhatsApp VIP', 'Convites para Eventos', 'Presentes Surpresa'] },
                 ];
 
                 return defaultTiers.map((t) => {
@@ -150,7 +150,7 @@ export default function MyLoyalty() {
                         </>
                       )}
                       <div className="relative z-10">
-                        <h3 className="text-xl font-bold mb-2 capitalize">{t.tier}</h3>
+                        <h3 className="text-xl font-bold mb-2">{(t as any).displayName || t.tier}</h3>
                         <p className="text-sm opacity-80 mb-4">{t.range}</p>
                         <ul className="text-sm text-left space-y-2 opacity-90">
                           {t.benefits.map((benefit, i) => (
@@ -232,7 +232,7 @@ export default function MyLoyalty() {
       exclusiveProducts: 'Exclusive Products',
       updateBirthday: 'Set Your Birthday',
       birthdayDesc: 'Add your birthday to receive a special gift from us!',
-      whatsappTitle: 'Platinum Concierge',
+      whatsappTitle: 'Black Concierge',
       whatsappDesc: 'Add your WhatsApp for personalized concierge service.',
       claimGift: 'Claim Birthday Gift',
       save: 'Save',
@@ -263,7 +263,7 @@ export default function MyLoyalty() {
       exclusiveProducts: 'Produtos Exclusivos',
       updateBirthday: 'Defina seu Aniversário',
       birthdayDesc: 'Adicione seu aniversário para receber um presente especial!',
-      whatsappTitle: 'Concierge Platinum',
+      whatsappTitle: 'Concierge Black',
       whatsappDesc: 'Adicione seu WhatsApp para serviço de concierge personalizado.',
       claimGift: 'Resgatar Presente',
       save: 'Salvar',
@@ -280,7 +280,7 @@ export default function MyLoyalty() {
       green: { en: 'Green Member', pt: 'Membro Green' },
       silver: { en: 'Silver Member', pt: 'Membro Silver' },
       gold: { en: 'Gold Member', pt: 'Membro Gold' },
-      platinum: { en: 'Platinum Member', pt: 'Membro Platinum' },
+      platinum: { en: 'Black Member', pt: 'Membro Black' },
     };
     return names[tier]?.[language] || tier;
   };
