@@ -1266,12 +1266,13 @@ export async function subscribeToNewsletter(email: string, name?: string, source
     
     // Check if already subscribed
     const existing = await getNewsletterSubscriberByEmail(email);
-    if (existing && existing.active === 1) {
+    const isActive = existing && (existing.active === 1 || existing.active === true);
+    if (isActive) {
       throw new Error('Email already subscribed');
     }
-    
+
     // If exists but inactive, reactivate
-    if (existing && existing.active === 0) {
+    if (existing && !isActive) {
       await db.update(newsletter)
         .set({ 
           active: 1, 
@@ -1284,13 +1285,15 @@ export async function subscribeToNewsletter(email: string, name?: string, source
     }
     
     // Insert new subscription using Drizzle
+    // Generate UUID for id since the DB column uses UUID type
     await db.insert(newsletter).values({
+      id: crypto.randomUUID(),
       email,
       name: name && name.trim() ? name.trim() : null,
       source,
       active: 1,
       subscribedAt: new Date(),
-    });
+    } as any);
     
     logger.info('[Newsletter] Successfully inserted');
     return { success: true };
