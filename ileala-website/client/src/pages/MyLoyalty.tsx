@@ -639,17 +639,39 @@ export default function MyLoyalty() {
             <p className="text-sm text-muted-foreground mb-6">
               {language === 'en' ? 'Click on a tier to see its benefits' : 'Clique em um nível para ver seus benefícios'}
             </p>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {allTiers.map((tier) => {
                 const config = tierConfig[tier.tier];
                 const isCurrentTier = tier.tier === member?.tier;
                 const isSelected = selectedTierView === tier.tier;
                 const hasImage = tier.iconUrl;
+
+                // Benefits to show on each tier card
+                const tierBenefits: Record<string, { en: string[]; pt: string[] }> = {
+                  green: {
+                    en: ['Exclusive Newsletter', 'Private Sales Access'],
+                    pt: ['Newsletter Exclusiva', 'Acesso a Vendas Privadas'],
+                  },
+                  silver: {
+                    en: ['Free Standard Shipping (UAE)', 'Birthday Gift'],
+                    pt: ['Frete Padrão Grátis (UAE)', 'Presente de Aniversário'],
+                  },
+                  gold: {
+                    en: ['Free Express Shipping', 'Early Access 24h', 'Priority Support'],
+                    pt: ['Frete Expresso Grátis', 'Acesso Antecipado 24h', 'Suporte Prioritário'],
+                  },
+                  platinum: {
+                    en: ['WhatsApp VIP Concierge', 'Event Invitations', 'Surprise Gifts'],
+                    pt: ['Concierge WhatsApp VIP', 'Convites para Eventos', 'Presentes Surpresa'],
+                  },
+                };
+                const benefits = tierBenefits[tier.tier]?.[language] || [];
+
                 return (
                   <div
                     key={tier.id}
                     onClick={() => setSelectedTierView(isSelected ? null : tier.tier)}
-                    className={`rounded-xl p-4 text-center transition-all cursor-pointer hover:scale-105 relative overflow-hidden ${
+                    className={`rounded-2xl p-6 text-center transition-all cursor-pointer hover:scale-105 relative overflow-hidden ${
                       isCurrentTier ? 'ring-2 ring-primary' : ''
                     } ${isSelected ? 'ring-2 ring-yellow-400 scale-105 shadow-lg' : ''}`}
                     style={{ background: hasImage ? undefined : (config?.gradient || '#ccc') }}
@@ -664,15 +686,22 @@ export default function MyLoyalty() {
                       </>
                     )}
                     <div className="relative z-10">
-                      <p className={`font-bold text-lg mb-1 ${hasImage ? 'text-white' : config?.textColor}`}>
+                      <h3 className={`text-xl font-bold mb-2 ${hasImage ? 'text-white' : config?.textColor}`}>
                         {getTierDisplayName(tier, language)}
-                      </p>
-                      <p className={`text-sm opacity-80 ${hasImage ? 'text-white' : config?.textColor}`}>
+                      </h3>
+                      <p className={`text-sm opacity-80 mb-4 ${hasImage ? 'text-white' : config?.textColor}`}>
                         {formatPrice(tier.minSpend)}
                         {tier.maxSpend ? ` - ${formatPrice(tier.maxSpend)}` : '+'}
                       </p>
+                      <ul className={`text-sm text-left space-y-2 opacity-90 ${hasImage ? 'text-white' : config?.textColor}`}>
+                        {benefits.map((benefit, i) => (
+                          <li key={i} className="flex items-center gap-2">
+                            <Check className="w-4 h-4 flex-shrink-0" /> {benefit}
+                          </li>
+                        ))}
+                      </ul>
                       {isCurrentTier && (
-                        <p className={`text-xs mt-2 font-semibold ${hasImage ? 'text-white' : config?.textColor}`}>
+                        <p className={`text-xs mt-4 font-semibold uppercase tracking-wider ${hasImage ? 'text-white' : config?.textColor}`}>
                           {language === 'en' ? 'YOUR LEVEL' : 'SEU NÍVEL'}
                         </p>
                       )}
