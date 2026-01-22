@@ -397,7 +397,7 @@ export default function GiftCard() {
                         <div className="flex justify-between items-start">
                           <div>
                             <p className="text-sm uppercase tracking-widest" style={{ color: '#C0A96B' }}>{cardTitle}</p>
-                            <img src="/ile-ala-logo.svg" alt="Ile Ala" className="h-12 mt-1" style={{ maxWidth: '150px' }} />
+                            <img src="/ile-ala-logo.svg" alt="Ile Ala" className="mt-2" style={{ width: '120px', height: 'auto' }} />
                           </div>
                           {cardIcon ? (
                             <img src={cardIcon} alt="Icon" className="w-10 h-10 object-contain" style={{ opacity: 0.8 }} />
@@ -422,7 +422,7 @@ export default function GiftCard() {
                       <div className="flex justify-between items-start mb-8">
                         <div>
                           <p className="text-sm uppercase tracking-widest" style={{ color: '#C0A96B', opacity: 0.8 }}>{cardTitle}</p>
-                          <img src="/ile-ala-logo.svg" alt="Ile Ala" className="h-12 mt-1" style={{ maxWidth: '150px' }} />
+                          <img src="/ile-ala-logo.svg" alt="Ile Ala" className="mt-2" style={{ width: '120px', height: 'auto' }} />
                         </div>
                         {cardIcon ? (
                           <img src={cardIcon} alt="Icon" className="w-10 h-10 object-contain" style={{ opacity: 0.6 }} />
