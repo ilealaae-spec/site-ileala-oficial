@@ -1274,11 +1274,11 @@ export async function subscribeToNewsletter(email: string, name?: string, source
     // If exists but inactive, reactivate
     if (existing && !isActive) {
       await db.update(newsletter)
-        .set({ 
-          active: 1, 
+        .set({
+          active: true,
           source,
           ...(name && name.trim() ? { name: name.trim() } : {}),
-        })
+        } as any)
         .where(eq(newsletter.email, email));
       logger.info('[Newsletter] Reactivated existing subscription');
       return { success: true };
@@ -1286,12 +1286,13 @@ export async function subscribeToNewsletter(email: string, name?: string, source
     
     // Insert new subscription using Drizzle
     // Generate UUID for id since the DB column uses UUID type
+    // Use true for active since DB uses boolean type
     await db.insert(newsletter).values({
       id: crypto.randomUUID(),
       email,
       name: name && name.trim() ? name.trim() : null,
       source,
-      active: 1,
+      active: true,
       subscribedAt: new Date(),
     } as any);
     
