@@ -27,6 +27,7 @@ export default function GiftCard() {
 
   // Fetch gift card settings
   const { data: giftCardImageSetting } = trpc.settings.get.useQuery({ key: 'gift-card-image' });
+  const { data: giftCardHeroImageSetting } = trpc.settings.get.useQuery({ key: 'gift-card-hero-image' });
   const { data: minValueSetting } = trpc.settings.get.useQuery({ key: 'gift-card-min-value' });
   const { data: maxValueSetting } = trpc.settings.get.useQuery({ key: 'gift-card-max-value' });
   // Text customization settings
@@ -38,6 +39,7 @@ export default function GiftCard() {
   const { data: cardIconSetting } = trpc.settings.get.useQuery({ key: 'gift-card-icon' });
 
   const giftCardImage = giftCardImageSetting?.value;
+  const giftCardHeroImage = giftCardHeroImageSetting?.value;
   const cardIcon = cardIconSetting?.value;
   const minValue = minValueSetting?.value ? parseInt(minValueSetting.value) : 50;
   const maxValue = maxValueSetting?.value ? parseInt(maxValueSetting.value) : 2000;
@@ -192,8 +194,21 @@ export default function GiftCard() {
   return (
     <div className="w-full">
       {/* Hero Section */}
-      <section className="py-20 bg-primary text-primary-foreground">
-        <div className="container">
+      <section className="relative py-20 text-white overflow-hidden">
+        {/* Background - Image or Color */}
+        {giftCardHeroImage ? (
+          <>
+            <div
+              className="absolute inset-0 bg-cover bg-center"
+              style={{ backgroundImage: `url(${giftCardHeroImage})` }}
+            />
+            <div className="absolute inset-0 bg-black/40" />
+          </>
+        ) : (
+          <div className="absolute inset-0 bg-primary" />
+        )}
+
+        <div className="container relative z-10">
           <div className="max-w-3xl mx-auto text-center">
             <div className="flex justify-center mb-6">
               <div className="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center">

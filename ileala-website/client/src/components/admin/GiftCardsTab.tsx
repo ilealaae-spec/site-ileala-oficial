@@ -39,8 +39,10 @@ export default function GiftCardsTab() {
   const [cardValueLabel, setCardValueLabel] = useState('VALUE');
   const [cardValidText, setCardValidText] = useState('Valid for 1 year');
   const [isUploadingIcon, setIsUploadingIcon] = useState(false);
+  const [isUploadingHero, setIsUploadingHero] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const iconInputRef = useRef<HTMLInputElement>(null);
+  const heroInputRef = useRef<HTMLInputElement>(null);
 
   const utils = trpc.useUtils();
   const { data: giftCards, isLoading } = trpc.admin.giftCards.list.useQuery({ status: statusFilter });
@@ -48,6 +50,7 @@ export default function GiftCardsTab() {
 
   // Fetch gift card settings
   const { data: giftCardImageSetting, refetch: refetchGiftCardImage } = trpc.settings.get.useQuery({ key: 'gift-card-image' });
+  const { data: giftCardHeroImageSetting, refetch: refetchGiftCardHeroImage } = trpc.settings.get.useQuery({ key: 'gift-card-hero-image' });
   const { data: minValueSetting, refetch: refetchMinValue } = trpc.settings.get.useQuery({ key: 'gift-card-min-value' });
   const { data: maxValueSetting, refetch: refetchMaxValue } = trpc.settings.get.useQuery({ key: 'gift-card-max-value' });
   // Text customization settings
@@ -163,6 +166,56 @@ export default function GiftCardsTab() {
     };
     reader.onerror = () => {
       setIsUploading(false);
+      toast.error(language === 'en' ? 'Failed to read file' : 'Erro ao ler arquivo');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Handle hero image upload
+  const handleHeroUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error(language === 'en' ? 'Please select an image file' : 'Selecione um arquivo de imagem');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error(language === 'en' ? 'Image must be less than 5MB' : 'Imagem deve ter menos de 5MB');
+      return;
+    }
+
+    setIsUploadingHero(true);
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = (reader.result as string).split(',')[1];
+      uploadMutation.mutate({
+        fileName: `gift-card-hero-${Date.now()}-${file.name}`,
+        fileData: base64,
+        contentType: file.type,
+      }, {
+        onSuccess: (data: { url: string }) => {
+          updateSettingMutation.mutate({ key: 'gift-card-hero-image', value: data.url }, {
+            onSuccess: () => {
+              setIsUploadingHero(false);
+              toast.success(language === 'en' ? 'Hero image updated!' : 'Imagem principal atualizada!');
+              refetchGiftCardHeroImage();
+            },
+            onError: () => {
+              setIsUploadingHero(false);
+              toast.error(language === 'en' ? 'Failed to save hero image' : 'Erro ao salvar imagem principal');
+            }
+          });
+        },
+        onError: () => {
+          setIsUploadingHero(false);
+          toast.error(language === 'en' ? 'Failed to upload hero image' : 'Erro ao enviar imagem principal');
+        }
+      });
+    };
+    reader.onerror = () => {
+      setIsUploadingHero(false);
       toast.error(language === 'en' ? 'Failed to read file' : 'Erro ao ler arquivo');
     };
     reader.readAsDataURL(file);
@@ -414,6 +467,84 @@ export default function GiftCardsTab() {
           </Button>
         )}
       </div>
+
+      {/* Hero Image Upload */}
+      <Card className="p-6">
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <ImageIcon className="w-5 h-5" />
+              {language === 'en' ? 'Page Hero Image' : 'Imagem Principal da Página'}
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              {language === 'en'
+                ? 'This image appears at the top of the Gift Card page (hero section)'
+                : 'Esta imagem aparece no topo da página de Vale Presente (seção hero)'}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-col md:flex-row gap-6">
+          {/* Current Hero Image Preview */}
+          <div className="w-full md:w-1/2">
+            <Label className="mb-2 block">{language === 'en' ? 'Current Hero Image' : 'Imagem Hero Atual'}</Label>
+            <div className="relative aspect-[16/9] rounded-lg overflow-hidden bg-muted border">
+              {giftCardHeroImageSetting?.value ? (
+                <img
+                  src={giftCardHeroImageSetting.value}
+                  alt="Gift Card Hero"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center bg-primary text-primary-foreground">
+                  <Gift className="w-12 h-12 mb-2 opacity-60" />
+                  <span className="text-sm opacity-80">{language === 'en' ? 'Default color background' : 'Fundo de cor padrão'}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Upload Section */}
+          <div className="w-full md:w-1/2">
+            <Label className="mb-2 block">{language === 'en' ? 'Upload New Hero Image' : 'Enviar Nova Imagem Hero'}</Label>
+            <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
+              <input
+                ref={heroInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleHeroUpload}
+                className="hidden"
+              />
+              <Upload className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground mb-3">
+                {language === 'en'
+                  ? 'Recommended: 1920x600px'
+                  : 'Recomendado: 1920x600px'}
+              </p>
+              <Button
+                onClick={() => heroInputRef.current?.click()}
+                disabled={isUploadingHero}
+                variant="outline"
+              >
+                {isUploadingHero ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    {language === 'en' ? 'Uploading...' : 'Enviando...'}
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4 mr-2" />
+                    {language === 'en' ? 'Choose Image' : 'Escolher Imagem'}
+                  </>
+                )}
+              </Button>
+              <p className="text-xs text-muted-foreground mt-2">
+                {language === 'en' ? 'Max 5MB. JPG, PNG or WebP' : 'Máx 5MB. JPG, PNG ou WebP'}
+              </p>
+            </div>
+          </div>
+        </div>
+      </Card>
 
       {/* Gift Card Design Image */}
       <Card className="p-6">
