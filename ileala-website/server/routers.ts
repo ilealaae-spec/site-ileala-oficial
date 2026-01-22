@@ -942,19 +942,15 @@ export const appRouter = router({
       .query(async ({ input, ctx }) => {
         if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
         const subscribers = await db.getAllNewsletterSubscribers(input?.activeOnly ?? true);
-        console.log('[Newsletter] Raw subscribers sample:', JSON.stringify(subscribers.slice(0, 2)));
-        // Ensure id is always returned as a number
-        return subscribers.map((sub: any) => ({
-          ...sub,
-          id: Number(sub.id) || 0,
-        }));
+        // Return subscribers as-is (id is UUID string in the database)
+        return subscribers;
       }),
     stats: protectedProcedure.query(async ({ ctx }) => {
       if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
       return await db.getNewsletterStats();
     }),
     delete: protectedProcedure
-      .input(z.object({ id: z.number() }))
+      .input(z.object({ id: z.string() }))
       .mutation(async ({ input, ctx }) => {
         if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
         await db.deleteNewsletterSubscriber(input.id);

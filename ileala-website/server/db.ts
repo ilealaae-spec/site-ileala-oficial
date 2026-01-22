@@ -1321,12 +1321,14 @@ export async function unsubscribeFromNewsletter(email: string) {
 export async function getAllNewsletterSubscribers(activeOnly: boolean = true) {
   const db = await getDb();
   if (!db) return [];
-  
+
+  // Get all and filter in JS since the DB uses boolean but schema uses integer
+  const all = await db.select().from(newsletter);
   if (activeOnly) {
-    return db.select().from(newsletter).where(eq(newsletter.active, 1));
+    return all.filter((s: any) => s.active === true || s.active === 1);
   }
-  
-  return db.select().from(newsletter);
+
+  return all;
 }
 
 export async function getNewsletterSubscriberByEmail(email: string) {
@@ -1337,22 +1339,22 @@ export async function getNewsletterSubscriberByEmail(email: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-export async function deleteNewsletterSubscriber(id: number) {
+export async function deleteNewsletterSubscriber(id: string) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
-  await db.delete(newsletter).where(eq(newsletter.id, id));
+
+  await db.delete(newsletter).where(eq(newsletter.id, id as any));
   return { success: true };
 }
 
 export async function getNewsletterStats() {
   const db = await getDb();
   if (!db) return { total: 0, active: 0, inactive: 0 };
-  
+
   const all = await db.select().from(newsletter);
-  const active = all.filter(s => s.active === 1);
-  const inactive = all.filter(s => s.active === 0);
-  
+  const active = all.filter((s: any) => s.active === true || s.active === 1);
+  const inactive = all.filter((s: any) => s.active === false || s.active === 0);
+
   return {
     total: all.length,
     active: active.length,

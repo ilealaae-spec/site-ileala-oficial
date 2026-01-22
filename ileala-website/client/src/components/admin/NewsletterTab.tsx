@@ -30,19 +30,13 @@ export default function NewsletterTab() {
     },
   });
 
-  const handleDelete = (id: number | string | undefined, email: string) => {
-    console.log('[Newsletter] Attempting to delete:', { id, email, idType: typeof id });
-    if (id === undefined || id === null) {
+  const handleDelete = (id: string | undefined, email: string) => {
+    if (!id) {
       toast.error('Cannot delete: subscriber ID is missing');
       return;
     }
-    const numericId = typeof id === 'string' ? parseInt(id, 10) : id;
-    if (isNaN(numericId)) {
-      toast.error('Cannot delete: invalid subscriber ID');
-      return;
-    }
     if (confirm(`${language === 'en' ? 'Delete' : 'Remover'} ${email}?`)) {
-      deleteMutation.mutate({ id: numericId });
+      deleteMutation.mutate({ id });
     }
   };
 
@@ -58,7 +52,7 @@ export default function NewsletterTab() {
         sub.email,
         sub.name || '',
         new Date(sub.subscribedAt).toLocaleDateString(),
-        sub.active === 1 ? 'Active' : 'Inactive',
+        (sub.active === 1 || sub.active === true) ? 'Active' : 'Inactive',
         sub.source,
       ])
     ].map(row => row.join(',')).join('\n');
@@ -73,9 +67,6 @@ export default function NewsletterTab() {
     
     toast.success(language === 'en' ? 'CSV exported!' : 'CSV exportado!');
   };
-
-  // Debug: Log subscribers to check structure
-  console.log('[Newsletter] Raw subscribers:', subscribers);
 
   const filteredSubscribers = subscribers?.filter(sub =>
     sub.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -183,7 +174,7 @@ export default function NewsletterTab() {
               <div className="flex items-center justify-between gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3">
-                    <div className={`w-2 h-2 rounded-full ${subscriber.active === 1 ? 'bg-green-500' : 'bg-gray-400'}`} />
+                    <div className={`w-2 h-2 rounded-full ${(subscriber.active === 1 || subscriber.active === true) ? 'bg-green-500' : 'bg-gray-400'}`} />
                     <div className="flex-1 min-w-0">
                       <p className="font-medium truncate">{subscriber.email}</p>
                       {subscriber.name && (
