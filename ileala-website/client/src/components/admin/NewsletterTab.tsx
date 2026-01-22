@@ -30,9 +30,9 @@ export default function NewsletterTab() {
     },
   });
 
-  const handleDelete = (id: number, email: string) => {
+  const handleDelete = (id: number | string, email: string) => {
     if (confirm(`${language === 'en' ? 'Delete' : 'Remover'} ${email}?`)) {
-      deleteMutation.mutate({ id });
+      deleteMutation.mutate({ id: Number(id) });
     }
   };
 
