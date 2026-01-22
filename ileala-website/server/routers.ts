@@ -2539,11 +2539,43 @@ export const appRouter = router({
           memberId: z.number(),
           newTier: z.enum(['green', 'silver', 'gold', 'platinum']),
           reason: z.string().min(1),
+          sendEmail: z.boolean().optional().default(false),
         }))
         .mutation(async ({ ctx, input }) => {
           if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
           if (!ctx.user?.id) throw new Error('Admin ID required');
-          return await db.adminChangeMemberTier(input.memberId, input.newTier, ctx.user.id, input.reason);
+
+          // Get member info before changing tier (for email)
+          const memberBefore = await db.getLoyaltyMemberById(input.memberId);
+          const oldTier = memberBefore?.tier || 'green';
+
+          const result = await db.adminChangeMemberTier(input.memberId, input.newTier, ctx.user.id, input.reason);
+
+          // Send upgrade email if requested and tier actually changed
+          if (input.sendEmail && result.success && oldTier !== input.newTier) {
+            try {
+              // Get user email
+              const member = await db.getLoyaltyMemberById(input.memberId);
+              if (member?.userId) {
+                const user = await db.getUserById(member.userId);
+                if (user?.email) {
+                  const { sendTierUpgradeEmail } = await import('./email');
+                  await sendTierUpgradeEmail(
+                    user.email,
+                    user.firstName || user.email.split('@')[0],
+                    input.newTier,
+                    oldTier
+                  );
+                  logger.info(`[Loyalty] Manual tier upgrade email sent to ${user.email} (${oldTier} -> ${input.newTier})`);
+                }
+              }
+            } catch (emailError) {
+              logger.error('[Loyalty] Failed to send manual tier upgrade email:', emailError);
+              // Don't fail the tier change if email fails
+            }
+          }
+
+          return result;
         }),
 
       // Update member status (active/inactive)

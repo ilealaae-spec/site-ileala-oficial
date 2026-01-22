@@ -2815,6 +2815,20 @@ export async function getLoyaltyMemberByUserId(userId: number): Promise<LoyaltyM
   }
 }
 
+// Get loyalty member by ID
+export async function getLoyaltyMemberById(memberId: number): Promise<LoyaltyMember | null> {
+  const db = await getDb();
+  if (!db) return null;
+
+  try {
+    const [member] = await db.select().from(loyaltyMembers).where(eq(loyaltyMembers.id, memberId)).limit(1);
+    return member || null;
+  } catch (error) {
+    logger.error("[Loyalty] Failed to get member by id:", error);
+    return null;
+  }
+}
+
 // Get all tier benefits
 export async function getAllTierBenefits(): Promise<LoyaltyTierBenefit[]> {
   const db = await getDb();

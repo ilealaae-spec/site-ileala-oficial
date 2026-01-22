@@ -166,6 +166,7 @@ export default function LoyaltyTab() {
   const [isChangeTierOpen, setIsChangeTierOpen] = useState(false);
   const [newTier, setNewTier] = useState('');
   const [tierChangeReason, setTierChangeReason] = useState('');
+  const [sendUpgradeEmail, setSendUpgradeEmail] = useState(true);
   const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
   const [newMemberEmail, setNewMemberEmail] = useState('');
   const [newMemberTier, setNewMemberTier] = useState('green');
@@ -392,6 +393,7 @@ export default function LoyaltyTab() {
       memberId: selectedMember.member.id,
       newTier: newTier as 'green' | 'silver' | 'gold' | 'platinum',
       reason: tierChangeReason.trim(),
+      sendEmail: sendUpgradeEmail,
     });
   };
 
@@ -1262,6 +1264,7 @@ export default function LoyaltyTab() {
         if (!open) {
           setNewTier('');
           setTierChangeReason('');
+          setSendUpgradeEmail(true);
         }
       }}>
         <DialogContent className="max-w-md">
@@ -1304,6 +1307,24 @@ export default function LoyaltyTab() {
                 value={tierChangeReason}
                 onChange={(e) => setTierChangeReason(e.target.value)}
                 rows={3}
+              />
+            </div>
+
+            {/* Send Email Option */}
+            <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
+              <div>
+                <p className="font-medium text-sm">
+                  {language === 'en' ? 'Send congratulations email' : 'Enviar email de parabéns'}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {language === 'en'
+                    ? 'Customer will receive an email about their new tier benefits'
+                    : 'Cliente receberá um email sobre os benefícios do novo nível'}
+                </p>
+              </div>
+              <Switch
+                checked={sendUpgradeEmail}
+                onCheckedChange={setSendUpgradeEmail}
               />
             </div>
 
