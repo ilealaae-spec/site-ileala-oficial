@@ -119,7 +119,7 @@ export default function MyLoyalty() {
               </p>
             </div>
 
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {(() => {
                 const defaultTiers = [
                   { tier: 'green', displayName: 'Green', gradient: 'linear-gradient(135deg, #255238 0%, #1a3d28 100%)', textColor: 'text-white', range: '0 - 1,499 AED', benefits: ['Newsletter Exclusiva', 'Acesso a Vendas Privadas'] },
@@ -135,12 +135,9 @@ export default function MyLoyalty() {
                   return (
                     <div
                       key={t.tier}
-                      className={`rounded-2xl text-center ${t.textColor} relative overflow-hidden`}
+                      className={`rounded-2xl p-6 text-center ${t.textColor} relative overflow-hidden`}
                       style={{
                         background: hasImage ? undefined : t.gradient,
-                        width: '326px',
-                        height: '252px',
-                        margin: '0 auto',
                       }}
                     >
                       {hasImage && (
@@ -152,18 +149,16 @@ export default function MyLoyalty() {
                           <div className="absolute inset-0 bg-black/40" />
                         </>
                       )}
-                      <div className="relative z-10 p-6 h-full flex flex-col justify-between">
-                        <div>
-                          <h3 className="text-xl font-bold mb-2">{(t as any).displayName || t.tier}</h3>
-                          <p className="text-sm opacity-80 mb-4">{t.range}</p>
-                          <ul className="text-sm text-left space-y-2 opacity-90">
-                            {t.benefits.map((benefit, i) => (
-                              <li key={i} className="flex items-center gap-2">
-                                <Check className="w-4 h-4" /> {benefit}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
+                      <div className="relative z-10">
+                        <h3 className="text-xl font-bold mb-2">{(t as any).displayName || t.tier}</h3>
+                        <p className="text-sm opacity-80 mb-4">{t.range}</p>
+                        <ul className="text-sm text-left space-y-2 opacity-90">
+                          {t.benefits.map((benefit, i) => (
+                            <li key={i} className="flex items-center gap-2">
+                              <Check className="w-4 h-4" /> {benefit}
+                            </li>
+                          ))}
+                        </ul>
                       </div>
                     </div>
                   );
@@ -676,14 +671,11 @@ export default function MyLoyalty() {
                   <div
                     key={tier.id}
                     onClick={() => setSelectedTierView(isSelected ? null : tier.tier)}
-                    className={`rounded-2xl text-center transition-all cursor-pointer hover:scale-105 relative overflow-hidden ${
+                    className={`rounded-2xl p-6 text-center transition-all cursor-pointer hover:scale-105 relative overflow-hidden ${
                       isCurrentTier ? 'ring-2 ring-primary' : ''
                     } ${isSelected ? 'ring-2 ring-yellow-400 scale-105 shadow-lg' : ''}`}
                     style={{
                       background: hasImage ? undefined : (config?.gradient || '#ccc'),
-                      width: '326px',
-                      height: '252px',
-                      margin: '0 auto',
                     }}
                   >
                     {hasImage && (
@@ -695,23 +687,21 @@ export default function MyLoyalty() {
                         <div className="absolute inset-0 bg-black/40" />
                       </>
                     )}
-                    <div className="relative z-10 p-6 h-full flex flex-col justify-between">
-                      <div>
-                        <h3 className={`text-xl font-bold mb-2 ${hasImage ? 'text-white' : config?.textColor}`}>
-                          {getTierDisplayName(tier, language)}
-                        </h3>
-                        <p className={`text-sm opacity-80 mb-4 ${hasImage ? 'text-white' : config?.textColor}`}>
-                          {formatPrice(tier.minSpend)}
-                          {tier.maxSpend ? ` - ${formatPrice(tier.maxSpend)}` : '+'}
-                        </p>
-                        <ul className={`text-sm text-left space-y-2 opacity-90 ${hasImage ? 'text-white' : config?.textColor}`}>
-                          {benefits.map((benefit, i) => (
-                            <li key={i} className="flex items-center gap-2">
-                              <Check className="w-4 h-4 flex-shrink-0" /> {benefit}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
+                    <div className="relative z-10">
+                      <h3 className={`text-xl font-bold mb-2 ${hasImage ? 'text-white' : config?.textColor}`}>
+                        {getTierDisplayName(tier, language)}
+                      </h3>
+                      <p className={`text-sm opacity-80 mb-4 ${hasImage ? 'text-white' : config?.textColor}`}>
+                        {formatPrice(tier.minSpend)}
+                        {tier.maxSpend ? ` - ${formatPrice(tier.maxSpend)}` : '+'}
+                      </p>
+                      <ul className={`text-sm text-left space-y-2 opacity-90 ${hasImage ? 'text-white' : config?.textColor}`}>
+                        {benefits.map((benefit, i) => (
+                          <li key={i} className="flex items-center gap-2">
+                            <Check className="w-4 h-4 flex-shrink-0" /> {benefit}
+                          </li>
+                        ))}
+                      </ul>
                       {isCurrentTier && (
                         <p className={`text-xs mt-4 font-semibold uppercase tracking-wider ${hasImage ? 'text-white' : config?.textColor}`}>
                           {language === 'en' ? 'YOUR LEVEL' : 'SEU NÍVEL'}
