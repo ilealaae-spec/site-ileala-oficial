@@ -778,6 +778,14 @@ export async function cancelGiftCard(id: number): Promise<boolean> {
   return true;
 }
 
+export async function deleteGiftCard(id: number): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+
+  await db.delete(giftCards).where(eq(giftCards.id, id));
+  return true;
+}
+
 // ===== LOCAL AUTHENTICATION =====
 
 export async function getUserByEmail(email: string) {

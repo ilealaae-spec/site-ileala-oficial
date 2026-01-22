@@ -2331,6 +2331,67 @@ export const appRouter = router({
           return { success: true };
         }),
 
+      // Delete a gift card (only pending/cancelled ones)
+      delete: protectedProcedure
+        .input(z.object({ id: z.number() }))
+        .mutation(async ({ input, ctx }) => {
+          if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+
+          const giftCard = await db.getGiftCardById(input.id);
+          if (!giftCard) throw new Error('Gift card not found');
+
+          // Only allow deleting pending or cancelled gift cards
+          if (giftCard.status !== 'pending' && giftCard.status !== 'cancelled') {
+            throw new Error('Can only delete pending or cancelled gift cards');
+          }
+
+          await db.deleteGiftCard(input.id);
+
+          // Audit log
+          const audit = createAuditLogger(ctx);
+          await audit.log({
+            action: 'delete',
+            entity: 'gift_card',
+            entityId: input.id,
+            metadata: {
+              code: giftCard.code,
+              status: giftCard.status,
+              amount: giftCard.amount,
+            },
+          });
+
+          return { success: true };
+        }),
+
+      // Delete all pending gift cards
+      deleteAllPending: protectedProcedure
+        .mutation(async ({ ctx }) => {
+          if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+
+          const allCards = await db.getAllGiftCards();
+          const pendingCards = allCards.filter(gc => gc.status === 'pending');
+
+          let deleted = 0;
+          for (const card of pendingCards) {
+            await db.deleteGiftCard(card.id);
+            deleted++;
+          }
+
+          // Audit log
+          const audit = createAuditLogger(ctx);
+          await audit.log({
+            action: 'delete',
+            entity: 'gift_card',
+            entityId: 0,
+            metadata: {
+              action: 'delete_all_pending',
+              count: deleted,
+            },
+          });
+
+          return { success: true, deleted };
+        }),
+
       resendEmail: protectedProcedure
         .input(z.object({ id: z.number() }))
         .mutation(async ({ input, ctx }) => {

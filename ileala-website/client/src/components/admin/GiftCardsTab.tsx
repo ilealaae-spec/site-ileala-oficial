@@ -4,7 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { trpc } from '@/lib/trpc';
-import { Loader2, Gift, Copy, Mail, RefreshCw, XCircle, Calendar, User, CreditCard, Upload, Image as ImageIcon, CheckCircle, AlertCircle, Clock, Save, Settings } from 'lucide-react';
+import { Loader2, Gift, Copy, Mail, RefreshCw, XCircle, Calendar, User, CreditCard, Upload, Image as ImageIcon, CheckCircle, AlertCircle, Clock, Save, Settings, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useState, useRef, useEffect } from 'react';
 import {
@@ -64,6 +64,29 @@ export default function GiftCardsTab() {
   const resendMutation = trpc.admin.giftCards.resendEmail.useMutation({
     onSuccess: () => {
       toast.success(language === 'en' ? 'Email resent!' : 'Email reenviado!');
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const deleteMutation = trpc.admin.giftCards.delete.useMutation({
+    onSuccess: () => {
+      toast.success(language === 'en' ? 'Gift card deleted!' : 'Vale presente excluído!');
+      utils.admin.giftCards.list.invalidate();
+      utils.admin.giftCards.stats.invalidate();
+      setIsDetailOpen(false);
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const deleteAllPendingMutation = trpc.admin.giftCards.deleteAllPending.useMutation({
+    onSuccess: (data) => {
+      toast.success(language === 'en' ? `${data.deleted} pending gift cards deleted!` : `${data.deleted} vales pendentes excluídos!`);
+      utils.admin.giftCards.list.invalidate();
+      utils.admin.giftCards.stats.invalidate();
     },
     onError: (error) => {
       toast.error(error.message);
@@ -234,6 +257,31 @@ export default function GiftCardsTab() {
     resendMutation.mutate({ id });
   };
 
+  const handleDelete = (id: number, code: string) => {
+    if (window.confirm(
+      language === 'en'
+        ? `Delete gift card "${code}"? This action cannot be undone.`
+        : `Excluir vale presente "${code}"? Esta ação não pode ser desfeita.`
+    )) {
+      deleteMutation.mutate({ id });
+    }
+  };
+
+  const handleDeleteAllPending = () => {
+    const pendingCount = giftCards?.filter(gc => gc.status === 'pending').length || 0;
+    if (pendingCount === 0) {
+      toast.info(language === 'en' ? 'No pending gift cards to delete' : 'Nenhum vale pendente para excluir');
+      return;
+    }
+    if (window.confirm(
+      language === 'en'
+        ? `Delete all ${pendingCount} pending gift cards? This action cannot be undone.`
+        : `Excluir todos os ${pendingCount} vales pendentes? Esta ação não pode ser desfeita.`
+    )) {
+      deleteAllPendingMutation.mutate();
+    }
+  };
+
   const openDetail = (card: any) => {
     setSelectedCard(card);
     setIsDetailOpen(true);
@@ -261,6 +309,21 @@ export default function GiftCardsTab() {
               : 'Gerencie vales presente comprados pelos clientes'}
           </p>
         </div>
+        {stats && stats.pending > 0 && (
+          <Button
+            variant="outline"
+            onClick={handleDeleteAllPending}
+            disabled={deleteAllPendingMutation.isPending}
+            className="text-destructive border-destructive hover:bg-destructive/10"
+          >
+            {deleteAllPendingMutation.isPending ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Trash2 className="w-4 h-4 mr-2" />
+            )}
+            {language === 'en' ? `Delete ${stats.pending} Pending` : `Excluir ${stats.pending} Pendentes`}
+          </Button>
+        )}
       </div>
 
       {/* Gift Card Design Image */}
@@ -529,6 +592,23 @@ export default function GiftCardsTab() {
                           <XCircle className="w-4 h-4" />
                         </Button>
                       </>
+                    )}
+                    {(card.status === 'pending' || card.status === 'cancelled') && (
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleDelete(card.id, card.code)}
+                        disabled={deleteMutation.isPending}
+                      >
+                        {deleteMutation.isPending ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <>
+                            <Trash2 className="w-4 h-4 mr-1" />
+                            {language === 'en' ? 'Delete' : 'Excluir'}
+                          </>
+                        )}
+                      </Button>
                     )}
                   </div>
                 </div>
