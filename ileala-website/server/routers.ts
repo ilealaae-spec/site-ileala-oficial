@@ -941,7 +941,9 @@ export const appRouter = router({
       }).optional())
       .query(async ({ input, ctx }) => {
         if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
-        return await db.getAllNewsletterSubscribers(input?.activeOnly ?? true);
+        const subscribers = await db.getAllNewsletterSubscribers(input?.activeOnly ?? true);
+        console.log('[Newsletter] Returning subscribers:', JSON.stringify(subscribers.slice(0, 2)));
+        return subscribers;
       }),
     stats: protectedProcedure.query(async ({ ctx }) => {
       if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
