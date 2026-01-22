@@ -122,35 +122,31 @@ export default function MyLoyalty() {
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {(() => {
                 const defaultTiers = [
-                  { tier: 'green', displayName: 'Green', gradient: 'linear-gradient(135deg, #3A5F4F 0%, #2D4A3E 50%, #1E3329 100%)', textColor: 'text-white', range: '0 - 1,499 AED', benefits: ['Newsletter Exclusiva', 'Acesso a Vendas Privadas'] },
-                  { tier: 'silver', displayName: 'Silver', gradient: 'linear-gradient(135deg, #D8D8D8 0%, #A8A8A8 50%, #888888 100%)', textColor: 'text-gray-900', range: '1,500 - 3,999 AED', benefits: ['Frete Padrão Grátis (UAE)', 'Presente de Aniversário'] },
-                  { tier: 'gold', displayName: 'Gold', gradient: 'linear-gradient(135deg, #E8D48A 0%, #C5A849 50%, #9A7B2F 100%)', textColor: 'text-gray-900', range: '4,000 - 7,499 AED', benefits: ['Frete Expresso Grátis', 'Acesso Antecipado 24h', 'Suporte Prioritário'] },
-                  { tier: 'platinum', displayName: 'Black', gradient: 'linear-gradient(135deg, #5A5A5A 0%, #3D3D3D 50%, #2C2C2C 100%)', textColor: 'text-white', range: '7,500+ AED', benefits: ['Concierge WhatsApp VIP', 'Convites para Eventos', 'Presentes Surpresa'] },
+                  { tier: 'green', displayName: 'Green', gradient: 'linear-gradient(135deg, #3A5F4F 0%, #2D4A3E 50%, #1E3329 100%)', backgroundImage: '/images/tier-cards/green-card.png', textColor: 'text-white', range: '0 - 1,499 AED', benefits: ['Newsletter Exclusiva', 'Acesso a Vendas Privadas'] },
+                  { tier: 'silver', displayName: 'Silver', gradient: 'linear-gradient(135deg, #D8D8D8 0%, #A8A8A8 50%, #888888 100%)', backgroundImage: '/images/tier-cards/silver-card.png', textColor: 'text-white', range: '1,500 - 3,999 AED', benefits: ['Frete Padrão Grátis (UAE)', 'Presente de Aniversário'] },
+                  { tier: 'gold', displayName: 'Gold', gradient: 'linear-gradient(135deg, #E8D48A 0%, #C5A849 50%, #9A7B2F 100%)', backgroundImage: '/images/tier-cards/gold-card.png', textColor: 'text-white', range: '4,000 - 7,499 AED', benefits: ['Frete Expresso Grátis', 'Acesso Antecipado 24h', 'Suporte Prioritário'] },
+                  { tier: 'platinum', displayName: 'Black', gradient: 'linear-gradient(135deg, #5A5A5A 0%, #3D3D3D 50%, #2C2C2C 100%)', backgroundImage: '/images/tier-cards/black-card.png', textColor: 'text-white', range: '7,500+ AED', benefits: ['Concierge WhatsApp VIP', 'Convites para Eventos', 'Presentes Surpresa'] },
                 ];
 
                 return defaultTiers.map((t) => {
                   const dbTier = tierBenefitsData?.find((tb: any) => tb.tier === t.tier);
-                  const hasImage = dbTier?.iconUrl;
+                  const hasDbImage = dbTier?.iconUrl;
+                  const backgroundImage = hasDbImage ? dbTier.iconUrl : t.backgroundImage;
 
                   return (
                     <div
                       key={t.tier}
-                      className={`rounded-2xl p-6 text-center ${t.textColor} relative overflow-hidden`}
+                      className="rounded-2xl p-6 text-center text-white relative overflow-hidden"
                       style={{
-                        background: hasImage ? undefined : t.gradient,
+                        backgroundImage: `url(${backgroundImage})`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
                       }}
                     >
-                      {hasImage && (
-                        <>
-                          <div
-                            className="absolute inset-0 bg-cover bg-center"
-                            style={{ backgroundImage: `url(${dbTier.iconUrl})` }}
-                          />
-                          <div className="absolute inset-0 bg-black/40" />
-                        </>
-                      )}
+                      {/* Overlay for text readability */}
+                      <div className="absolute inset-0 bg-black/30" />
                       <div className="relative z-10">
-                        <h3 className="text-xl font-bold mb-2">{(t as any).displayName || t.tier}</h3>
+                        <h3 className="text-xl font-bold mb-2">{t.displayName}</h3>
                         <p className="text-sm opacity-80 mb-4">{t.range}</p>
                         <ul className="text-sm text-left space-y-2 opacity-90">
                           {t.benefits.map((benefit, i) => (
@@ -199,22 +195,26 @@ export default function MyLoyalty() {
     return name;
   };
 
-  const tierConfig: Record<string, { gradient: string; textColor: string }> = {
+  const tierConfig: Record<string, { gradient: string; textColor: string; backgroundImage?: string }> = {
     green: {
       gradient: 'linear-gradient(135deg, #3A5F4F 0%, #2D4A3E 50%, #1E3329 100%)',
       textColor: 'text-white',
+      backgroundImage: '/images/tier-cards/green-card.png',
     },
     silver: {
       gradient: 'linear-gradient(135deg, #D8D8D8 0%, #A8A8A8 50%, #888888 100%)',
       textColor: 'text-gray-900',
+      backgroundImage: '/images/tier-cards/silver-card.png',
     },
     gold: {
       gradient: 'linear-gradient(135deg, #E8D48A 0%, #C5A849 50%, #9A7B2F 100%)',
       textColor: 'text-gray-900',
+      backgroundImage: '/images/tier-cards/gold-card.png',
     },
     platinum: {
       gradient: 'linear-gradient(135deg, #5A5A5A 0%, #3D3D3D 50%, #2C2C2C 100%)',
       textColor: 'text-white',
+      backgroundImage: '/images/tier-cards/black-card.png',
     },
   };
 
@@ -317,18 +317,24 @@ export default function MyLoyalty() {
             {/* Loyalty Card Visual */}
             <div
               className="rounded-2xl p-8 shadow-2xl relative overflow-hidden h-64"
-              style={{ background: currentTierConfig.gradient }}
+              style={{
+                backgroundImage: currentTierConfig.backgroundImage
+                  ? `url(${currentTierConfig.backgroundImage})`
+                  : undefined,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                background: !currentTierConfig.backgroundImage ? currentTierConfig.gradient : undefined,
+              }}
             >
-              {/* Decorative elements */}
-              <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
-              <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
+              {/* Subtle overlay for better text readability */}
+              <div className="absolute inset-0 bg-black/20" />
 
               <div className={`relative z-10 h-full flex flex-col justify-between ${currentTierConfig.textColor}`}>
                 <div>
                   <div className="mb-2">
                     <p className="text-sm opacity-80 tracking-widest">THE GREEN WORLD</p>
                     <p className="text-2xl font-bold uppercase tracking-wider">
-                      {member?.tier?.toUpperCase() || 'GREEN'}
+                      {member?.tier === 'platinum' ? 'BLACK' : (member?.tier?.toUpperCase() || 'GREEN')}
                     </p>
                   </div>
                 </div>
@@ -644,7 +650,8 @@ export default function MyLoyalty() {
                 const config = tierConfig[tier.tier];
                 const isCurrentTier = tier.tier === member?.tier;
                 const isSelected = selectedTierView === tier.tier;
-                const hasImage = tier.iconUrl;
+                // Use database image if available, otherwise use our tier-cards images
+                const backgroundImage = tier.iconUrl || config?.backgroundImage;
 
                 // Benefits to show on each tier card
                 const tierBenefits: Record<string, { en: string[]; pt: string[] }> = {
@@ -675,27 +682,23 @@ export default function MyLoyalty() {
                       isCurrentTier ? 'ring-2 ring-primary' : ''
                     } ${isSelected ? 'ring-2 ring-yellow-400 scale-105 shadow-lg' : ''}`}
                     style={{
-                      background: hasImage ? undefined : (config?.gradient || '#ccc'),
+                      backgroundImage: backgroundImage ? `url(${backgroundImage})` : undefined,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      background: !backgroundImage ? (config?.gradient || '#ccc') : undefined,
                     }}
                   >
-                    {hasImage && (
-                      <>
-                        <div
-                          className="absolute inset-0 bg-cover bg-center"
-                          style={{ backgroundImage: `url(${tier.iconUrl})` }}
-                        />
-                        <div className="absolute inset-0 bg-black/40" />
-                      </>
-                    )}
+                    {/* Overlay for text readability */}
+                    <div className="absolute inset-0 bg-black/30" />
                     <div className="relative z-10">
-                      <h3 className={`text-xl font-bold mb-2 ${hasImage ? 'text-white' : config?.textColor}`}>
+                      <h3 className="text-xl font-bold mb-2 text-white">
                         {getTierDisplayName(tier, language)}
                       </h3>
-                      <p className={`text-sm opacity-80 mb-4 ${hasImage ? 'text-white' : config?.textColor}`}>
+                      <p className="text-sm opacity-80 mb-4 text-white">
                         {formatPrice(tier.minSpend)}
                         {tier.maxSpend ? ` - ${formatPrice(tier.maxSpend)}` : '+'}
                       </p>
-                      <ul className={`text-sm text-left space-y-2 opacity-90 ${hasImage ? 'text-white' : config?.textColor}`}>
+                      <ul className="text-sm text-left space-y-2 opacity-90 text-white">
                         {benefits.map((benefit, i) => (
                           <li key={i} className="flex items-center gap-2">
                             <Check className="w-4 h-4 flex-shrink-0" /> {benefit}
@@ -703,7 +706,7 @@ export default function MyLoyalty() {
                         ))}
                       </ul>
                       {isCurrentTier && (
-                        <p className={`text-xs mt-4 font-semibold uppercase tracking-wider ${hasImage ? 'text-white' : config?.textColor}`}>
+                        <p className="text-xs mt-4 font-semibold uppercase tracking-wider text-white">
                           {language === 'en' ? 'YOUR LEVEL' : 'SEU NÍVEL'}
                         </p>
                       )}
