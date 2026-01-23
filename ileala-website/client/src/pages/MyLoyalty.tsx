@@ -643,29 +643,35 @@ export default function MyLoyalty() {
               )}
 
               {/* Progress bar to next tier */}
-              {nextTierInfo?.nextTier && (
-                <div className="mt-4 pt-4 border-t">
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="font-medium">{t.nextTier}: {nextTierInfo.nextTier === 'platinum' ? 'Black' : nextTierInfo.nextTier.charAt(0).toUpperCase() + nextTierInfo.nextTier.slice(1)}</span>
-                    <span className="font-semibold">{nextTierInfo.progress}%</span>
-                  </div>
-                  <div className="h-2 bg-gray-200 rounded-full overflow-hidden mb-2">
-                    <div
-                      className="h-full rounded-full transition-all duration-500"
-                      style={{ width: `${nextTierInfo.progress}%`, backgroundColor: '#255238' }}
-                    />
-                  </div>
-                  <p className="text-xs text-muted-foreground mb-3">
-                    <span className="font-semibold" style={{ color: '#255238' }}>{formatPrice(nextTierInfo.amountNeeded)}</span>{' '}
-                    {t.toReach} {nextTierInfo.nextTier === 'platinum' ? 'Black' : nextTierInfo.nextTier.charAt(0).toUpperCase() + nextTierInfo.nextTier.slice(1)}
+              <div className="mt-4 pt-4 border-t">
+                {nextTierInfo?.nextTier ? (
+                  <>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="font-medium">{t.nextTier}: {nextTierInfo.nextTier === 'platinum' ? 'Black' : nextTierInfo.nextTier.charAt(0).toUpperCase() + nextTierInfo.nextTier.slice(1)}</span>
+                      <span className="font-semibold">{nextTierInfo.progress}%</span>
+                    </div>
+                    <div className="h-2 bg-gray-200 rounded-full overflow-hidden mb-2">
+                      <div
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{ width: `${nextTierInfo.progress}%`, backgroundColor: '#255238' }}
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      <span className="font-semibold" style={{ color: '#255238' }}>{formatPrice(nextTierInfo.amountNeeded)}</span>{' '}
+                      {t.toReach} {nextTierInfo.nextTier === 'platinum' ? 'Black' : nextTierInfo.nextTier.charAt(0).toUpperCase() + nextTierInfo.nextTier.slice(1)}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-xs text-center text-muted-foreground mb-3">
+                    {language === 'en' ? 'You reached the highest tier!' : 'Você atingiu o nível máximo!'}
                   </p>
-                  <Link href="/shop">
-                    <Button className="w-full" size="sm" style={{ backgroundColor: '#255238' }}>
-                      {language === 'en' ? 'Shop Now' : 'Comprar Agora'}
-                    </Button>
-                  </Link>
-                </div>
-              )}
+                )}
+                <Link href="/shop">
+                  <Button className="w-full" size="sm" style={{ backgroundColor: '#255238' }}>
+                    {language === 'en' ? 'Shop Now' : 'Comprar Agora'}
+                  </Button>
+                </Link>
+              </div>
             </Card>
           </div>
 
