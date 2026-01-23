@@ -337,12 +337,48 @@ function TierCardWithUpload({ tier, language, onUpdate, settings, updateSetting 
   );
 }
 
-// Component for "At the Top" card customization (when member is at max tier)
-function AtTheTopCardSettings({ language, settings, updateSetting }: {
+// Default titles and subtitles for each tier progress card
+const tierProgressDefaults: Record<string, { titleEN: string; titlePT: string; subtitleEN: string; subtitlePT: string; defaultColor: string }> = {
+  green: {
+    titleEN: 'Welcome to Green!',
+    titlePT: 'Bem-vindo ao Green!',
+    subtitleEN: 'Keep shopping to unlock Silver benefits.',
+    subtitlePT: 'Continue comprando para desbloquear benefícios Silver.',
+    defaultColor: '#e8f5e9',
+  },
+  silver: {
+    titleEN: 'Silver Member',
+    titlePT: 'Membro Silver',
+    subtitleEN: 'Keep shopping to unlock Gold benefits.',
+    subtitlePT: 'Continue comprando para desbloquear benefícios Gold.',
+    defaultColor: '#f5f5f5',
+  },
+  gold: {
+    titleEN: 'Gold Member',
+    titlePT: 'Membro Gold',
+    subtitleEN: 'Keep shopping to unlock Black benefits.',
+    subtitlePT: 'Continue comprando para desbloquear benefícios Black.',
+    defaultColor: '#fff8e1',
+  },
+  platinum: {
+    titleEN: "You're at the top!",
+    titlePT: 'Você está no topo!',
+    subtitleEN: 'Keep shopping to enjoy your exclusive benefits.',
+    subtitlePT: 'Continue comprando para aproveitar seus benefícios exclusivos.',
+    defaultColor: '#ffffff',
+  },
+};
+
+// Component for tier progress card customization (for all 4 tiers)
+function TierProgressCardSettings({ tier, language, settings, updateSetting }: {
+  tier: string; // 'green', 'silver', 'gold', 'platinum'
   language: string;
   settings: Record<string, string>;
   updateSetting: (key: string, value: string) => void;
 }) {
+  const prefix = `progress-${tier}`;
+  const defaults = tierProgressDefaults[tier] || tierProgressDefaults.green;
+
   const [isUploadingIcon, setIsUploadingIcon] = useState(false);
   const [isUploadingBg, setIsUploadingBg] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -355,13 +391,13 @@ function AtTheTopCardSettings({ language, settings, updateSetting }: {
   const bgRef = useRef<HTMLInputElement>(null);
 
   // Get current settings
-  const currentIcon = settings['atthetop-icon'] || '';
-  const currentBgImage = settings['atthetop-bg-image'] || '';
-  const currentBgColor = settings['atthetop-bg-color'] || '#ffffff';
-  const currentTitleEN = settings['atthetop-title-en'] || '';
-  const currentTitlePT = settings['atthetop-title-pt'] || '';
-  const currentSubtitleEN = settings['atthetop-subtitle-en'] || '';
-  const currentSubtitlePT = settings['atthetop-subtitle-pt'] || '';
+  const currentIcon = settings[`${prefix}-icon`] || '';
+  const currentBgImage = settings[`${prefix}-bg-image`] || '';
+  const currentBgColor = settings[`${prefix}-bg-color`] || defaults.defaultColor;
+  const currentTitleEN = settings[`${prefix}-title-en`] || '';
+  const currentTitlePT = settings[`${prefix}-title-pt`] || '';
+  const currentSubtitleEN = settings[`${prefix}-subtitle-en`] || '';
+  const currentSubtitlePT = settings[`${prefix}-subtitle-pt`] || '';
 
   // Initialize edit values
   useEffect(() => {
@@ -374,7 +410,7 @@ function AtTheTopCardSettings({ language, settings, updateSetting }: {
 
   const uploadIconMutation = (trpc.admin as any).uploadImage.useMutation({
     onSuccess: (data: { url: string }) => {
-      updateSetting('atthetop-icon', data.url);
+      updateSetting(`${prefix}-icon`, data.url);
       setIsUploadingIcon(false);
       toast.success(language === 'en' ? 'Icon updated!' : 'Ícone atualizado!');
     },
@@ -386,7 +422,7 @@ function AtTheTopCardSettings({ language, settings, updateSetting }: {
 
   const uploadBgMutation = (trpc.admin as any).uploadImage.useMutation({
     onSuccess: (data: { url: string }) => {
-      updateSetting('atthetop-bg-image', data.url);
+      updateSetting(`${prefix}-bg-image`, data.url);
       setIsUploadingBg(false);
       toast.success(language === 'en' ? 'Background updated!' : 'Fundo atualizado!');
     },
@@ -415,7 +451,7 @@ function AtTheTopCardSettings({ language, settings, updateSetting }: {
     reader.onload = () => {
       const base64 = (reader.result as string).split(',')[1];
       uploadIconMutation.mutate({
-        fileName: `atthetop-icon-${Date.now()}-${file.name}`,
+        fileName: `${prefix}-icon-${Date.now()}-${file.name}`,
         fileData: base64,
         contentType: file.type,
       });
@@ -446,7 +482,7 @@ function AtTheTopCardSettings({ language, settings, updateSetting }: {
     reader.onload = () => {
       const base64 = (reader.result as string).split(',')[1];
       uploadBgMutation.mutate({
-        fileName: `atthetop-bg-${Date.now()}-${file.name}`,
+        fileName: `${prefix}-bg-${Date.now()}-${file.name}`,
         fileData: base64,
         contentType: file.type,
       });
@@ -459,22 +495,24 @@ function AtTheTopCardSettings({ language, settings, updateSetting }: {
   };
 
   const handleSaveTexts = () => {
-    if (titleEN) updateSetting('atthetop-title-en', titleEN);
-    if (titlePT) updateSetting('atthetop-title-pt', titlePT);
-    if (subtitleEN) updateSetting('atthetop-subtitle-en', subtitleEN);
-    if (subtitlePT) updateSetting('atthetop-subtitle-pt', subtitlePT);
-    if (bgColor) updateSetting('atthetop-bg-color', bgColor);
+    if (titleEN) updateSetting(`${prefix}-title-en`, titleEN);
+    if (titlePT) updateSetting(`${prefix}-title-pt`, titlePT);
+    if (subtitleEN) updateSetting(`${prefix}-subtitle-en`, subtitleEN);
+    if (subtitlePT) updateSetting(`${prefix}-subtitle-pt`, subtitlePT);
+    if (bgColor) updateSetting(`${prefix}-bg-color`, bgColor);
     setIsEditing(false);
     toast.success(language === 'en' ? 'Settings saved!' : 'Configurações salvas!');
   };
 
+  const displayTierName = tier === 'platinum' ? 'Black' : tier.charAt(0).toUpperCase() + tier.slice(1);
+
   return (
-    <div className="grid md:grid-cols-2 gap-6">
+    <div className="grid md:grid-cols-2 gap-4">
       {/* Preview */}
       <div>
-        <Label className="mb-2 block">{language === 'en' ? 'Preview' : 'Prévia'}</Label>
+        <Label className="mb-2 block text-xs">{language === 'en' ? 'Preview' : 'Prévia'}</Label>
         <div
-          className="rounded-lg p-6 text-center flex flex-col items-center justify-center min-h-[200px] border"
+          className="rounded-lg p-4 text-center flex flex-col items-center justify-center min-h-[160px] border relative overflow-hidden"
           style={{
             backgroundColor: currentBgImage ? undefined : currentBgColor,
             backgroundImage: currentBgImage ? `url(${currentBgImage})` : undefined,
@@ -487,130 +525,104 @@ function AtTheTopCardSettings({ language, settings, updateSetting }: {
             <img
               src={currentIcon || '/images/palmeira-black.svg'}
               alt="Icon"
-              className="w-24 h-24 mx-auto mb-4 object-contain"
+              className="w-16 h-16 mx-auto mb-3 object-contain"
             />
-            <h3 className="text-xl font-bold mb-2" style={{ color: currentBgImage ? '#fff' : '#000' }}>
-              {(language === 'en' ? currentTitleEN : currentTitlePT) || (language === 'en' ? "You're at the top!" : 'Você está no topo!')}
+            <h3 className="text-lg font-bold mb-1" style={{ color: currentBgImage ? '#fff' : '#000' }}>
+              {(language === 'en' ? currentTitleEN : currentTitlePT) || (language === 'en' ? defaults.titleEN : defaults.titlePT)}
             </h3>
-            <p className="text-sm" style={{ color: currentBgImage ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.6)' }}>
-              {(language === 'en' ? currentSubtitleEN : currentSubtitlePT) || (language === 'en' ? 'Keep shopping to enjoy your exclusive benefits.' : 'Continue comprando para aproveitar seus benefícios exclusivos.')}
+            <p className="text-xs" style={{ color: currentBgImage ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.6)' }}>
+              {(language === 'en' ? currentSubtitleEN : currentSubtitlePT) || (language === 'en' ? defaults.subtitleEN : defaults.subtitlePT)}
             </p>
           </div>
         </div>
       </div>
 
       {/* Settings */}
-      <div className="space-y-4">
+      <div className="space-y-3">
         {/* Hidden inputs */}
         <input ref={iconRef} type="file" accept="image/*" onChange={handleUploadIcon} className="hidden" />
         <input ref={bgRef} type="file" accept="image/*" onChange={handleUploadBg} className="hidden" />
 
-        {/* Icon Upload */}
-        <div>
-          <Label className="mb-2 block">{language === 'en' ? 'Icon/Image' : 'Ícone/Imagem'}</Label>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => iconRef.current?.click()} disabled={isUploadingIcon}>
-              {isUploadingIcon ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Upload className="w-4 h-4 mr-1" />}
-              {language === 'en' ? 'Upload Icon' : 'Enviar Ícone'}
+        {/* Icon & Background Upload */}
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" className="flex-1" onClick={() => iconRef.current?.click()} disabled={isUploadingIcon}>
+            {isUploadingIcon ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Upload className="w-3 h-3 mr-1" />}
+            {language === 'en' ? 'Icon' : 'Ícone'}
+          </Button>
+          {currentIcon && (
+            <Button variant="ghost" size="sm" onClick={() => updateSetting(`${prefix}-icon`, '')} className="text-red-600 px-2">
+              <X className="w-3 h-3" />
             </Button>
-            {currentIcon && (
-              <Button variant="ghost" size="sm" onClick={() => updateSetting('atthetop-icon', '')} className="text-red-600">
-                <X className="w-4 h-4" />
-              </Button>
-            )}
-          </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            {language === 'en' ? 'Default: Palmeira icon. Max 2MB.' : 'Padrão: Ícone palmeira. Máx 2MB.'}
-          </p>
+          )}
         </div>
 
-        {/* Background Image Upload */}
-        <div>
-          <Label className="mb-2 block">{language === 'en' ? 'Background Image' : 'Imagem de Fundo'}</Label>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => bgRef.current?.click()} disabled={isUploadingBg}>
-              {isUploadingBg ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <ImageIcon className="w-4 h-4 mr-1" />}
-              {language === 'en' ? 'Upload Background' : 'Enviar Fundo'}
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" className="flex-1" onClick={() => bgRef.current?.click()} disabled={isUploadingBg}>
+            {isUploadingBg ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <ImageIcon className="w-3 h-3 mr-1" />}
+            {language === 'en' ? 'Background' : 'Fundo'}
+          </Button>
+          {currentBgImage && (
+            <Button variant="ghost" size="sm" onClick={() => updateSetting(`${prefix}-bg-image`, '')} className="text-red-600 px-2">
+              <X className="w-3 h-3" />
             </Button>
-            {currentBgImage && (
-              <Button variant="ghost" size="sm" onClick={() => updateSetting('atthetop-bg-image', '')} className="text-red-600">
-                <X className="w-4 h-4" />
-              </Button>
-            )}
-          </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            {language === 'en' ? 'Optional. If set, overrides background color.' : 'Opcional. Se definido, substitui a cor de fundo.'}
-          </p>
+          )}
         </div>
 
         {/* Background Color */}
-        <div>
-          <Label className="mb-2 block">{language === 'en' ? 'Background Color' : 'Cor de Fundo'}</Label>
-          <div className="flex gap-2 items-center">
-            <input
-              type="color"
-              value={bgColor || '#ffffff'}
-              onChange={(e) => setBgColor(e.target.value)}
-              className="w-10 h-10 rounded border cursor-pointer"
-            />
-            <Input
-              value={bgColor || '#ffffff'}
-              onChange={(e) => setBgColor(e.target.value)}
-              placeholder="#ffffff"
-              className="flex-1"
-            />
-          </div>
+        <div className="flex gap-2 items-center">
+          <input
+            type="color"
+            value={bgColor || defaults.defaultColor}
+            onChange={(e) => {
+              setBgColor(e.target.value);
+              updateSetting(`${prefix}-bg-color`, e.target.value);
+            }}
+            className="w-8 h-8 rounded border cursor-pointer"
+          />
+          <span className="text-xs text-muted-foreground">{language === 'en' ? 'Color' : 'Cor'}</span>
         </div>
 
         {/* Text Settings */}
         {isEditing ? (
-          <div className="space-y-3 pt-3 border-t">
-            <div>
-              <Label>{language === 'en' ? 'Title (EN)' : 'Título (EN)'}</Label>
-              <Input
-                value={titleEN}
-                onChange={(e) => setTitleEN(e.target.value)}
-                placeholder="You're at the top!"
-              />
-            </div>
-            <div>
-              <Label>{language === 'en' ? 'Title (PT)' : 'Título (PT)'}</Label>
-              <Input
-                value={titlePT}
-                onChange={(e) => setTitlePT(e.target.value)}
-                placeholder="Você está no topo!"
-              />
-            </div>
-            <div>
-              <Label>{language === 'en' ? 'Subtitle (EN)' : 'Subtítulo (EN)'}</Label>
-              <Textarea
-                value={subtitleEN}
-                onChange={(e) => setSubtitleEN(e.target.value)}
-                placeholder="Keep shopping to enjoy your exclusive benefits."
-                rows={2}
-              />
-            </div>
-            <div>
-              <Label>{language === 'en' ? 'Subtitle (PT)' : 'Subtítulo (PT)'}</Label>
-              <Textarea
-                value={subtitlePT}
-                onChange={(e) => setSubtitlePT(e.target.value)}
-                placeholder="Continue comprando para aproveitar seus benefícios exclusivos."
-                rows={2}
-              />
-            </div>
+          <div className="space-y-2 pt-2 border-t">
+            <Input
+              value={titleEN}
+              onChange={(e) => setTitleEN(e.target.value)}
+              placeholder={defaults.titleEN}
+              className="text-xs h-8"
+            />
+            <Input
+              value={titlePT}
+              onChange={(e) => setTitlePT(e.target.value)}
+              placeholder={defaults.titlePT}
+              className="text-xs h-8"
+            />
+            <Textarea
+              value={subtitleEN}
+              onChange={(e) => setSubtitleEN(e.target.value)}
+              placeholder={defaults.subtitleEN}
+              rows={2}
+              className="text-xs"
+            />
+            <Textarea
+              value={subtitlePT}
+              onChange={(e) => setSubtitlePT(e.target.value)}
+              placeholder={defaults.subtitlePT}
+              rows={2}
+              className="text-xs"
+            />
             <div className="flex gap-2">
-              <Button size="sm" onClick={handleSaveTexts}>
-                <Save className="w-3 h-3 mr-1" /> {language === 'en' ? 'Save All' : 'Salvar Tudo'}
+              <Button size="sm" className="h-7 text-xs" onClick={handleSaveTexts}>
+                <Save className="w-3 h-3 mr-1" /> {language === 'en' ? 'Save' : 'Salvar'}
               </Button>
-              <Button size="sm" variant="ghost" onClick={() => setIsEditing(false)}>
+              <Button size="sm" variant="ghost" className="h-7" onClick={() => setIsEditing(false)}>
                 <X className="w-3 h-3" />
               </Button>
             </div>
           </div>
         ) : (
-          <Button variant="outline" size="sm" onClick={() => setIsEditing(true)} className="w-full">
-            <Pencil className="w-3 h-3 mr-1" /> {language === 'en' ? 'Edit Texts & Color' : 'Editar Textos e Cor'}
+          <Button variant="ghost" size="sm" onClick={() => setIsEditing(true)} className="w-full h-7 text-xs">
+            <Pencil className="w-3 h-3 mr-1" /> {language === 'en' ? 'Edit Texts' : 'Editar Textos'}
           </Button>
         )}
       </div>
@@ -656,11 +668,11 @@ export default function LoyaltyTab() {
   // Fetch all tier card settings
   const { data: allSettings, refetch: refetchAllSettings } = trpc.settings.list.useQuery();
 
-  // Build a settings map for easy access
+  // Build a settings map for easy access (tier cards + progress cards)
   const tierSettings: Record<string, string> = {};
   if (allSettings) {
     allSettings.forEach((s: any) => {
-      if (s.key.startsWith('tier-')) {
+      if (s.key.startsWith('tier-') || s.key.startsWith('progress-')) {
         tierSettings[s.key] = s.value;
       }
     });
@@ -1176,25 +1188,77 @@ export default function LoyaltyTab() {
         </div>
       )}
 
-      {/* "At the Top" Card Customization */}
+      {/* Progress Cards Customization for all 4 tiers */}
       <Card className="p-6">
-        <div className="mb-4">
+        <div className="mb-6">
           <h3 className="text-lg font-semibold flex items-center gap-2">
             <Crown className="w-5 h-5 text-yellow-500" />
-            {language === 'en' ? '"At the Top" Card' : 'Cartão "No Topo"'}
+            {language === 'en' ? 'Progress Cards (Right Side)' : 'Cartões de Progresso (Lado Direito)'}
           </h3>
           <p className="text-sm text-muted-foreground">
             {language === 'en'
-              ? 'Customize the card that appears when a member reaches the highest tier (Black).'
-              : 'Personalize o cartão que aparece quando um membro atinge o nível máximo (Black).'}
+              ? 'Customize the progress card that appears next to the member card for each tier level.'
+              : 'Personalize o cartão de progresso que aparece ao lado do cartão do membro para cada nível.'}
           </p>
         </div>
 
-        <AtTheTopCardSettings
-          language={language}
-          settings={tierSettings}
-          updateSetting={updateTierSetting}
-        />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Green Tier Card */}
+          <div className="border rounded-lg p-4">
+            <h4 className="font-semibold text-green-700 mb-3 flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-green-600" />
+              Green
+            </h4>
+            <TierProgressCardSettings
+              tier="green"
+              language={language}
+              settings={tierSettings}
+              updateSetting={updateTierSetting}
+            />
+          </div>
+
+          {/* Silver Tier Card */}
+          <div className="border rounded-lg p-4">
+            <h4 className="font-semibold text-gray-600 mb-3 flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-gray-400" />
+              Silver
+            </h4>
+            <TierProgressCardSettings
+              tier="silver"
+              language={language}
+              settings={tierSettings}
+              updateSetting={updateTierSetting}
+            />
+          </div>
+
+          {/* Gold Tier Card */}
+          <div className="border rounded-lg p-4">
+            <h4 className="font-semibold text-yellow-700 mb-3 flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-yellow-500" />
+              Gold
+            </h4>
+            <TierProgressCardSettings
+              tier="gold"
+              language={language}
+              settings={tierSettings}
+              updateSetting={updateTierSetting}
+            />
+          </div>
+
+          {/* Black (Platinum) Tier Card */}
+          <div className="border rounded-lg p-4">
+            <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-gray-900" />
+              Black
+            </h4>
+            <TierProgressCardSettings
+              tier="platinum"
+              language={language}
+              settings={tierSettings}
+              updateSetting={updateTierSetting}
+            />
+          </div>
+        </div>
       </Card>
 
       {/* Tier Cards with Image Upload */}

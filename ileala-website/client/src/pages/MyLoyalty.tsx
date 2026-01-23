@@ -34,7 +34,7 @@ export default function MyLoyalty() {
   const tierCustomSettings: Record<string, string> = {};
   if (allSettings) {
     allSettings.forEach((s: any) => {
-      if (s.key.startsWith('tier-')) {
+      if (s.key.startsWith('tier-') || s.key.startsWith('progress-')) {
         tierCustomSettings[s.key] = s.value;
       }
     });
@@ -56,17 +56,51 @@ export default function MyLoyalty() {
     return tierCustomSettings[`tier-${tier}-card-back`] || '';
   };
 
-  // Helpers for "At the Top" card customization
-  const getAtTheTopIcon = () => tierCustomSettings['atthetop-icon'] || '/images/palmeira-black.svg';
-  const getAtTheTopBgImage = () => tierCustomSettings['atthetop-bg-image'] || '';
-  const getAtTheTopBgColor = () => tierCustomSettings['atthetop-bg-color'] || '#ffffff';
-  const getAtTheTopTitle = (lang: string) => {
-    const key = `atthetop-title-${lang}`;
-    return tierCustomSettings[key] || (lang === 'en' ? "You're at the top!" : 'Você está no topo!');
+  // Default titles and subtitles for each tier progress card
+  const tierProgressDefaults: Record<string, { titleEN: string; titlePT: string; subtitleEN: string; subtitlePT: string; defaultColor: string }> = {
+    green: {
+      titleEN: 'Welcome to Green!',
+      titlePT: 'Bem-vindo ao Green!',
+      subtitleEN: 'Keep shopping to unlock Silver benefits.',
+      subtitlePT: 'Continue comprando para desbloquear benefícios Silver.',
+      defaultColor: '#e8f5e9',
+    },
+    silver: {
+      titleEN: 'Silver Member',
+      titlePT: 'Membro Silver',
+      subtitleEN: 'Keep shopping to unlock Gold benefits.',
+      subtitlePT: 'Continue comprando para desbloquear benefícios Gold.',
+      defaultColor: '#f5f5f5',
+    },
+    gold: {
+      titleEN: 'Gold Member',
+      titlePT: 'Membro Gold',
+      subtitleEN: 'Keep shopping to unlock Black benefits.',
+      subtitlePT: 'Continue comprando para desbloquear benefícios Black.',
+      defaultColor: '#fff8e1',
+    },
+    platinum: {
+      titleEN: "You're at the top!",
+      titlePT: 'Você está no topo!',
+      subtitleEN: 'Keep shopping to enjoy your exclusive benefits.',
+      subtitlePT: 'Continue comprando para aproveitar seus benefícios exclusivos.',
+      defaultColor: '#ffffff',
+    },
   };
-  const getAtTheTopSubtitle = (lang: string) => {
-    const key = `atthetop-subtitle-${lang}`;
-    return tierCustomSettings[key] || (lang === 'en' ? 'Keep shopping to enjoy your exclusive benefits.' : 'Continue comprando para aproveitar seus benefícios exclusivos.');
+
+  // Helpers for progress card customization (works for all 4 tiers)
+  const getProgressIcon = (tier: string) => tierCustomSettings[`progress-${tier}-icon`] || '/images/palmeira-black.svg';
+  const getProgressBgImage = (tier: string) => tierCustomSettings[`progress-${tier}-bg-image`] || '';
+  const getProgressBgColor = (tier: string) => tierCustomSettings[`progress-${tier}-bg-color`] || tierProgressDefaults[tier]?.defaultColor || '#ffffff';
+  const getProgressTitle = (tier: string, lang: string) => {
+    const key = `progress-${tier}-title-${lang}`;
+    const defaults = tierProgressDefaults[tier];
+    return tierCustomSettings[key] || (lang === 'en' ? defaults?.titleEN : defaults?.titlePT) || '';
+  };
+  const getProgressSubtitle = (tier: string, lang: string) => {
+    const key = `progress-${tier}-subtitle-${lang}`;
+    const defaults = tierProgressDefaults[tier];
+    return tierCustomSettings[key] || (lang === 'en' ? defaults?.subtitleEN : defaults?.subtitlePT) || '';
   };
 
   const heroImage = heroImageSetting?.value || DEFAULT_HERO_IMAGE;
@@ -502,21 +536,54 @@ export default function MyLoyalty() {
               </div>
             </div>
 
-            {/* Progress to Next Tier */}
-            <Card className="p-6">
-              {nextTierInfo?.nextTier ? (
-                <>
-                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <ChevronRight className="w-5 h-5" />
-                    {t.nextTier}: {nextTierInfo.nextTier.charAt(0).toUpperCase() + nextTierInfo.nextTier.slice(1)}
+            {/* Progress Card - Customized for each tier */}
+            <Card className="p-6 overflow-hidden">
+              {/* Custom Progress Card for current tier */}
+              <div
+                className="text-center py-6 flex flex-col items-center justify-center h-full rounded-lg relative overflow-hidden"
+                style={{
+                  backgroundColor: getProgressBgImage(currentUserTier) ? undefined : getProgressBgColor(currentUserTier),
+                  backgroundImage: getProgressBgImage(currentUserTier) ? `url(${getProgressBgImage(currentUserTier)})` : undefined,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                }}
+              >
+                {getProgressBgImage(currentUserTier) && <div className="absolute inset-0 bg-black/20" />}
+                <div className="relative z-10">
+                  <img
+                    src={getProgressIcon(currentUserTier)}
+                    alt="ILE ALA"
+                    className="w-24 h-24 mx-auto mb-4 object-contain"
+                  />
+                  <h3
+                    className="text-xl font-bold mb-2"
+                    style={{ color: getProgressBgImage(currentUserTier) ? '#fff' : undefined }}
+                  >
+                    {getProgressTitle(currentUserTier, language)}
                   </h3>
+                  <p
+                    className={getProgressBgImage(currentUserTier) ? '' : 'text-muted-foreground'}
+                    style={{ color: getProgressBgImage(currentUserTier) ? 'rgba(255,255,255,0.8)' : undefined }}
+                  >
+                    {getProgressSubtitle(currentUserTier, language)}
+                  </p>
+                </div>
+              </div>
 
-                  <div className="mb-4">
-                    <div className="flex justify-between text-sm mb-2">
+              {/* Progress bar to next tier (only if not at max) */}
+              {nextTierInfo?.nextTier && (
+                <div className="mt-4 pt-4 border-t">
+                  <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                    <ChevronRight className="w-4 h-4" />
+                    {t.nextTier}: {nextTierInfo.nextTier === 'platinum' ? 'Black' : nextTierInfo.nextTier.charAt(0).toUpperCase() + nextTierInfo.nextTier.slice(1)}
+                  </h4>
+
+                  <div className="mb-3">
+                    <div className="flex justify-between text-xs mb-1">
                       <span>{t.progress}</span>
                       <span className="font-semibold">{nextTierInfo.progress}%</span>
                     </div>
-                    <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
+                    <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-gradient-to-r from-primary to-primary/70 rounded-full transition-all duration-500"
                         style={{ width: `${nextTierInfo.progress}%` }}
@@ -524,50 +591,19 @@ export default function MyLoyalty() {
                     </div>
                   </div>
 
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-xs text-muted-foreground mb-3">
                     <span className="font-semibold text-primary">{formatPrice(nextTierInfo.amountNeeded)}</span>{' '}
                     {t.toReach}{' '}
                     <span className="font-semibold">
-                      {nextTierInfo.nextTier.charAt(0).toUpperCase() + nextTierInfo.nextTier.slice(1)}
+                      {nextTierInfo.nextTier === 'platinum' ? 'Black' : nextTierInfo.nextTier.charAt(0).toUpperCase() + nextTierInfo.nextTier.slice(1)}
                     </span>
                   </p>
 
                   <Link href="/shop">
-                    <Button className="w-full mt-4">
+                    <Button className="w-full" size="sm">
                       {language === 'en' ? 'Shop Now' : 'Comprar Agora'}
                     </Button>
                   </Link>
-                </>
-              ) : (
-                <div
-                  className="text-center py-6 flex flex-col items-center justify-center h-full rounded-lg relative overflow-hidden"
-                  style={{
-                    backgroundColor: getAtTheTopBgImage() ? undefined : getAtTheTopBgColor(),
-                    backgroundImage: getAtTheTopBgImage() ? `url(${getAtTheTopBgImage()})` : undefined,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                  }}
-                >
-                  {getAtTheTopBgImage() && <div className="absolute inset-0 bg-black/20" />}
-                  <div className="relative z-10">
-                    <img
-                      src={getAtTheTopIcon()}
-                      alt="ILE ALA"
-                      className="w-32 h-32 mx-auto mb-6 object-contain"
-                    />
-                    <h3
-                      className="text-xl font-bold mb-2"
-                      style={{ color: getAtTheTopBgImage() ? '#fff' : undefined }}
-                    >
-                      {getAtTheTopTitle(language)}
-                    </h3>
-                    <p
-                      className={getAtTheTopBgImage() ? '' : 'text-muted-foreground'}
-                      style={{ color: getAtTheTopBgImage() ? 'rgba(255,255,255,0.8)' : undefined }}
-                    >
-                      {getAtTheTopSubtitle(language)}
-                    </p>
-                  </div>
                 </div>
               )}
             </Card>
