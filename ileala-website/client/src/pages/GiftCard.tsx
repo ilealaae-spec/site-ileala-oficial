@@ -195,10 +195,8 @@ export default function GiftCard() {
     <div className="w-full">
       {/* Hero Section */}
       <section className="relative py-20 text-white overflow-hidden">
-        {/* Background - Image or Color (wait for loading to prevent flash) */}
-        {isHeroLoading ? (
-          <div className="absolute inset-0 bg-primary" />
-        ) : giftCardHeroImage ? (
+        {/* Background - Image or Color */}
+        {giftCardHeroImage ? (
           <>
             <div
               className="absolute inset-0 bg-cover bg-center"

@@ -70,16 +70,11 @@ export default function Contact() {
     <div className="w-full">
       {/* Hero Section with Image */}
       <section className="relative h-[50vh] min-h-[400px] flex items-center justify-center overflow-hidden">
-        {!isHeroLoading && (
-          <>
-            <div
-              className="absolute inset-0 bg-cover bg-center"
-              style={{ backgroundImage: `url(${heroImage})` }}
-            />
-            <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/50" />
-          </>
-        )}
-        {isHeroLoading && <div className="absolute inset-0 bg-[#255238]" />}
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: `url(${heroImage})` }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/50" />
 
         <div className="relative z-10 text-center text-white px-4 max-w-3xl mx-auto">
           <h1 className="text-5xl md:text-6xl font-light mb-6" style={{ fontFamily: 'Georgia, serif' }}>

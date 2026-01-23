@@ -98,17 +98,12 @@ export default function NapkinRings() {
     <div className="w-full">
       {/* Hero Section */}
       <section className="relative h-[50vh] min-h-[400px] w-full overflow-hidden">
-        {!isBannerLoading && (
-          <>
-            <img
-              src={banner.imageUrl}
-              alt={banner.altText || 'Napkin Rings'}
-              className="absolute inset-0 w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-black/30" />
-          </>
-        )}
-        {isBannerLoading && <div className="absolute inset-0 bg-[#255238]" />}
+        <img
+          src={banner.imageUrl}
+          alt={banner.altText || 'Napkin Rings'}
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-black/30" />
         <div className="relative container h-full flex items-center justify-center">
           <div className="text-center text-white max-w-3xl">
             <h1 className="text-4xl md:text-6xl font-bold mb-4">

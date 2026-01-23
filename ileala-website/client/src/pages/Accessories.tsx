@@ -98,20 +98,15 @@ export default function Accessories() {
     <div className="w-full">
       {/* Hero Section */}
       <section className="relative h-[50vh] min-h-[400px] w-full overflow-hidden">
-        {!isBannerLoading && (
-          <>
-            <img
-              src={banner.imageUrl}
-              alt={banner.altText || 'ILE ALA Accessories'}
-              className="absolute inset-0 w-full h-full object-cover"
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.display = 'none';
-              }}
-            />
-            <div className="absolute inset-0 bg-black/20" />
-          </>
-        )}
-        {isBannerLoading && <div className="absolute inset-0 bg-[#255238]" />}
+        <img
+          src={banner.imageUrl}
+          alt={banner.altText || 'ILE ALA Accessories'}
+          className="absolute inset-0 w-full h-full object-cover"
+          onError={(e) => {
+            (e.target as HTMLImageElement).style.display = 'none';
+          }}
+        />
+        <div className="absolute inset-0 bg-black/20" />
         <div className="relative container h-full flex items-center justify-center">
           <div className="text-center text-white">
             <h1 className="text-4xl md:text-6xl font-bold mb-4">

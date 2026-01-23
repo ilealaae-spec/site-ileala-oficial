@@ -97,17 +97,15 @@ export default function PetCollection() {
   return (
     <div className="w-full">
       {/* Hero Section */}
-      <section className="relative h-[50vh] min-h-[400px] w-full overflow-hidden bg-gradient-to-br from-[#255238] to-[#1E3F2D]">
-        {!isBannerLoading && (
-          <img
-            src={banner.imageUrl}
-            alt={banner.altText || 'Pet Collection - ILE ALA'}
-            className="absolute inset-0 w-full h-full object-cover"
-            onError={(e) => {
-              (e.target as HTMLImageElement).style.display = 'none';
-            }}
-          />
-        )}
+      <section className="relative h-[50vh] min-h-[400px] w-full overflow-hidden">
+        <img
+          src={banner.imageUrl}
+          alt={banner.altText || 'Pet Collection - ILE ALA'}
+          className="absolute inset-0 w-full h-full object-cover"
+          onError={(e) => {
+            (e.target as HTMLImageElement).style.display = 'none';
+          }}
+        />
       </section>
 
       {/* Search Bar */}
