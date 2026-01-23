@@ -459,6 +459,9 @@ export const loyaltyMembers = pgTable("loyalty_members", {
   id: serial("id").primaryKey(),
   userId: integer("userId").references(() => users.id).notNull().unique(),
 
+  // Unique member ID displayed on card (format: ILA-000001)
+  memberId: varchar("memberId", { length: 20 }).unique(),
+
   // Tier information
   tier: varchar("tier", { length: 20 }).default("green").notNull(), // green, silver, gold, platinum
 

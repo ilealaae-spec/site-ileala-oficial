@@ -2786,6 +2786,11 @@ export function calculateTier(totalSpentCurrentYear: number): string {
   return 'green';
 }
 
+// Generate unique member ID in format ILA-XXXXXX
+function generateMemberId(id: number): string {
+  return `ILA-${String(id).padStart(6, '0')}`;
+}
+
 // Get or create loyalty member for a user
 export async function getOrCreateLoyaltyMember(userId: number): Promise<LoyaltyMember | null> {
   const db = await getDb();
@@ -2796,10 +2801,19 @@ export async function getOrCreateLoyaltyMember(userId: number): Promise<LoyaltyM
     const existing = await db.select().from(loyaltyMembers).where(eq(loyaltyMembers.userId, userId)).limit(1);
 
     if (existing.length > 0) {
-      return existing[0];
+      const member = existing[0];
+      // If member doesn't have a memberId yet, generate one
+      if (!member.memberId) {
+        const memberId = generateMemberId(member.id);
+        await db.update(loyaltyMembers)
+          .set({ memberId, updatedAt: new Date() })
+          .where(eq(loyaltyMembers.id, member.id));
+        return { ...member, memberId };
+      }
+      return member;
     }
 
-    // Create new member
+    // Create new member (without memberId first to get the auto-generated id)
     const [newMember] = await db.insert(loyaltyMembers).values({
       userId,
       tier: 'green',
@@ -2811,10 +2825,16 @@ export async function getOrCreateLoyaltyMember(userId: number): Promise<LoyaltyM
       joinedAt: new Date(),
     }).returning();
 
+    // Now update with the generated memberId based on the id
+    const memberId = generateMemberId(newMember.id);
+    await db.update(loyaltyMembers)
+      .set({ memberId })
+      .where(eq(loyaltyMembers.id, newMember.id));
+
     // Log the activity
     await logLoyaltyActivity(newMember.id, 'member_joined', 'New member joined the loyalty program');
 
-    return newMember;
+    return { ...newMember, memberId };
   } catch (error) {
     logger.error("[Loyalty] Failed to get or create member:", error);
     return null;
