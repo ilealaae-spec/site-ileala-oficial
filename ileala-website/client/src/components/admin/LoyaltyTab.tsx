@@ -45,17 +45,20 @@ function TierCardWithUpload({ tier, language, onUpdate, settings, updateSetting 
 }) {
   const [isUploading, setIsUploading] = useState(false);
   const [isUploadingIcon, setIsUploadingIcon] = useState(false);
+  const [isUploadingBack, setIsUploadingBack] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [cardSubtitleEN, setCardSubtitleEN] = useState('');
   const [cardSubtitlePT, setCardSubtitlePT] = useState('');
   const cardImageRef = useRef<HTMLInputElement>(null);
   const iconRef = useRef<HTMLInputElement>(null);
+  const cardBackRef = useRef<HTMLInputElement>(null);
   const config = tierCardConfig[tier.tier] || tierCardConfig.green;
 
   // Get settings for this tier
   const subtitleEN = settings[`tier-${tier.tier}-subtitle-en`] || '';
   const subtitlePT = settings[`tier-${tier.tier}-subtitle-pt`] || '';
   const customIcon = settings[`tier-${tier.tier}-icon`] || '';
+  const cardBack = settings[`tier-${tier.tier}-card-back`] || '';
 
   // Initialize edit values
   useEffect(() => {
@@ -82,6 +85,18 @@ function TierCardWithUpload({ tier, language, onUpdate, settings, updateSetting 
     onError: (error: any) => {
       setIsUploadingIcon(false);
       toast.error(error.message || (language === 'en' ? 'Failed to upload icon' : 'Erro ao enviar ícone'));
+    },
+  });
+
+  const uploadCardBackMutation = (trpc.admin as any).uploadImage.useMutation({
+    onSuccess: (data: { url: string }) => {
+      updateSetting(`tier-${tier.tier}-card-back`, data.url);
+      setIsUploadingBack(false);
+      toast.success(language === 'en' ? 'Card back updated!' : 'Verso do cartão atualizado!');
+    },
+    onError: (error: any) => {
+      setIsUploadingBack(false);
+      toast.error(error.message || (language === 'en' ? 'Failed to upload card back' : 'Erro ao enviar verso'));
     },
   });
 
@@ -168,6 +183,41 @@ function TierCardWithUpload({ tier, language, onUpdate, settings, updateSetting 
     updateSetting(`tier-${tier.tier}-icon`, '');
   };
 
+  const handleUploadCardBack = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error(language === 'en' ? 'Select an image file' : 'Selecione uma imagem');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error(language === 'en' ? 'Max 5MB' : 'Máx 5MB');
+      return;
+    }
+
+    setIsUploadingBack(true);
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = (reader.result as string).split(',')[1];
+      uploadCardBackMutation.mutate({
+        fileName: `tier-card-back-${tier.tier}-${Date.now()}-${file.name}`,
+        fileData: base64,
+        contentType: file.type,
+      });
+    };
+    reader.onerror = () => {
+      setIsUploadingBack(false);
+      toast.error(language === 'en' ? 'Failed to read file' : 'Erro ao ler arquivo');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveCardBack = () => {
+    updateSetting(`tier-${tier.tier}-card-back`, '');
+  };
+
   const handleSaveTexts = () => {
     if (cardSubtitleEN) updateSetting(`tier-${tier.tier}-subtitle-en`, cardSubtitleEN);
     if (cardSubtitlePT) updateSetting(`tier-${tier.tier}-subtitle-pt`, cardSubtitlePT);
@@ -212,15 +262,29 @@ function TierCardWithUpload({ tier, language, onUpdate, settings, updateSetting 
         {/* Hidden file inputs */}
         <input ref={cardImageRef} type="file" accept="image/*" onChange={handleUploadCardImage} className="hidden" />
         <input ref={iconRef} type="file" accept="image/*" onChange={handleUploadIcon} className="hidden" />
+        <input ref={cardBackRef} type="file" accept="image/*" onChange={handleUploadCardBack} className="hidden" />
 
         {/* Card Image Upload */}
         <div className="flex gap-2">
           <Button variant="outline" size="sm" className="flex-1" onClick={() => cardImageRef.current?.click()} disabled={isUploading}>
             {isUploading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <ImageIcon className="w-4 h-4 mr-1" />}
-            {language === 'en' ? 'Card BG' : 'Fundo'}
+            {language === 'en' ? 'Front' : 'Frente'}
           </Button>
           {tier.iconUrl && (
             <Button variant="ghost" size="sm" onClick={handleRemoveCardImage} disabled={isUploading} className="text-red-600">
+              <X className="w-4 h-4" />
+            </Button>
+          )}
+        </div>
+
+        {/* Card Back Upload */}
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" className="flex-1" onClick={() => cardBackRef.current?.click()} disabled={isUploadingBack}>
+            {isUploadingBack ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <ImageIcon className="w-4 h-4 mr-1" />}
+            {language === 'en' ? 'Back' : 'Verso'}
+          </Button>
+          {cardBack && (
+            <Button variant="ghost" size="sm" onClick={handleRemoveCardBack} className="text-red-600">
               <X className="w-4 h-4" />
             </Button>
           )}

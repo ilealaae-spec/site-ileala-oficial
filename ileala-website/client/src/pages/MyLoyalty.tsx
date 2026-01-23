@@ -19,6 +19,9 @@ export default function MyLoyalty() {
   const [whatsapp, setWhatsapp] = useState('');
   const [selectedTierView, setSelectedTierView] = useState<string | null>(null);
 
+  // State for card flip
+  const [isCardFlipped, setIsCardFlipped] = useState(false);
+
   // Fetch loyalty hero settings
   const { data: heroImageSetting } = trpc.settings.get.useQuery({ key: 'loyalty-hero-image' });
   const { data: heroTitleSetting } = trpc.settings.get.useQuery({ key: 'loyalty-hero-title' });
@@ -46,6 +49,11 @@ export default function MyLoyalty() {
   const getTierSubtitle = (tier: string, lang: string) => {
     const key = `tier-${tier}-subtitle-${lang}`;
     return tierCustomSettings[key] || '';
+  };
+
+  // Helper to get card back image for a tier
+  const getTierCardBack = (tier: string) => {
+    return tierCustomSettings[`tier-${tier}-card-back`] || '';
   };
 
   const heroImage = heroImageSetting?.value || DEFAULT_HERO_IMAGE;
@@ -359,57 +367,123 @@ export default function MyLoyalty() {
         <div className="container max-w-5xl">
           {/* Main Card */}
           <div className="grid md:grid-cols-2 gap-8 mb-8">
-            {/* Loyalty Card Visual */}
+            {/* Loyalty Card Visual with Flip Effect */}
             <div
-              className="rounded-2xl p-8 shadow-2xl relative overflow-hidden h-64"
-              style={currentTierConfig.backgroundImage ? {
-                backgroundImage: `url(${currentTierConfig.backgroundImage})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-              } : {
-                background: currentTierConfig.gradient,
-              }}
+              className="h-64 cursor-pointer"
+              style={{ perspective: '1000px' }}
+              onClick={() => setIsCardFlipped(!isCardFlipped)}
             >
-              {/* Subtle overlay for better text readability */}
-              <div className="absolute inset-0 bg-black/20" />
+              <div
+                className="relative w-full h-full transition-transform duration-700"
+                style={{
+                  transformStyle: 'preserve-3d',
+                  transform: isCardFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
+                }}
+              >
+                {/* Front of Card */}
+                <div
+                  className="absolute inset-0 rounded-2xl p-8 shadow-2xl overflow-hidden"
+                  style={{
+                    backfaceVisibility: 'hidden',
+                    WebkitBackfaceVisibility: 'hidden',
+                    ...(currentTierConfig.backgroundImage ? {
+                      backgroundImage: `url(${currentTierConfig.backgroundImage})`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                    } : {
+                      background: currentTierConfig.gradient,
+                    }),
+                  }}
+                >
+                  {/* Subtle overlay for better text readability */}
+                  <div className="absolute inset-0 bg-black/20" />
 
-              <div className={`relative z-10 h-full flex flex-col justify-between ${currentTierConfig.textColor}`}>
-                <div className="flex justify-between items-start">
-                  <div className="mb-2">
-                    <p className="text-sm opacity-80 tracking-widest">THE GREEN WORLD</p>
-                    <p className="text-2xl font-bold uppercase tracking-wider">
-                      {member?.tier === 'platinum' ? 'BLACK' : (member?.tier?.toUpperCase() || 'GREEN')}
-                    </p>
+                  <div className={`relative z-10 h-full flex flex-col justify-between ${currentTierConfig.textColor}`}>
+                    <div className="flex justify-between items-start">
+                      <div className="mb-2">
+                        <p className="text-sm opacity-80 tracking-widest">THE GREEN WORLD</p>
+                        <p className="text-2xl font-bold uppercase tracking-wider">
+                          {member?.tier === 'platinum' ? 'BLACK' : (member?.tier?.toUpperCase() || 'GREEN')}
+                        </p>
+                      </div>
+                      {/* Tier icon */}
+                      <img
+                        src={getTierIcon(currentUserTier)}
+                        alt="tier icon"
+                        className="w-10 h-10 object-contain"
+                      />
+                    </div>
+
+                    <div>
+                      <p className="text-lg font-semibold">{user?.name || 'Member'}</p>
+                      <p className="text-sm opacity-80">
+                        {t.memberSince}{' '}
+                        {member?.joinedAt
+                          ? new Date(member.joinedAt).toLocaleDateString(language === 'en' ? 'en-US' : 'pt-BR', {
+                              month: 'long',
+                              year: 'numeric',
+                            })
+                          : '-'}
+                      </p>
+                    </div>
+
+                    <div className="flex justify-between items-end">
+                      <div>
+                        <p className="text-xs opacity-60">{t.thisYear}</p>
+                        <p className="text-xl font-bold">{formatPrice(member?.totalSpentCurrentYear || 0)}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs opacity-60">{t.allTime}</p>
+                        <p className="text-xl font-bold">{formatPrice(member?.totalSpentAllTime || 0)}</p>
+                      </div>
+                    </div>
                   </div>
-                  {/* Tier icon */}
-                  <img
-                    src={getTierIcon(currentUserTier)}
-                    alt="tier icon"
-                    className="w-10 h-10 object-contain"
-                  />
+
+                  {/* Click hint */}
+                  <div className="absolute bottom-2 right-2 text-white/50 text-xs">
+                    {language === 'en' ? 'Click to flip' : 'Clique para virar'}
+                  </div>
                 </div>
 
-                <div>
-                  <p className="text-lg font-semibold">{user?.name || 'Member'}</p>
-                  <p className="text-sm opacity-80">
-                    {t.memberSince}{' '}
-                    {member?.joinedAt
-                      ? new Date(member.joinedAt).toLocaleDateString(language === 'en' ? 'en-US' : 'pt-BR', {
-                          month: 'long',
-                          year: 'numeric',
-                        })
-                      : '-'}
-                  </p>
-                </div>
+                {/* Back of Card */}
+                <div
+                  className="absolute inset-0 rounded-2xl shadow-2xl overflow-hidden"
+                  style={{
+                    backfaceVisibility: 'hidden',
+                    WebkitBackfaceVisibility: 'hidden',
+                    transform: 'rotateY(180deg)',
+                  }}
+                >
+                  {getTierCardBack(currentUserTier) ? (
+                    // Custom back image from admin
+                    <img
+                      src={getTierCardBack(currentUserTier)}
+                      alt="Card back"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    // Default back design
+                    <div
+                      className="w-full h-full flex items-center justify-center"
+                      style={{
+                        background: currentTierConfig.gradient,
+                      }}
+                    >
+                      <div className="text-center text-white">
+                        <img
+                          src="/images/palmeira-black.svg"
+                          alt="ILE ALA"
+                          className="w-24 h-24 mx-auto mb-4 invert"
+                        />
+                        <p className="text-lg font-light tracking-widest">ILE ALA</p>
+                        <p className="text-sm opacity-70">The Green World</p>
+                      </div>
+                    </div>
+                  )}
 
-                <div className="flex justify-between items-end">
-                  <div>
-                    <p className="text-xs opacity-60">{t.thisYear}</p>
-                    <p className="text-xl font-bold">{formatPrice(member?.totalSpentCurrentYear || 0)}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs opacity-60">{t.allTime}</p>
-                    <p className="text-xl font-bold">{formatPrice(member?.totalSpentAllTime || 0)}</p>
+                  {/* Click hint on back */}
+                  <div className="absolute bottom-2 right-2 text-white/50 text-xs">
+                    {language === 'en' ? 'Click to flip' : 'Clique para virar'}
                   </div>
                 </div>
               </div>
