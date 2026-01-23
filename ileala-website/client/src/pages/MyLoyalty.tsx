@@ -638,10 +638,15 @@ export default function MyLoyalty() {
                       style={{ width: `${nextTierInfo.progress}%`, backgroundColor: '#255238' }}
                     />
                   </div>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-muted-foreground mb-3">
                     <span className="font-semibold" style={{ color: '#255238' }}>{formatPrice(nextTierInfo.amountNeeded)}</span>{' '}
                     {t.toReach} {nextTierInfo.nextTier === 'platinum' ? 'Black' : nextTierInfo.nextTier.charAt(0).toUpperCase() + nextTierInfo.nextTier.slice(1)}
                   </p>
+                  <Link href="/shop">
+                    <Button className="w-full" size="sm" style={{ backgroundColor: '#255238' }}>
+                      {language === 'en' ? 'Shop Now' : 'Comprar Agora'}
+                    </Button>
+                  </Link>
                 </div>
               )}
             </Card>
