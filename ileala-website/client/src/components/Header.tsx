@@ -84,22 +84,29 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      {/* First Row: Search, Icons */}
+      {/* First Row: Search, Logo, Icons */}
       <div className="border-b">
-        <div className="container flex h-16 items-center justify-between gap-4">
-          {/* Search - Left */}
-          <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-md">
-            <div className="relative w-full">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-              <Input
-                type="text"
-                placeholder={language === 'en' ? 'What are you looking for?' : 'O que você está procurando?'}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-4 h-9 text-sm"
-              />
-            </div>
+        <div className="container flex h-20 items-center justify-between gap-4">
+          {/* Search - Left (Hermès style) */}
+          <form onSubmit={handleSearch} className="hidden md:flex items-center gap-2 flex-shrink-0">
+            <Search className="text-muted-foreground w-4 h-4" />
+            <input
+              type="text"
+              placeholder={language === 'en' ? 'Search' : 'Pesquisar'}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="border-none outline-none bg-transparent text-sm w-24 focus:w-40 transition-all duration-300 placeholder:text-muted-foreground"
+            />
           </form>
+
+          {/* Logo - Center */}
+          <Link href="/" className="absolute left-1/2 transform -translate-x-1/2">
+            <img
+              src="/images/logo_ile_ala.png"
+              alt="ILE ALA"
+              className="h-16 w-auto object-contain"
+            />
+          </Link>
 
           {/* Icons - Right */}
           <div className="flex items-center gap-3 md:gap-4">
