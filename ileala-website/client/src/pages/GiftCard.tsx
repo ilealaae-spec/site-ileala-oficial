@@ -27,7 +27,7 @@ export default function GiftCard() {
 
   // Fetch gift card settings
   const { data: giftCardImageSetting } = trpc.settings.get.useQuery({ key: 'gift-card-image' });
-  const { data: giftCardHeroImageSetting } = trpc.settings.get.useQuery({ key: 'gift-card-hero-image' });
+  const { data: giftCardHeroImageSetting, isLoading: isHeroLoading } = trpc.settings.get.useQuery({ key: 'gift-card-hero-image' });
   const { data: minValueSetting } = trpc.settings.get.useQuery({ key: 'gift-card-min-value' });
   const { data: maxValueSetting } = trpc.settings.get.useQuery({ key: 'gift-card-max-value' });
   // Text customization settings
@@ -195,8 +195,10 @@ export default function GiftCard() {
     <div className="w-full">
       {/* Hero Section */}
       <section className="relative py-20 text-white overflow-hidden">
-        {/* Background - Image or Color */}
-        {giftCardHeroImage ? (
+        {/* Background - Image or Color (wait for loading to prevent flash) */}
+        {isHeroLoading ? (
+          <div className="absolute inset-0 bg-primary" />
+        ) : giftCardHeroImage ? (
           <>
             <div
               className="absolute inset-0 bg-cover bg-center"
