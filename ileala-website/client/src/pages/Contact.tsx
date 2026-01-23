@@ -7,11 +7,31 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Mail, MapPin, Instagram, Facebook, Phone, Send, Loader2 } from 'lucide-react';
 import { useSiteSettings } from '@/hooks/useSiteSettings';
+import { trpc } from '@/lib/trpc';
 import { toast } from 'sonner';
+
+// Default hero image
+const DEFAULT_HERO_IMAGE = '/images/contact-hero.webp';
 
 export default function Contact() {
   const { t, language } = useLanguage();
   const { settings } = useSiteSettings();
+
+  // Fetch contact page settings from database
+  const { data: heroImageSetting } = trpc.settings.get.useQuery({ key: 'contact-hero-image' });
+  const { data: heroTitleENSetting } = trpc.settings.get.useQuery({ key: 'contact-hero-title-en' });
+  const { data: heroTitlePTSetting } = trpc.settings.get.useQuery({ key: 'contact-hero-title-pt' });
+  const { data: heroSubtitleENSetting } = trpc.settings.get.useQuery({ key: 'contact-hero-subtitle-en' });
+  const { data: heroSubtitlePTSetting } = trpc.settings.get.useQuery({ key: 'contact-hero-subtitle-pt' });
+
+  const heroImage = heroImageSetting?.value || DEFAULT_HERO_IMAGE;
+  const heroTitle = language === 'en'
+    ? (heroTitleENSetting?.value || t.contact.title)
+    : (heroTitlePTSetting?.value || t.contact.title);
+  const heroSubtitle = language === 'en'
+    ? (heroSubtitleENSetting?.value || "We'd love to hear from you. Get in touch with us.")
+    : (heroSubtitlePTSetting?.value || 'Adoraríamos ouvir de você. Entre em contato conosco.');
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -48,15 +68,21 @@ export default function Contact() {
 
   return (
     <div className="w-full">
-      {/* Hero Section */}
-      <section className="py-20 bg-primary text-primary-foreground">
-        <div className="container">
-          <div className="max-w-3xl mx-auto text-center">
-            <h1 className="text-5xl md:text-6xl font-bold mb-6">{t.contact.title}</h1>
-            <p className="text-xl md:text-2xl font-light">
-              We'd love to hear from you. Get in touch with us.
-            </p>
-          </div>
+      {/* Hero Section with Image */}
+      <section className="relative h-[50vh] min-h-[400px] flex items-center justify-center overflow-hidden">
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: `url(${heroImage})` }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/50" />
+
+        <div className="relative z-10 text-center text-white px-4 max-w-3xl mx-auto">
+          <h1 className="text-5xl md:text-6xl font-light mb-6" style={{ fontFamily: 'Georgia, serif' }}>
+            {heroTitle}
+          </h1>
+          <p className="text-xl md:text-2xl font-light opacity-90" style={{ fontFamily: 'Georgia, serif' }}>
+            {heroSubtitle}
+          </p>
         </div>
       </section>
 
