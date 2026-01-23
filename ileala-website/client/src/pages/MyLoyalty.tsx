@@ -509,25 +509,16 @@ export default function MyLoyalty() {
                         alt="Card back"
                         className="w-full h-full object-cover"
                       />
-                      {/* Member ID overlay on custom image */}
-                      {member?.memberId && (
-                        <div className="absolute bottom-4 left-4 right-4">
-                          <div className="bg-black/60 backdrop-blur-sm rounded-lg px-4 py-2">
-                            <p className="text-xs text-white/70 uppercase tracking-wider">Member ID</p>
-                            <p className="text-lg font-mono text-white tracking-widest">{member.memberId}</p>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   ) : (
                     // Default back design
                     <div
-                      className="w-full h-full flex flex-col items-center justify-between py-6"
+                      className="w-full h-full flex flex-col items-center justify-center"
                       style={{
                         background: currentTierConfig.gradient,
                       }}
                     >
-                      <div className="text-center text-white flex-1 flex flex-col items-center justify-center">
+                      <div className="text-center text-white">
                         <img
                           src="/images/palmeira-black.svg"
                           alt="ILE ALA"
@@ -536,21 +527,16 @@ export default function MyLoyalty() {
                         <p className="text-lg font-light tracking-widest">ILE ALA</p>
                         <p className="text-sm opacity-70">The Green World</p>
                       </div>
-
-                      {/* Member ID section */}
-                      {member?.memberId && (
-                        <div className="text-center text-white mt-4 border-t border-white/20 pt-4 w-full px-6">
-                          <p className="text-xs opacity-60 uppercase tracking-wider mb-1">Member ID</p>
-                          <p className="text-xl font-mono tracking-widest">{member.memberId}</p>
-                        </div>
-                      )}
                     </div>
                   )}
 
-                  {/* Click hint on back */}
-                  <div className="absolute bottom-2 right-2 text-white/50 text-xs">
-                    {language === 'en' ? 'Click to flip' : 'Clique para virar'}
-                  </div>
+                  {/* Member ID - bottom right corner */}
+                  {member?.memberId && (
+                    <div className="absolute bottom-3 right-3 text-right text-white">
+                      <p className="text-[10px] opacity-60 uppercase tracking-wider">Member ID</p>
+                      <p className="text-sm font-mono tracking-wider">{member.memberId}</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
