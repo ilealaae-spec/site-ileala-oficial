@@ -104,6 +104,8 @@ export default function HomeAccents() {
           src={banner.imageUrl}
           alt={banner.altText || 'ILE ALA Home Accents'}
           className="absolute inset-0 w-full h-full object-cover"
+          loading="eager"
+          fetchPriority="high"
           onError={(e) => {
             (e.target as HTMLImageElement).style.display = 'none';
           }}

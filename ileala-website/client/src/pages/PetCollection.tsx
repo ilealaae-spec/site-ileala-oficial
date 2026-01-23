@@ -102,6 +102,8 @@ export default function PetCollection() {
           src={banner.imageUrl}
           alt={banner.altText || 'Pet Collection - ILE ALA'}
           className="absolute inset-0 w-full h-full object-cover"
+          loading="eager"
+          fetchPriority="high"
           onError={(e) => {
             (e.target as HTMLImageElement).style.display = 'none';
           }}

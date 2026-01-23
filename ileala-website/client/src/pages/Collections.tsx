@@ -108,6 +108,8 @@ export default function Collections() {
           src={banner.imageUrl}
           alt={banner.altText || 'ILE ALA Collections'}
           className="absolute inset-0 w-full h-full object-cover"
+          loading="eager"
+          fetchPriority="high"
         />
         <div className="absolute inset-0 bg-black/40" />
         <div className="relative container h-full flex items-center justify-center">

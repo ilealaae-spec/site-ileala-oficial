@@ -102,6 +102,8 @@ export default function Accessories() {
           src={banner.imageUrl}
           alt={banner.altText || 'ILE ALA Accessories'}
           className="absolute inset-0 w-full h-full object-cover"
+          loading="eager"
+          fetchPriority="high"
           onError={(e) => {
             (e.target as HTMLImageElement).style.display = 'none';
           }}

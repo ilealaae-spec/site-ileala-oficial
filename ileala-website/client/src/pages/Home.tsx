@@ -130,6 +130,8 @@ export default function Home() {
                     src={slide.imageUrl}
                     alt={slide.altText || (language === 'en' ? slide.titleEN : slide.titlePT) || 'ILE ALA'}
                     className="absolute inset-0 w-full h-full object-cover"
+                    loading="eager"
+                    fetchPriority="high"
                   />
                   <div className="absolute inset-0 bg-black/30" />
                   <div className="relative container h-full flex items-center justify-center">
