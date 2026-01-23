@@ -23,7 +23,7 @@ export default function MyLoyalty() {
   const [isCardFlipped, setIsCardFlipped] = useState(false);
 
   // Fetch loyalty hero settings
-  const { data: heroImageSetting } = trpc.settings.get.useQuery({ key: 'loyalty-hero-image' });
+  const { data: heroImageSetting, isLoading: isHeroLoading } = trpc.settings.get.useQuery({ key: 'loyalty-hero-image' });
   const { data: heroTitleSetting } = trpc.settings.get.useQuery({ key: 'loyalty-hero-title' });
   const { data: heroSubtitleSetting } = trpc.settings.get.useQuery({ key: 'loyalty-hero-subtitle' });
 
@@ -150,11 +150,16 @@ export default function MyLoyalty() {
       <div className="w-full">
         {/* Hero Section for non-logged users */}
         <section className="relative h-[70vh] min-h-[500px] flex items-center justify-center overflow-hidden">
-          <div
-            className="absolute inset-0 bg-cover bg-center"
-            style={{ backgroundImage: `url(${heroImage})` }}
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/50" />
+          {!isHeroLoading && (
+            <>
+              <div
+                className="absolute inset-0 bg-cover bg-center"
+                style={{ backgroundImage: `url(${heroImage})` }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/50" />
+            </>
+          )}
+          {isHeroLoading && <div className="absolute inset-0 bg-[#255238]" />}
 
           <div className="relative z-10 text-center text-white px-4 max-w-3xl">
             <p className="text-sm uppercase tracking-[0.4em] mb-4 opacity-90">Loyalty Program</p>
@@ -393,11 +398,16 @@ export default function MyLoyalty() {
     <div className="w-full">
       {/* Hero Section for logged in users */}
       <section className="relative h-[50vh] min-h-[400px] flex items-center justify-center overflow-hidden">
-        <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url(${heroImage})` }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/20 to-black/40" />
+        {!isHeroLoading && (
+          <>
+            <div
+              className="absolute inset-0 bg-cover bg-center"
+              style={{ backgroundImage: `url(${heroImage})` }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/20 to-black/40" />
+          </>
+        )}
+        {isHeroLoading && <div className="absolute inset-0 bg-[#255238]" />}
 
         <div className="relative z-10 text-center text-white px-4 max-w-3xl mx-auto">
           <h1 className="text-4xl md:text-6xl font-light mb-6" style={{ fontFamily: 'Georgia, serif' }}>

@@ -22,7 +22,7 @@ export default function HomeAccents() {
   const [searchQuery, setSearchQuery] = useState('');
 
   // Fetch banner from database
-  const { data: dbBanner } = (trpc as any).pageBanners.get.useQuery({ pageSlug: 'home-accents' });
+  const { data: dbBanner, isLoading: isBannerLoading } = (trpc as any).pageBanners.get.useQuery({ pageSlug: 'home-accents' });
   const banner = dbBanner || defaultBanner;
   
   // Fetch all products and filter by collections
@@ -100,16 +100,20 @@ export default function HomeAccents() {
     <div className="w-full">
       {/* Hero Section */}
       <section className="relative h-[50vh] min-h-[400px] w-full overflow-hidden">
-        <img
-          src={banner.imageUrl}
-          alt={banner.altText || 'ILE ALA Home Accents'}
-          className="absolute inset-0 w-full h-full object-cover"
-          onError={(e) => {
-            // Se a imagem não existir, esconde o elemento img
-            (e.target as HTMLImageElement).style.display = 'none';
-          }}
-        />
-        <div className="absolute inset-0 bg-black/20" />
+        {!isBannerLoading && (
+          <>
+            <img
+              src={banner.imageUrl}
+              alt={banner.altText || 'ILE ALA Home Accents'}
+              className="absolute inset-0 w-full h-full object-cover"
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = 'none';
+              }}
+            />
+            <div className="absolute inset-0 bg-black/20" />
+          </>
+        )}
+        {isBannerLoading && <div className="absolute inset-0 bg-[#255238]" />}
         <div className="relative container h-full flex items-center justify-center">
           <div className="text-center text-white">
             <h1 className="text-4xl md:text-6xl font-bold mb-4">

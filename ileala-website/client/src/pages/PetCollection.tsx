@@ -22,7 +22,7 @@ export default function PetCollection() {
   const [searchQuery, setSearchQuery] = useState('');
 
   // Fetch banner from database
-  const { data: dbBanner } = (trpc as any).pageBanners.get.useQuery({ pageSlug: 'pet-collection' });
+  const { data: dbBanner, isLoading: isBannerLoading } = (trpc as any).pageBanners.get.useQuery({ pageSlug: 'pet-collection' });
   const banner = dbBanner || defaultBanner;
   
   // Fetch all products and filter by category
@@ -98,16 +98,16 @@ export default function PetCollection() {
     <div className="w-full">
       {/* Hero Section */}
       <section className="relative h-[50vh] min-h-[400px] w-full overflow-hidden bg-gradient-to-br from-[#255238] to-[#1E3F2D]">
-        {/* Imagem de fundo - se existir, será exibida; caso contrário, usa gradiente */}
-        <img
-          src={banner.imageUrl}
-          alt={banner.altText || 'Pet Collection - ILE ALA'}
-          className="absolute inset-0 w-full h-full object-cover"
-          onError={(e) => {
-            // Se a imagem não existir, esconde o elemento img
-            (e.target as HTMLImageElement).style.display = 'none';
-          }}
-        />
+        {!isBannerLoading && (
+          <img
+            src={banner.imageUrl}
+            alt={banner.altText || 'Pet Collection - ILE ALA'}
+            className="absolute inset-0 w-full h-full object-cover"
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = 'none';
+            }}
+          />
+        )}
       </section>
 
       {/* Search Bar */}
