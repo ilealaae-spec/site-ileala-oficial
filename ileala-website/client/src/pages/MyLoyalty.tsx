@@ -403,9 +403,9 @@ export default function MyLoyalty() {
               ) : (
                 <div className="text-center py-8">
                   <img
-                    src="/images/palmeira-black.svg"
+                    src="/images/palmeira-black.png"
                     alt="ILE ALA"
-                    className="w-16 h-16 mx-auto mb-4"
+                    className="w-24 h-24 mx-auto mb-4"
                   />
                   <h3 className="text-xl font-bold mb-2">{t.youreAtTheTop}</h3>
                   <p className="text-muted-foreground">{t.keepShopping}</p>

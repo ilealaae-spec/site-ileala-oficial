@@ -21,7 +21,7 @@ const tierIcons: Record<string, string> = {
   green: '/images/tiers/green.png',
   silver: '/images/tiers/silver.png',
   gold: '/images/tiers/gold.png',
-  platinum: '/images/palmeira-black.svg',
+  platinum: '/images/palmeira-black.png',
 };
 
 const tierDisplayNames: Record<string, string> = {
