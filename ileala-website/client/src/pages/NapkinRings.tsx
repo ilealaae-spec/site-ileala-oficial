@@ -97,7 +97,7 @@ export default function NapkinRings() {
   return (
     <div className="w-full">
       {/* Hero Section */}
-      <section className="relative h-[50vh] min-h-[400px] w-full overflow-hidden bg-gray-900">
+      <section className="relative h-[50vh] min-h-[400px] w-full overflow-hidden bg-[#255238]">
         <img
           src={banner.imageUrl}
           alt={banner.altText || 'Napkin Rings'}
