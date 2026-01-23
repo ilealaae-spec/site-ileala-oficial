@@ -86,9 +86,9 @@ export default function Header() {
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       {/* First Row: Search, Logo, Icons */}
       <div className="border-b">
-        <div className="container flex h-20 items-center justify-between gap-4">
-          {/* Search - Left (Hermès style) */}
-          <form onSubmit={handleSearch} className="hidden md:flex items-center gap-2 flex-shrink-0">
+        <div className="container flex h-20 items-center justify-between gap-4 relative">
+          {/* Search - Left (Hermès style) - Hidden on mobile */}
+          <form onSubmit={handleSearch} className="hidden md:flex items-center gap-2 flex-shrink-0 flex-1">
             <Search className="text-muted-foreground w-4 h-4" />
             <input
               type="text"
@@ -99,17 +99,28 @@ export default function Header() {
             />
           </form>
 
+          {/* Language Selector - Mobile (Left side) */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setLanguage(language === 'en' ? 'pt' : 'en')}
+            className="flex md:hidden items-center gap-1 h-9 px-2"
+          >
+            <Globe className="h-4 w-4" />
+            <span className="text-xs font-medium">{language.toUpperCase()}</span>
+          </Button>
+
           {/* Logo - Center */}
-          <Link href="/" className="absolute left-1/2 transform -translate-x-1/2">
+          <Link href="/" className="md:absolute md:left-1/2 md:transform md:-translate-x-1/2">
             <img
               src="/images/logo_ile_ala.png"
               alt="ILE ALA"
-              className="h-16 w-auto object-contain"
+              className="h-14 md:h-16 w-auto object-contain"
             />
           </Link>
 
           {/* Icons - Right */}
-          <div className="flex items-center gap-3 md:gap-4">
+          <div className="flex items-center gap-2 md:gap-4">
             {/* Language Selector - Desktop */}
             <Button
               variant="ghost"
@@ -119,17 +130,6 @@ export default function Header() {
             >
               <Globe className="h-4 w-4" />
               <span className="text-sm font-medium">{language.toUpperCase()}</span>
-            </Button>
-
-            {/* Language Selector - Mobile */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setLanguage(language === 'en' ? 'pt' : 'en')}
-              className="flex md:hidden items-center gap-1 h-9 px-2"
-            >
-              <Globe className="h-4 w-4" />
-              <span className="text-xs font-medium">{language.toUpperCase()}</span>
             </Button>
 
             {/* Social Media Icons */}
