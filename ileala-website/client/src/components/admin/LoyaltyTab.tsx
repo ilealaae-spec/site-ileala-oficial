@@ -827,7 +827,7 @@ export default function LoyaltyTab() {
   const tierSettings: Record<string, string> = {};
   if (allSettings) {
     allSettings.forEach((s: any) => {
-      if (s.key.startsWith('tier-') || s.key.startsWith('progress-')) {
+      if (s.key.startsWith('tier-') || s.key.startsWith('progress-') || s.key.startsWith('loyalty-carousel-')) {
         tierSettings[s.key] = s.value;
       }
     });
