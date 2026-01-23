@@ -403,7 +403,7 @@ export default function MyLoyalty() {
               ) : (
                 <div className="text-center py-8">
                   <img
-                    src="/images/palmeira-black.png"
+                    src="/images/palmeira-black.svg"
                     alt="ILE ALA"
                     className="w-24 h-24 mx-auto mb-4"
                   />
@@ -710,13 +710,18 @@ export default function MyLoyalty() {
                     onClick={() => setSelectedTierView(isSelected ? null : tier.tier)}
                     className={`rounded-2xl p-6 text-center transition-all cursor-pointer hover:scale-105 relative overflow-hidden ${
                       isCurrentTier ? 'ring-2 ring-primary' : ''
-                    } ${isSelected ? 'ring-2 ring-yellow-400 scale-105 shadow-lg' : ''}`}
-                    style={backgroundImage ? {
-                      backgroundImage: `url(${backgroundImage})`,
-                      backgroundSize: 'cover',
-                      backgroundPosition: 'center',
-                    } : {
-                      background: config?.gradient || '#ccc',
+                    } ${isSelected ? 'scale-105 shadow-lg' : ''}`}
+                    style={{
+                      ...(backgroundImage ? {
+                        backgroundImage: `url(${backgroundImage})`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                      } : {
+                        background: config?.gradient || '#ccc',
+                      }),
+                      ...(isSelected ? {
+                        boxShadow: '0 0 0 3px #255238',
+                      } : {}),
                     }}
                   >
                     {/* Overlay for text readability */}
