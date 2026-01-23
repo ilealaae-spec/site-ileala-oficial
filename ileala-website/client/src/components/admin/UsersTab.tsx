@@ -3,7 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { trpc } from '@/lib/trpc';
-import { Loader2, Search, User, Mail, Calendar, Shield, Trash2, Edit } from 'lucide-react';
+import { Loader2, Search, User, Mail, Calendar, Shield, Trash2, Crown } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import {
@@ -145,6 +145,22 @@ export default function UsersTab() {
                         <Mail className="w-4 h-4" />
                         {user.email}
                       </div>
+                      {user.loyaltyMemberId && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Crown className="w-4 h-4" style={{ color: '#255238' }} />
+                          <span className="font-mono">{user.loyaltyMemberId}</span>
+                          {user.loyaltyTier && (
+                            <span className={`text-xs px-2 py-0.5 rounded ${
+                              user.loyaltyTier === 'platinum' ? 'bg-gray-900 text-white' :
+                              user.loyaltyTier === 'gold' ? 'bg-yellow-500 text-white' :
+                              user.loyaltyTier === 'silver' ? 'bg-gray-400 text-white' :
+                              'bg-green-700 text-white'
+                            }`}>
+                              {user.loyaltyTier === 'platinum' ? 'Black' : user.loyaltyTier.charAt(0).toUpperCase() + user.loyaltyTier.slice(1)}
+                            </span>
+                          )}
+                        </div>
+                      )}
                       {user.phone && (
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <span>📱</span>

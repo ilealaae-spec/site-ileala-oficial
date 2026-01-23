@@ -1386,6 +1386,7 @@ export default function LoyaltyTab() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b">
+                  <th className="text-left py-2 px-3">Member ID</th>
                   <th className="text-left py-2 px-3">{language === 'en' ? 'Member' : 'Membro'}</th>
                   <th className="text-left py-2 px-3">{language === 'en' ? 'Tier' : 'Nível'}</th>
                   <th className="text-right py-2 px-3">{language === 'en' ? 'This Year' : 'Este Ano'}</th>
@@ -1398,6 +1399,9 @@ export default function LoyaltyTab() {
               <tbody>
                 {membersData.members.map((item: any) => (
                   <tr key={item.member.id} className="border-b hover:bg-muted/50">
+                    <td className="py-2 px-3">
+                      <span className="font-mono text-sm">{item.member.memberId || '-'}</span>
+                    </td>
                     <td className="py-2 px-3">
                       <div>
                         <p className="font-medium">{item.user.name || 'N/A'}</p>

@@ -1075,7 +1075,33 @@ export async function getAllUsers() {
     throw new Error("Database not available");
   }
 
-  const allUsers = await db.select().from(users);
+  // Get all users with their loyalty data
+  const allUsers = await db
+    .select({
+      id: users.id,
+      openId: users.openId,
+      name: users.name,
+      email: users.email,
+      phone: users.phone,
+      address: users.address,
+      city: users.city,
+      state: users.state,
+      poBox: users.poBox,
+      country: users.country,
+      emailVerified: users.emailVerified,
+      loginMethod: users.loginMethod,
+      role: users.role,
+      twoFactorEnabled: users.twoFactorEnabled,
+      createdAt: users.createdAt,
+      updatedAt: users.updatedAt,
+      lastSignedIn: users.lastSignedIn,
+      // Loyalty data
+      loyaltyMemberId: loyaltyMembers.memberId,
+      loyaltyTier: loyaltyMembers.tier,
+    })
+    .from(users)
+    .leftJoin(loyaltyMembers, eq(users.id, loyaltyMembers.userId));
+
   return allUsers;
 }
 
