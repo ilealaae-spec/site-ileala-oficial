@@ -426,9 +426,27 @@ export default function GiftCard() {
                           <p className="text-5xl font-bold" style={{ color: '#C0A96B' }}>AED {formData.amount.toFixed(2)}</p>
                         </div>
 
-                        <div className="text-sm flex justify-between" style={{ opacity: 0.8 }}>
-                          <span style={{ color: '#C0A96B' }}>Code: GC-XXXXXXXXXXXX</span>
-                          <span style={{ color: '#C0A96B' }}>{cardValidText}</span>
+                        <div className="space-y-2">
+                          {formData.recipientName && (
+                            <div>
+                              <p className="text-xs" style={{ color: '#C0A96B', opacity: 0.6 }}>For:</p>
+                              <p className="text-sm font-medium" style={{ color: '#C0A96B' }}>{formData.recipientName}</p>
+                            </div>
+                          )}
+
+                          {formData.message && (
+                            <div className="p-2 rounded" style={{ backgroundColor: 'rgba(206, 174, 84, 0.1)' }}>
+                              <p className="text-xs italic" style={{ color: '#C0A96B' }}>"{formData.message}"</p>
+                              {formData.senderName && (
+                                <p className="text-xs mt-1 text-right" style={{ color: '#C0A96B', opacity: 0.6 }}>— {formData.senderName}</p>
+                              )}
+                            </div>
+                          )}
+
+                          <div className="text-sm flex justify-between pt-2" style={{ opacity: 0.8 }}>
+                            <span style={{ color: '#C0A96B' }}>Code: GC-XXXXXXXXXXXX</span>
+                            <span style={{ color: '#C0A96B' }}>{cardValidText}</span>
+                          </div>
                         </div>
                       </div>
                     </div>
