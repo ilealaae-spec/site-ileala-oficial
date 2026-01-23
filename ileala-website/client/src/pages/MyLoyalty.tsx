@@ -218,7 +218,14 @@ export default function MyLoyalty() {
     },
   };
 
-  const currentTierConfig = tierConfig[member?.tier || 'green'];
+  // Get the current tier config, using database iconUrl if available
+  const currentUserTier = member?.tier || 'green';
+  const dbTierData = allTiers.find((t: any) => t.tier === currentUserTier);
+  const currentTierConfig = {
+    ...tierConfig[currentUserTier],
+    // Use database iconUrl if available, otherwise use default
+    backgroundImage: dbTierData?.iconUrl || tierConfig[currentUserTier].backgroundImage,
+  };
 
   const formatPrice = (fils: number) => `${(fils / 100).toFixed(0)} AED`;
 
@@ -401,11 +408,11 @@ export default function MyLoyalty() {
                   </Link>
                 </>
               ) : (
-                <div className="text-center py-8">
+                <div className="text-center py-6 flex flex-col items-center justify-center h-full">
                   <img
                     src="/images/palmeira-black.svg"
                     alt="ILE ALA"
-                    className="w-24 h-24 mx-auto mb-4"
+                    className="w-32 h-32 mx-auto mb-6"
                   />
                   <h3 className="text-xl font-bold mb-2">{t.youreAtTheTop}</h3>
                   <p className="text-muted-foreground">{t.keepShopping}</p>
