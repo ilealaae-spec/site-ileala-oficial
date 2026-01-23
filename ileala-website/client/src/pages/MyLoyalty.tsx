@@ -27,15 +27,16 @@ export default function MyLoyalty() {
   const { data: heroTitleSetting } = trpc.settings.get.useQuery({ key: 'loyalty-hero-title' });
   const { data: heroSubtitleSetting } = trpc.settings.get.useQuery({ key: 'loyalty-hero-subtitle' });
 
-  // Fetch all tier-related settings (icons, subtitles, etc)
-  const { data: allSettings } = trpc.settings.list.useQuery();
+  // Fetch all tier-related settings (icons, subtitles, etc) - use public endpoint
+  const { data: allSettings } = trpc.settings.public.useQuery();
 
   // Build a settings map for easy access to tier customizations
+  // allSettings is already a key-value object from the public endpoint
   const tierCustomSettings: Record<string, string> = {};
   if (allSettings) {
-    allSettings.forEach((s: any) => {
-      if (s.key.startsWith('tier-') || s.key.startsWith('progress-')) {
-        tierCustomSettings[s.key] = s.value;
+    Object.entries(allSettings).forEach(([key, value]) => {
+      if (key.startsWith('tier-') || key.startsWith('progress-')) {
+        tierCustomSettings[key] = value;
       }
     });
   }
