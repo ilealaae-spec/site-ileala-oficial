@@ -402,7 +402,11 @@ export default function MyLoyalty() {
                 </>
               ) : (
                 <div className="text-center py-8">
-                  <Crown className="w-16 h-16 mx-auto mb-4 text-yellow-500" />
+                  <img
+                    src="/favicon.svg"
+                    alt="ILE ALA"
+                    className="w-16 h-16 mx-auto mb-4"
+                  />
                   <h3 className="text-xl font-bold mb-2">{t.youreAtTheTop}</h3>
                   <p className="text-muted-foreground">{t.keepShopping}</p>
                 </div>
