@@ -1092,6 +1092,7 @@ function PageBannersSection() {
     onSuccess: () => {
       toast.success(language === 'en' ? 'Banner created!' : 'Banner criado!');
       utils.pageBanners.list.invalidate();
+      utils.pageBanners.get.invalidate();
       resetForm();
       setIsDialogOpen(false);
     },
@@ -1102,6 +1103,7 @@ function PageBannersSection() {
     onSuccess: () => {
       toast.success(language === 'en' ? 'Banner updated!' : 'Banner atualizado!');
       utils.pageBanners.list.invalidate();
+      utils.pageBanners.get.invalidate();
       resetForm();
       setIsDialogOpen(false);
     },
@@ -1112,6 +1114,7 @@ function PageBannersSection() {
     onSuccess: () => {
       toast.success(language === 'en' ? 'Banner deleted!' : 'Banner excluído!');
       utils.pageBanners.list.invalidate();
+      utils.pageBanners.get.invalidate();
     },
     onError: (error: any) => toast.error(error.message),
   });
@@ -1120,15 +1123,40 @@ function PageBannersSection() {
     onSuccess: (data: any) => {
       toast.success(data.message || (language === 'en' ? 'Banners seeded!' : 'Banners populados!'));
       utils.pageBanners.list.invalidate();
+      utils.pageBanners.get.invalidate();
     },
     onError: (error: any) => toast.error(error.message),
   });
 
+  // Auto-save function for when editing existing banner
+  const autoSaveBanner = (newImageUrl: string) => {
+    if (editingBanner) {
+      const updatedData = { ...formData, imageUrl: newImageUrl };
+      (trpc as any).pageBanners.update.mutate(
+        { id: editingBanner.id, ...updatedData },
+        {
+          onSuccess: () => {
+            utils.pageBanners.list.invalidate();
+            utils.pageBanners.get.invalidate();
+          }
+        }
+      );
+    }
+  };
+
   const uploadMutation = (trpc.admin as any).uploadImage.useMutation({
     onSuccess: (data: { url: string }) => {
-      setFormData({ ...formData, imageUrl: data.url });
+      setFormData((prev) => ({ ...prev, imageUrl: data.url }));
       setIsUploading(false);
-      toast.success(language === 'en' ? 'Image uploaded!' : 'Imagem enviada!');
+
+      // Auto-save if editing existing banner
+      if (editingBanner) {
+        const updatedData = { ...formData, imageUrl: data.url };
+        updateMutation.mutate({ id: editingBanner.id, imageUrl: data.url });
+        toast.success(language === 'en' ? 'Image uploaded and saved!' : 'Imagem enviada e salva!');
+      } else {
+        toast.success(language === 'en' ? 'Image uploaded!' : 'Imagem enviada!');
+      }
     },
     onError: (error: any) => {
       setIsUploading(false);

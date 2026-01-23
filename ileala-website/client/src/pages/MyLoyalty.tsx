@@ -193,7 +193,7 @@ export default function MyLoyalty() {
           <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/50" />
 
           <div className="relative z-10 text-center text-white px-4 max-w-3xl">
-            <p className="text-sm uppercase tracking-[0.4em] mb-4 opacity-90">Loyalty Program</p>
+            <p className="text-sm uppercase tracking-[0.4em] mb-4 opacity-90">{language === 'en' ? 'Loyalty Program' : 'Programa de Fidelidade'}</p>
             <h1 className="text-5xl md:text-7xl font-light mb-4" style={{ fontFamily: 'Georgia, serif' }}>
               The Green World
             </h1>
@@ -487,7 +487,7 @@ export default function MyLoyalty() {
                   <div className={`relative z-10 h-full flex flex-col justify-between ${currentTierConfig.textColor}`}>
                     <div className="flex justify-between items-start">
                       <div className="mb-2">
-                        <p className="text-sm opacity-80 tracking-widest">THE GREEN WORLD</p>
+                        <p className="text-sm opacity-80 tracking-widest">{language === 'en' ? 'THE GREEN WORLD' : 'THE GREEN WORLD'}</p>
                         <p className="text-2xl font-bold uppercase tracking-wider">
                           {member?.tier === 'platinum' ? 'BLACK' : (member?.tier?.toUpperCase() || 'GREEN')}
                         </p>
@@ -572,7 +572,7 @@ export default function MyLoyalty() {
                   {/* Member ID - bottom right corner */}
                   {member?.memberId && (
                     <div className="absolute bottom-3 right-3 text-right text-white">
-                      <p className="text-[10px] opacity-60 uppercase tracking-wider">Member ID</p>
+                      <p className="text-[10px] opacity-60 uppercase tracking-wider">{language === 'en' ? 'Member ID' : 'ID do Membro'}</p>
                       <p className="text-sm font-mono tracking-wider">{member.memberId}</p>
                     </div>
                   )}

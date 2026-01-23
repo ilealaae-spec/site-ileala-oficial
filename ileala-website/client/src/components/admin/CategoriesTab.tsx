@@ -146,14 +146,35 @@ export default function CategoriesTab() {
         try {
           const base64 = reader.result as string;
           const base64Data = base64.split(',')[1]; // Remove data:image/xxx;base64, prefix
-          
+
           const result = await uploadImageMutation.mutateAsync({
             fileName: file.name,
             contentType: file.type,
             fileData: base64Data,
           });
-          setFormData(prev => ({ ...prev, imageUrl: result.url }));
-          toast.success(language === 'en' ? 'Image uploaded!' : 'Imagem enviada!');
+
+          const newImageUrl = result.url;
+          setFormData(prev => ({ ...prev, imageUrl: newImageUrl }));
+
+          // Auto-save if editing existing category
+          if (editingCategory) {
+            const data: any = {
+              id: editingCategory.id,
+              slug: formData.slug,
+              nameEN: formData.nameEN,
+              namePT: formData.namePT,
+              displayOrder: parseInt(formData.displayOrder) || 0,
+              active: formData.active ? 1 : 0,
+              imageUrl: newImageUrl,
+            };
+            if (formData.descriptionEN) data.descriptionEN = formData.descriptionEN;
+            if (formData.descriptionPT) data.descriptionPT = formData.descriptionPT;
+
+            updateMutation.mutate(data);
+            toast.success(language === 'en' ? 'Image uploaded and saved!' : 'Imagem enviada e salva!');
+          } else {
+            toast.success(language === 'en' ? 'Image uploaded!' : 'Imagem enviada!');
+          }
         } catch (error: any) {
           console.error('Upload error:', error);
           toast.error(error?.message || (language === 'en' ? 'Upload failed' : 'Falha no upload'));

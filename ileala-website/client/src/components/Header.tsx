@@ -63,19 +63,19 @@ export default function Header() {
     }
   };
 
-  // Fixed menu items - these are always shown
+  // Fixed menu items - with translations
   const menuItems = [
-    { href: '/', label: 'Home' },
-    { href: '/about', label: 'About' },
-    { href: '/collections', label: 'Collections' },
-    { href: '/napkin-rings', label: 'Napkin Rings' },
-    { href: '/table-essentials', label: 'Table Essentials' },
-    { href: '/home-accents', label: 'Home Accents' },
-    { href: '/accessories', label: 'Accessories' },
-    { href: '/pet-collection', label: 'Pet Collection' },
-    { href: '/contact', label: 'Contact' },
-    { href: '/gift-card', label: 'Gift Cards' },
-    { href: '/my-loyalty', label: 'The Green World' },
+    { href: '/', labelEN: 'Home', labelPT: 'Início' },
+    { href: '/about', labelEN: 'About', labelPT: 'Sobre' },
+    { href: '/collections', labelEN: 'Collections', labelPT: 'Coleções' },
+    { href: '/napkin-rings', labelEN: 'Napkin Rings', labelPT: 'Anéis de Guardanapo' },
+    { href: '/table-essentials', labelEN: 'Table Essentials', labelPT: 'Essenciais de Mesa' },
+    { href: '/home-accents', labelEN: 'Home Accents', labelPT: 'Decoração' },
+    { href: '/accessories', labelEN: 'Accessories', labelPT: 'Acessórios' },
+    { href: '/pet-collection', labelEN: 'Pet Collection', labelPT: 'Coleção Pet' },
+    { href: '/contact', labelEN: 'Contact', labelPT: 'Contato' },
+    { href: '/gift-card', labelEN: 'Gift Cards', labelPT: 'Cartões Presente' },
+    { href: '/my-loyalty', labelEN: 'The Green World', labelPT: 'The Green World' },
   ];
 
   // Note: Additional categories from database are intentionally NOT added here
@@ -110,7 +110,7 @@ export default function Header() {
 
           {/* Icons - Right */}
           <div className="flex items-center gap-3 md:gap-4">
-            {/* Language Selector */}
+            {/* Language Selector - Desktop */}
             <Button
               variant="ghost"
               size="sm"
@@ -119,6 +119,17 @@ export default function Header() {
             >
               <Globe className="h-4 w-4" />
               <span className="text-sm font-medium">{language.toUpperCase()}</span>
+            </Button>
+
+            {/* Language Selector - Mobile */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setLanguage(language === 'en' ? 'pt' : 'en')}
+              className="flex md:hidden items-center gap-1 h-9 px-2"
+            >
+              <Globe className="h-4 w-4" />
+              <span className="text-xs font-medium">{language.toUpperCase()}</span>
             </Button>
 
             {/* Social Media Icons */}
@@ -278,7 +289,7 @@ export default function Header() {
                       <span>The Green World</span>
                       <span className="text-[10px] font-normal italic text-[#214430]/70" style={{ fontFamily: 'Georgia, serif' }}>by Ile Ala</span>
                     </span>
-                  ) : item.label}
+                  ) : (language === 'en' ? item.labelEN : item.labelPT)}
                 </Link>
               ))}
             </div>

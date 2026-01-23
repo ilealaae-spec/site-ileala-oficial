@@ -21,8 +21,11 @@ export default function NapkinRings() {
   const { addItem } = useCart();
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Fetch banner from database
-  const { data: dbBanner, isLoading: isBannerLoading } = (trpc as any).pageBanners.get.useQuery({ pageSlug: 'napkin-rings' });
+  // Fetch banner from database (staleTime: 0 ensures fresh data)
+  const { data: dbBanner, isLoading: isBannerLoading } = (trpc as any).pageBanners.get.useQuery(
+    { pageSlug: 'napkin-rings' },
+    { staleTime: 0, refetchOnWindowFocus: true }
+  );
   const banner = dbBanner || defaultBanner;
   
   // Fetch all products and filter by collection
@@ -94,12 +97,17 @@ export default function NapkinRings() {
     );
   }
 
+  // Add cache buster to image URL if it's from our uploads
+  const bannerImageUrl = banner.imageUrl?.includes('/uploads/')
+    ? `${banner.imageUrl}?v=${banner.updatedAt || Date.now()}`
+    : banner.imageUrl;
+
   return (
     <div className="w-full">
       {/* Hero Section */}
       <section className="relative h-[50vh] min-h-[400px] w-full overflow-hidden bg-[#255238]">
         <img
-          src={banner.imageUrl}
+          src={bannerImageUrl}
           alt={banner.altText || 'Napkin Rings'}
           className="absolute inset-0 w-full h-full object-cover"
           loading="eager"
