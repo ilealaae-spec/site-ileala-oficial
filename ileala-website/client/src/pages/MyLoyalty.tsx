@@ -31,9 +31,6 @@ export default function MyLoyalty() {
   // State for product carousel
   const [productCarouselApi, setProductCarouselApi] = useState<CarouselApi>();
 
-  // Fetch featured products for the carousel
-  const { data: featuredProducts } = trpc.products.featured.useQuery();
-
   // Auto-play product carousel
   useEffect(() => {
     if (!productCarouselApi) return;
@@ -53,15 +50,27 @@ export default function MyLoyalty() {
   // Fetch all tier-related settings (icons, subtitles, etc) - use public endpoint
   const { data: allSettings } = trpc.settings.public.useQuery();
 
-  // Build a settings map for easy access to tier customizations
+  // Build a settings map for easy access to tier customizations and carousel
   // allSettings is already a key-value object from the public endpoint
   const tierCustomSettings: Record<string, string> = {};
   if (allSettings) {
     Object.entries(allSettings).forEach(([key, value]) => {
-      if (key.startsWith('tier-') || key.startsWith('progress-')) {
+      if (key.startsWith('tier-') || key.startsWith('progress-') || key.startsWith('loyalty-carousel-')) {
         tierCustomSettings[key] = value;
       }
     });
+  }
+
+  // Build carousel items from settings
+  const carouselItems = [];
+  for (let i = 1; i <= 6; i++) {
+    const image = tierCustomSettings[`loyalty-carousel-image-${i}`];
+    const link = tierCustomSettings[`loyalty-carousel-link-${i}`];
+    const title = tierCustomSettings[`loyalty-carousel-title-${i}`];
+    const price = tierCustomSettings[`loyalty-carousel-price-${i}`];
+    if (image) {
+      carouselItems.push({ id: i, imageUrl: image, linkUrl: link || '/shop', title: title || '', price: price || '' });
+    }
   }
 
   // Helper to get custom icon for a tier
@@ -580,7 +589,7 @@ export default function MyLoyalty() {
                 </h3>
               </div>
 
-              {featuredProducts && featuredProducts.length > 0 ? (
+              {carouselItems.length > 0 ? (
                 <Carousel
                   className="w-full"
                   setApi={setProductCarouselApi}
@@ -590,24 +599,26 @@ export default function MyLoyalty() {
                   }}
                 >
                   <CarouselContent>
-                    {featuredProducts.slice(0, 6).map((product: any) => (
-                      <CarouselItem key={product.id} className="basis-full">
-                        <Link href={`/product/${product.slug || product.id}`}>
+                    {carouselItems.map((item) => (
+                      <CarouselItem key={item.id} className="basis-full">
+                        <Link href={item.linkUrl}>
                           <div className="relative aspect-square rounded-lg overflow-hidden cursor-pointer group">
                             <img
-                              src={product.imageUrl || '/images/placeholder-product.png'}
-                              alt={language === 'en' ? product.nameEN : product.namePT}
+                              src={item.imageUrl}
+                              alt={item.title || 'Product'}
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                            <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
-                              <p className="font-semibold text-sm line-clamp-1">
-                                {language === 'en' ? product.nameEN : product.namePT}
-                              </p>
-                              <p className="text-sm opacity-90">
-                                {(product.price / 100).toFixed(0)} AED
-                              </p>
-                            </div>
+                            {(item.title || item.price) && (
+                              <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
+                                {item.title && (
+                                  <p className="font-semibold text-sm line-clamp-1">{item.title}</p>
+                                )}
+                                {item.price && (
+                                  <p className="text-sm opacity-90">{item.price} AED</p>
+                                )}
+                              </div>
+                            )}
                             <div className="absolute top-2 right-2 bg-white/90 text-xs font-medium px-2 py-1 rounded" style={{ color: '#255238' }}>
                               {language === 'en' ? 'Shop Now' : 'Comprar'}
                             </div>
@@ -618,10 +629,16 @@ export default function MyLoyalty() {
                   </CarouselContent>
                 </Carousel>
               ) : (
-                <div className="aspect-square rounded-lg bg-gray-100 flex items-center justify-center">
+                <div className="aspect-square rounded-lg bg-gray-100 flex flex-col items-center justify-center text-center p-4">
+                  <ShoppingBag className="w-12 h-12 text-muted-foreground mb-2" />
                   <p className="text-sm text-muted-foreground">
-                    {language === 'en' ? 'Loading products...' : 'Carregando produtos...'}
+                    {language === 'en' ? 'Products coming soon!' : 'Produtos em breve!'}
                   </p>
+                  <Link href="/shop">
+                    <Button variant="outline" size="sm" className="mt-3">
+                      {language === 'en' ? 'Browse Shop' : 'Ver Loja'}
+                    </Button>
+                  </Link>
                 </div>
               )}
 

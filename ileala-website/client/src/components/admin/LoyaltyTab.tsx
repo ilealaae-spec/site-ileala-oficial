@@ -2,7 +2,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { trpc } from '@/lib/trpc';
-import { Loader2, Crown, Users, TrendingUp, Search, Eye, Pencil, ArrowUpDown, Save, X, Upload, Image as ImageIcon, DollarSign } from 'lucide-react';
+import { Loader2, Crown, Users, TrendingUp, Search, Eye, Pencil, ArrowUpDown, Save, X, Upload, Image as ImageIcon, DollarSign, ShoppingBag, Trash2, Link as LinkIcon } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -334,6 +334,161 @@ function TierCardWithUpload({ tier, language, onUpdate, settings, updateSetting 
         )}
       </div>
     </Card>
+  );
+}
+
+// Component for carousel slot upload
+function CarouselSlotUpload({ index, language, imageUrl, linkUrl, title, price, onUpdate }: {
+  index: number;
+  language: string;
+  imageUrl: string;
+  linkUrl: string;
+  title: string;
+  price: string;
+  onUpdate: (image?: string, link?: string, title?: string, price?: string) => void;
+}) {
+  const [isUploading, setIsUploading] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState(title);
+  const [editPrice, setEditPrice] = useState(price);
+  const [editLink, setEditLink] = useState(linkUrl);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setEditTitle(title);
+    setEditPrice(price);
+    setEditLink(linkUrl);
+  }, [title, price, linkUrl]);
+
+  const uploadMutation = (trpc.admin as any).uploadImage.useMutation({
+    onSuccess: (data: { url: string }) => {
+      onUpdate(data.url, undefined, undefined, undefined);
+      setIsUploading(false);
+      toast.success(language === 'en' ? 'Image uploaded!' : 'Imagem enviada!');
+    },
+    onError: (error: any) => {
+      setIsUploading(false);
+      toast.error(error.message || (language === 'en' ? 'Failed to upload' : 'Erro ao enviar'));
+    },
+  });
+
+  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error(language === 'en' ? 'Select an image file' : 'Selecione uma imagem');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error(language === 'en' ? 'Max 5MB' : 'Máx 5MB');
+      return;
+    }
+
+    setIsUploading(true);
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = (reader.result as string).split(',')[1];
+      uploadMutation.mutate({
+        fileName: `loyalty-carousel-${index}-${Date.now()}-${file.name}`,
+        fileData: base64,
+        contentType: file.type,
+      });
+    };
+    reader.onerror = () => {
+      setIsUploading(false);
+      toast.error(language === 'en' ? 'Failed to read file' : 'Erro ao ler arquivo');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSave = () => {
+    onUpdate(undefined, editLink, editTitle, editPrice);
+    setIsEditing(false);
+    toast.success(language === 'en' ? 'Saved!' : 'Salvo!');
+  };
+
+  const handleRemove = () => {
+    onUpdate('', '', '', '');
+    toast.success(language === 'en' ? 'Removed!' : 'Removido!');
+  };
+
+  return (
+    <div className="border rounded-lg overflow-hidden">
+      <input ref={fileInputRef} type="file" accept="image/*" onChange={handleUpload} className="hidden" />
+
+      {/* Image Preview */}
+      <div
+        className="aspect-square bg-gray-100 relative cursor-pointer group"
+        onClick={() => !isUploading && fileInputRef.current?.click()}
+      >
+        {imageUrl ? (
+          <>
+            <img src={imageUrl} alt={`Slot ${index}`} className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              <Upload className="w-6 h-6 text-white" />
+            </div>
+          </>
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground">
+            {isUploading ? (
+              <Loader2 className="w-6 h-6 animate-spin" />
+            ) : (
+              <>
+                <ImageIcon className="w-8 h-8 mb-1" />
+                <span className="text-xs">{index}</span>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Controls */}
+      {imageUrl && (
+        <div className="p-2 space-y-2 bg-gray-50">
+          {isEditing ? (
+            <>
+              <Input
+                placeholder={language === 'en' ? 'Product name' : 'Nome do produto'}
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                className="text-xs h-7"
+              />
+              <Input
+                placeholder={language === 'en' ? 'Price (e.g. 150)' : 'Preço (ex: 150)'}
+                value={editPrice}
+                onChange={(e) => setEditPrice(e.target.value)}
+                className="text-xs h-7"
+              />
+              <Input
+                placeholder={language === 'en' ? 'Product link (e.g. /product/slug)' : 'Link do produto'}
+                value={editLink}
+                onChange={(e) => setEditLink(e.target.value)}
+                className="text-xs h-7"
+              />
+              <div className="flex gap-1">
+                <Button size="sm" className="flex-1 h-6 text-xs" onClick={handleSave}>
+                  <Save className="w-3 h-3 mr-1" /> {language === 'en' ? 'Save' : 'Salvar'}
+                </Button>
+                <Button size="sm" variant="ghost" className="h-6 px-2" onClick={() => setIsEditing(false)}>
+                  <X className="w-3 h-3" />
+                </Button>
+              </div>
+            </>
+          ) : (
+            <div className="flex gap-1">
+              <Button size="sm" variant="outline" className="flex-1 h-6 text-xs" onClick={() => setIsEditing(true)}>
+                <Pencil className="w-3 h-3 mr-1" /> {language === 'en' ? 'Edit' : 'Editar'}
+              </Button>
+              <Button size="sm" variant="ghost" className="h-6 px-2 text-red-600" onClick={handleRemove}>
+                <Trash2 className="w-3 h-3" />
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -1258,6 +1413,52 @@ export default function LoyaltyTab() {
               updateSetting={updateTierSetting}
             />
           </div>
+        </div>
+      </Card>
+
+      {/* Product Carousel for Loyalty Page */}
+      <Card className="p-6">
+        <div className="flex items-center gap-2 mb-2">
+          <ShoppingBag className="w-5 h-5" style={{ color: '#255238' }} />
+          <h3 className="text-lg font-semibold">
+            {language === 'en' ? 'Product Carousel' : 'Carrossel de Produtos'}
+          </h3>
+        </div>
+        <p className="text-sm text-muted-foreground mb-6">
+          {language === 'en'
+            ? 'Add up to 6 product images for the carousel on the loyalty page. Each image links to a product.'
+            : 'Adicione até 6 imagens de produtos para o carrossel na página de fidelidade. Cada imagem leva a um produto.'}
+        </p>
+
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          {[1, 2, 3, 4, 5, 6].map((index) => {
+            const imageKey = `loyalty-carousel-image-${index}`;
+            const linkKey = `loyalty-carousel-link-${index}`;
+            const titleKey = `loyalty-carousel-title-${index}`;
+            const priceKey = `loyalty-carousel-price-${index}`;
+            const currentImage = tierSettings[imageKey] || '';
+            const currentLink = tierSettings[linkKey] || '';
+            const currentTitle = tierSettings[titleKey] || '';
+            const currentPrice = tierSettings[priceKey] || '';
+
+            return (
+              <CarouselSlotUpload
+                key={index}
+                index={index}
+                language={language}
+                imageUrl={currentImage}
+                linkUrl={currentLink}
+                title={currentTitle}
+                price={currentPrice}
+                onUpdate={(image, link, title, price) => {
+                  if (image !== undefined) updateTierSetting(imageKey, image);
+                  if (link !== undefined) updateTierSetting(linkKey, link);
+                  if (title !== undefined) updateTierSetting(titleKey, title);
+                  if (price !== undefined) updateTierSetting(priceKey, price);
+                }}
+              />
+            );
+          })}
         </div>
       </Card>
 
