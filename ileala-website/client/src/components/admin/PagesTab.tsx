@@ -4,9 +4,9 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { trpc } from '@/lib/trpc';
-import { Loader2, Save, Upload, Image as ImageIcon, FileText, Phone, Mail, Info } from 'lucide-react';
+import { Loader2, Save, Upload, Image as ImageIcon, FileText, Phone, Info } from 'lucide-react';
 import { toast } from 'sonner';
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import {
   Accordion,
   AccordionContent,
@@ -18,7 +18,6 @@ export default function PagesTab() {
   const { language } = useLanguage();
   const [isUploading, setIsUploading] = useState(false);
   const [uploadingFor, setUploadingFor] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const utils = trpc.useUtils();
 
@@ -94,17 +93,34 @@ export default function PagesTab() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (!file.type.startsWith('image/')) {
+      toast.error(language === 'en' ? 'Please select an image file' : 'Selecione um arquivo de imagem');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error(language === 'en' ? 'Image must be less than 5MB' : 'Imagem deve ter menos de 5MB');
+      return;
+    }
+
     setIsUploading(true);
     setUploadingFor(settingKey);
 
     const reader = new FileReader();
     reader.onloadend = () => {
-      const base64 = reader.result as string;
+      const result = reader.result as string;
+      // Extract base64 data without the prefix (data:image/xxx;base64,)
+      const base64Data = result.split(',')[1];
       uploadMutation.mutate({
-        base64,
-        filename: file.name,
-        folder: 'pages',
+        fileName: `${settingKey}-${Date.now()}-${file.name}`,
+        fileData: base64Data,
+        contentType: file.type,
       });
+    };
+    reader.onerror = () => {
+      setIsUploading(false);
+      setUploadingFor(null);
+      toast.error(language === 'en' ? 'Failed to read file' : 'Erro ao ler arquivo');
     };
     reader.readAsDataURL(file);
   };
