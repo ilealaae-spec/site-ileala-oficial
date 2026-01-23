@@ -24,6 +24,30 @@ export default function MyLoyalty() {
   const { data: heroTitleSetting } = trpc.settings.get.useQuery({ key: 'loyalty-hero-title' });
   const { data: heroSubtitleSetting } = trpc.settings.get.useQuery({ key: 'loyalty-hero-subtitle' });
 
+  // Fetch all tier-related settings (icons, subtitles, etc)
+  const { data: allSettings } = trpc.settings.list.useQuery();
+
+  // Build a settings map for easy access to tier customizations
+  const tierCustomSettings: Record<string, string> = {};
+  if (allSettings) {
+    allSettings.forEach((s: any) => {
+      if (s.key.startsWith('tier-')) {
+        tierCustomSettings[s.key] = s.value;
+      }
+    });
+  }
+
+  // Helper to get custom icon for a tier
+  const getTierIcon = (tier: string) => {
+    return tierCustomSettings[`tier-${tier}-icon`] || '/images/palmeira-black.svg';
+  };
+
+  // Helper to get custom subtitle for a tier
+  const getTierSubtitle = (tier: string, lang: string) => {
+    const key = `tier-${tier}-subtitle-${lang}`;
+    return tierCustomSettings[key] || '';
+  };
+
   const heroImage = heroImageSetting?.value || DEFAULT_HERO_IMAGE;
   const heroTitle = heroTitleSetting?.value || 'Inside The Green World';
   const heroSubtitle = heroSubtitleSetting?.value || 'A private universe where ritual, beauty, and time shape the art of living.';
@@ -146,8 +170,22 @@ export default function MyLoyalty() {
                       {/* Overlay for text readability */}
                       <div className="absolute inset-0 bg-black/30" />
                       <div className="relative z-10">
-                        <h3 className="text-xl font-bold mb-2">{t.displayName}</h3>
-                        <p className="text-sm opacity-80 mb-4">{t.range}</p>
+                        {/* Header with tier name and icon */}
+                        <div className="flex justify-between items-start mb-2">
+                          <h3 className="text-xl font-bold">{t.displayName}</h3>
+                          <img
+                            src={getTierIcon(t.tier)}
+                            alt="tier icon"
+                            className="w-8 h-8 object-contain"
+                          />
+                        </div>
+                        <p className="text-sm opacity-80 mb-4 text-left">{t.range}</p>
+                        {/* Subtitle if configured */}
+                        {getTierSubtitle(t.tier, language) && (
+                          <p className="text-xs opacity-80 text-white mb-3 italic text-left">
+                            {getTierSubtitle(t.tier, language)}
+                          </p>
+                        )}
                         <ul className="text-sm text-left space-y-2 opacity-90">
                           {t.benefits.map((benefit, i) => (
                             <li key={i} className="flex items-center gap-2">
@@ -336,13 +374,19 @@ export default function MyLoyalty() {
               <div className="absolute inset-0 bg-black/20" />
 
               <div className={`relative z-10 h-full flex flex-col justify-between ${currentTierConfig.textColor}`}>
-                <div>
+                <div className="flex justify-between items-start">
                   <div className="mb-2">
                     <p className="text-sm opacity-80 tracking-widest">THE GREEN WORLD</p>
                     <p className="text-2xl font-bold uppercase tracking-wider">
                       {member?.tier === 'platinum' ? 'BLACK' : (member?.tier?.toUpperCase() || 'GREEN')}
                     </p>
                   </div>
+                  {/* Tier icon */}
+                  <img
+                    src={getTierIcon(currentUserTier)}
+                    alt="tier icon"
+                    className="w-10 h-10 object-contain"
+                  />
                 </div>
 
                 <div>
@@ -734,13 +778,29 @@ export default function MyLoyalty() {
                     {/* Overlay for text readability */}
                     <div className="absolute inset-0 bg-black/30" />
                     <div className="relative z-10">
-                      <h3 className="text-xl font-bold mb-2 text-white">
-                        {getTierDisplayName(tier, language)}
-                      </h3>
-                      <p className="text-sm opacity-80 mb-4 text-white">
-                        {formatPrice(tier.minSpend)}
-                        {tier.maxSpend ? ` - ${formatPrice(tier.maxSpend)}` : '+'}
-                      </p>
+                      {/* Header with tier name and icon */}
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <h3 className="text-xl font-bold text-white">
+                            {getTierDisplayName(tier, language)}
+                          </h3>
+                          <p className="text-sm opacity-80 text-white">
+                            {formatPrice(tier.minSpend)}
+                            {tier.maxSpend ? ` - ${formatPrice(tier.maxSpend)}` : '+'}
+                          </p>
+                        </div>
+                        <img
+                          src={getTierIcon(tier.tier)}
+                          alt="tier icon"
+                          className="w-8 h-8 object-contain"
+                        />
+                      </div>
+                      {/* Subtitle if configured */}
+                      {getTierSubtitle(tier.tier, language) && (
+                        <p className="text-xs opacity-80 text-white mb-3 italic">
+                          {getTierSubtitle(tier.tier, language)}
+                        </p>
+                      )}
                       <ul className="text-sm text-left space-y-2 opacity-90 text-white">
                         {benefits.map((benefit, i) => (
                           <li key={i} className="flex items-center gap-2">

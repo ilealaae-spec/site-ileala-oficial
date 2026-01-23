@@ -25,18 +25,43 @@ import {
 } from '@/components/ui/select';
 
 // Tier card config for gradients and icons (matching brand metal card colors)
-const tierCardConfig: Record<string, { gradient: string }> = {
-  green: { gradient: 'linear-gradient(135deg, #3A5F4F 0%, #2D4A3E 50%, #1E3329 100%)' },
-  silver: { gradient: 'linear-gradient(135deg, #D8D8D8 0%, #A8A8A8 50%, #888888 100%)' },
-  gold: { gradient: 'linear-gradient(135deg, #E8D48A 0%, #C5A849 50%, #9A7B2F 100%)' },
-  platinum: { gradient: 'linear-gradient(135deg, #5A5A5A 0%, #3D3D3D 50%, #2C2C2C 100%)' },
+const tierCardConfig: Record<string, { gradient: string; defaultIcon: string }> = {
+  green: { gradient: 'linear-gradient(135deg, #3A5F4F 0%, #2D4A3E 50%, #1E3329 100%)', defaultIcon: '/images/tiers/green.png' },
+  silver: { gradient: 'linear-gradient(135deg, #D8D8D8 0%, #A8A8A8 50%, #888888 100%)', defaultIcon: '/images/tiers/silver.png' },
+  gold: { gradient: 'linear-gradient(135deg, #E8D48A 0%, #C5A849 50%, #9A7B2F 100%)', defaultIcon: '/images/tiers/gold.png' },
+  platinum: { gradient: 'linear-gradient(135deg, #5A5A5A 0%, #3D3D3D 50%, #2C2C2C 100%)', defaultIcon: '/images/palmeira-black.svg' },
 };
 
-// Component for tier card with image upload
-function TierCardWithUpload({ tier, language, onUpdate }: { tier: any; language: string; onUpdate: () => void }) {
+// Format price helper
+const formatPriceLocal = (fils: number) => `${(fils / 100).toLocaleString()} AED`;
+
+// Component for tier card with full customization
+function TierCardWithUpload({ tier, language, onUpdate, settings, updateSetting }: {
+  tier: any;
+  language: string;
+  onUpdate: () => void;
+  settings: Record<string, string>;
+  updateSetting: (key: string, value: string) => void;
+}) {
   const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingIcon, setIsUploadingIcon] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [cardSubtitleEN, setCardSubtitleEN] = useState('');
+  const [cardSubtitlePT, setCardSubtitlePT] = useState('');
+  const cardImageRef = useRef<HTMLInputElement>(null);
+  const iconRef = useRef<HTMLInputElement>(null);
   const config = tierCardConfig[tier.tier] || tierCardConfig.green;
+
+  // Get settings for this tier
+  const subtitleEN = settings[`tier-${tier.tier}-subtitle-en`] || '';
+  const subtitlePT = settings[`tier-${tier.tier}-subtitle-pt`] || '';
+  const customIcon = settings[`tier-${tier.tier}-icon`] || '';
+
+  // Initialize edit values
+  useEffect(() => {
+    setCardSubtitleEN(subtitleEN);
+    setCardSubtitlePT(subtitlePT);
+  }, [subtitleEN, subtitlePT]);
 
   const uploadMutation = (trpc.admin as any).uploadImage.useMutation({
     onSuccess: (data: { url: string }) => {
@@ -45,6 +70,18 @@ function TierCardWithUpload({ tier, language, onUpdate }: { tier: any; language:
     onError: (error: any) => {
       setIsUploading(false);
       toast.error(error.message || (language === 'en' ? 'Failed to upload' : 'Erro ao enviar'));
+    },
+  });
+
+  const uploadIconMutation = (trpc.admin as any).uploadImage.useMutation({
+    onSuccess: (data: { url: string }) => {
+      updateSetting(`tier-${tier.tier}-icon`, data.url);
+      setIsUploadingIcon(false);
+      toast.success(language === 'en' ? 'Icon updated!' : 'Ícone atualizado!');
+    },
+    onError: (error: any) => {
+      setIsUploadingIcon(false);
+      toast.error(error.message || (language === 'en' ? 'Failed to upload icon' : 'Erro ao enviar ícone'));
     },
   });
 
@@ -60,7 +97,7 @@ function TierCardWithUpload({ tier, language, onUpdate }: { tier: any; language:
     },
   });
 
-  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUploadCardImage = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -79,7 +116,7 @@ function TierCardWithUpload({ tier, language, onUpdate }: { tier: any; language:
     reader.onload = () => {
       const base64 = (reader.result as string).split(',')[1];
       uploadMutation.mutate({
-        fileName: `tier-${tier.tier}-${Date.now()}-${file.name}`,
+        fileName: `tier-card-${tier.tier}-${Date.now()}-${file.name}`,
         fileData: base64,
         contentType: file.type,
       });
@@ -91,16 +128,61 @@ function TierCardWithUpload({ tier, language, onUpdate }: { tier: any; language:
     reader.readAsDataURL(file);
   };
 
-  const handleRemoveImage = () => {
+  const handleUploadIcon = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error(language === 'en' ? 'Select an image file' : 'Selecione uma imagem');
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error(language === 'en' ? 'Max 2MB for icons' : 'Máx 2MB para ícones');
+      return;
+    }
+
+    setIsUploadingIcon(true);
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = (reader.result as string).split(',')[1];
+      uploadIconMutation.mutate({
+        fileName: `tier-icon-${tier.tier}-${Date.now()}-${file.name}`,
+        fileData: base64,
+        contentType: file.type,
+      });
+    };
+    reader.onerror = () => {
+      setIsUploadingIcon(false);
+      toast.error(language === 'en' ? 'Failed to read file' : 'Erro ao ler arquivo');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveCardImage = () => {
     setIsUploading(true);
     updateTierMutation.mutate({ tier: tier.tier, iconUrl: null });
   };
 
+  const handleRemoveIcon = () => {
+    updateSetting(`tier-${tier.tier}-icon`, '');
+  };
+
+  const handleSaveTexts = () => {
+    if (cardSubtitleEN) updateSetting(`tier-${tier.tier}-subtitle-en`, cardSubtitleEN);
+    if (cardSubtitlePT) updateSetting(`tier-${tier.tier}-subtitle-pt`, cardSubtitlePT);
+    setIsEditing(false);
+    toast.success(language === 'en' ? 'Texts saved!' : 'Textos salvos!');
+  };
+
+  const displayName = tier.tier === 'platinum' ? 'Black' : tier.tier.charAt(0).toUpperCase() + tier.tier.slice(1);
+  const iconToShow = customIcon || config.defaultIcon;
+
   return (
     <Card className="overflow-hidden">
-      {/* Card Preview */}
+      {/* Card Preview - simulating how it looks on MyLoyalty */}
       <div
-        className="relative h-32 flex items-center justify-center text-white"
+        className="relative h-40 flex flex-col justify-between p-4 text-white"
         style={{
           background: tier.iconUrl ? undefined : config.gradient,
         }}
@@ -111,44 +193,79 @@ function TierCardWithUpload({ tier, language, onUpdate }: { tier: any; language:
             <div className="absolute inset-0 bg-black/30" />
           </>
         )}
-        <div className="relative z-10 text-center">
-          <span className="text-lg font-bold capitalize">{tier.tier === 'platinum' ? 'Black' : tier.tier}</span>
+        <div className="relative z-10 flex justify-between items-start">
+          <div>
+            <p className="text-xs opacity-70">THE GREEN WORLD</p>
+            <p className="text-lg font-bold">{displayName.toUpperCase()}</p>
+          </div>
+          <img src={iconToShow} alt="icon" className="w-8 h-8 object-contain" />
+        </div>
+        <div className="relative z-10">
+          <p className="text-xs opacity-70">
+            {formatPriceLocal(tier.minSpend)}{tier.maxSpend ? ` - ${formatPriceLocal(tier.maxSpend)}` : '+'}
+          </p>
         </div>
       </div>
 
-      {/* Upload Controls */}
-      <div className="p-4 space-y-3">
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          onChange={handleUpload}
-          className="hidden"
-        />
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-full"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={isUploading}
-        >
-          {isUploading ? (
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-          ) : (
-            <Upload className="w-4 h-4 mr-2" />
+      {/* Edit Controls */}
+      <div className="p-4 space-y-3 bg-gray-50">
+        {/* Hidden file inputs */}
+        <input ref={cardImageRef} type="file" accept="image/*" onChange={handleUploadCardImage} className="hidden" />
+        <input ref={iconRef} type="file" accept="image/*" onChange={handleUploadIcon} className="hidden" />
+
+        {/* Card Image Upload */}
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" className="flex-1" onClick={() => cardImageRef.current?.click()} disabled={isUploading}>
+            {isUploading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <ImageIcon className="w-4 h-4 mr-1" />}
+            {language === 'en' ? 'Card BG' : 'Fundo'}
+          </Button>
+          {tier.iconUrl && (
+            <Button variant="ghost" size="sm" onClick={handleRemoveCardImage} disabled={isUploading} className="text-red-600">
+              <X className="w-4 h-4" />
+            </Button>
           )}
-          {language === 'en' ? 'Upload Image' : 'Enviar Imagem'}
-        </Button>
-        {tier.iconUrl && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
-            onClick={handleRemoveImage}
-            disabled={isUploading}
-          >
-            <X className="w-4 h-4 mr-2" />
-            {language === 'en' ? 'Remove' : 'Remover'}
+        </div>
+
+        {/* Icon Upload */}
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" className="flex-1" onClick={() => iconRef.current?.click()} disabled={isUploadingIcon}>
+            {isUploadingIcon ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Upload className="w-4 h-4 mr-1" />}
+            {language === 'en' ? 'Icon' : 'Ícone'}
+          </Button>
+          {customIcon && (
+            <Button variant="ghost" size="sm" onClick={handleRemoveIcon} className="text-red-600">
+              <X className="w-4 h-4" />
+            </Button>
+          )}
+        </div>
+
+        {/* Edit Texts Toggle */}
+        {isEditing ? (
+          <div className="space-y-2 pt-2 border-t">
+            <Input
+              placeholder={language === 'en' ? 'Subtitle (EN)' : 'Subtítulo (EN)'}
+              value={cardSubtitleEN}
+              onChange={(e) => setCardSubtitleEN(e.target.value)}
+              className="text-xs"
+            />
+            <Input
+              placeholder={language === 'en' ? 'Subtitle (PT)' : 'Subtítulo (PT)'}
+              value={cardSubtitlePT}
+              onChange={(e) => setCardSubtitlePT(e.target.value)}
+              className="text-xs"
+            />
+            <div className="flex gap-2">
+              <Button size="sm" className="flex-1" onClick={handleSaveTexts}>
+                <Save className="w-3 h-3 mr-1" /> {language === 'en' ? 'Save' : 'Salvar'}
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setIsEditing(false)}>
+                <X className="w-3 h-3" />
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <Button variant="ghost" size="sm" className="w-full" onClick={() => setIsEditing(true)}>
+            <Pencil className="w-3 h-3 mr-1" /> {language === 'en' ? 'Edit Texts' : 'Editar Textos'}
           </Button>
         )}
       </div>
@@ -190,6 +307,19 @@ export default function LoyaltyTab() {
   const { data: heroImageSetting, refetch: refetchHeroImage } = trpc.settings.get.useQuery({ key: 'loyalty-hero-image' });
   const { data: heroTitleSetting, refetch: refetchHeroTitle } = trpc.settings.get.useQuery({ key: 'loyalty-hero-title' });
   const { data: heroSubtitleSetting, refetch: refetchHeroSubtitle } = trpc.settings.get.useQuery({ key: 'loyalty-hero-subtitle' });
+
+  // Fetch all tier card settings
+  const { data: allSettings, refetch: refetchAllSettings } = trpc.settings.list.useQuery();
+
+  // Build a settings map for easy access
+  const tierSettings: Record<string, string> = {};
+  if (allSettings) {
+    allSettings.forEach((s: any) => {
+      if (s.key.startsWith('tier-')) {
+        tierSettings[s.key] = s.value;
+      }
+    });
+  }
 
   const [heroTitle, setHeroTitle] = useState('');
   const [heroSubtitle, setHeroSubtitle] = useState('');
@@ -315,6 +445,21 @@ export default function LoyaltyTab() {
       toast.error(error.message || (language === 'en' ? 'Failed to save image' : 'Erro ao salvar imagem'));
     },
   });
+
+  // Generic setting update mutation for tier card settings
+  const updateTierSettingMutation = trpc.settings.upsert.useMutation({
+    onSuccess: () => {
+      refetchAllSettings();
+    },
+    onError: (error) => {
+      toast.error(error.message || (language === 'en' ? 'Failed to save setting' : 'Erro ao salvar configuração'));
+    },
+  });
+
+  // Helper function to update a tier setting
+  const updateTierSetting = (key: string, value: string) => {
+    updateTierSettingMutation.mutate({ key, value });
+  };
 
   // Upload tier image mutation
   const uploadTierImageMutation = (trpc.admin as any).uploadImage.useMutation({
@@ -704,6 +849,8 @@ export default function LoyaltyTab() {
                 tier={tier}
                 language={language}
                 onUpdate={() => refetchTiers()}
+                settings={tierSettings}
+                updateSetting={updateTierSetting}
               />
             ))}
           </div>
@@ -1097,9 +1244,9 @@ export default function LoyaltyTab() {
                     ) : (
                       <div
                         className="w-full h-full flex items-center justify-center text-white text-2xl"
-                        style={{ background: selectedTier.cardGradient || selectedTier.cardColor }}
+                        style={{ background: selectedTier.cardGradient || selectedTier.cardColor || tierCardConfig[selectedTier.tier]?.gradient }}
                       >
-                        {tierConfig[selectedTier.tier]?.icon}
+                        {selectedTier.tier === 'platinum' ? 'Black' : selectedTier.tier.charAt(0).toUpperCase() + selectedTier.tier.slice(1)}
                       </div>
                     )}
                   </div>
