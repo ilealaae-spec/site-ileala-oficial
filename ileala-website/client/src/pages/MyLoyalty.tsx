@@ -182,7 +182,7 @@ export default function MyLoyalty() {
     return (
       <div className="w-full">
         {/* Hero Section for non-logged users */}
-        <section className="relative h-[70vh] min-h-[500px] flex items-center justify-center overflow-hidden">
+        <section className="relative h-[70vh] min-h-[500px] flex items-center justify-center overflow-hidden bg-gray-900">
           <img
             src={heroImage}
             alt="The Green World - ILE ALA Loyalty Program"
@@ -428,7 +428,7 @@ export default function MyLoyalty() {
   return (
     <div className="w-full">
       {/* Hero Section for logged in users */}
-      <section className="relative h-[50vh] min-h-[400px] flex items-center justify-center overflow-hidden">
+      <section className="relative h-[50vh] min-h-[400px] flex items-center justify-center overflow-hidden bg-gray-900">
         <img
           src={heroImage}
           alt="The Green World - ILE ALA Loyalty Program"

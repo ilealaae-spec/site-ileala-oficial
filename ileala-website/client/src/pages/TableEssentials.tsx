@@ -99,7 +99,7 @@ export default function TableEssentials() {
   return (
     <div className="w-full">
       {/* Hero Section */}
-      <section className="relative h-[50vh] min-h-[400px] w-full overflow-hidden">
+      <section className="relative h-[50vh] min-h-[400px] w-full overflow-hidden bg-gray-900">
         <img
           src={banner.imageUrl}
           alt={banner.altText || 'ILE ALA Table Essentials'}

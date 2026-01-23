@@ -69,7 +69,7 @@ export default function Contact() {
   return (
     <div className="w-full">
       {/* Hero Section with Image */}
-      <section className="relative h-[50vh] min-h-[400px] flex items-center justify-center overflow-hidden">
+      <section className="relative h-[50vh] min-h-[400px] flex items-center justify-center overflow-hidden bg-gray-900">
         <img
           src={heroImage}
           alt="Contact ILE ALA"
