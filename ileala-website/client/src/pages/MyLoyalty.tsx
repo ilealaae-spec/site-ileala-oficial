@@ -403,7 +403,7 @@ export default function MyLoyalty() {
               ) : (
                 <div className="text-center py-8">
                   <img
-                    src="/favicon.svg"
+                    src="/images/palmeira-black.svg"
                     alt="ILE ALA"
                     className="w-16 h-16 mx-auto mb-4"
                   />
