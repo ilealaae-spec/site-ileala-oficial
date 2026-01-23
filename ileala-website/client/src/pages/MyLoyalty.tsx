@@ -56,6 +56,19 @@ export default function MyLoyalty() {
     return tierCustomSettings[`tier-${tier}-card-back`] || '';
   };
 
+  // Helpers for "At the Top" card customization
+  const getAtTheTopIcon = () => tierCustomSettings['atthetop-icon'] || '/images/palmeira-black.svg';
+  const getAtTheTopBgImage = () => tierCustomSettings['atthetop-bg-image'] || '';
+  const getAtTheTopBgColor = () => tierCustomSettings['atthetop-bg-color'] || '#ffffff';
+  const getAtTheTopTitle = (lang: string) => {
+    const key = `atthetop-title-${lang}`;
+    return tierCustomSettings[key] || (lang === 'en' ? "You're at the top!" : 'Você está no topo!');
+  };
+  const getAtTheTopSubtitle = (lang: string) => {
+    const key = `atthetop-subtitle-${lang}`;
+    return tierCustomSettings[key] || (lang === 'en' ? 'Keep shopping to enjoy your exclusive benefits.' : 'Continue comprando para aproveitar seus benefícios exclusivos.');
+  };
+
   const heroImage = heroImageSetting?.value || DEFAULT_HERO_IMAGE;
   const heroTitle = heroTitleSetting?.value || 'Inside The Green World';
   const heroSubtitle = heroSubtitleSetting?.value || 'A private universe where ritual, beauty, and time shape the art of living.';
@@ -526,14 +539,35 @@ export default function MyLoyalty() {
                   </Link>
                 </>
               ) : (
-                <div className="text-center py-6 flex flex-col items-center justify-center h-full">
-                  <img
-                    src="/images/palmeira-black.svg"
-                    alt="ILE ALA"
-                    className="w-32 h-32 mx-auto mb-6"
-                  />
-                  <h3 className="text-xl font-bold mb-2">{t.youreAtTheTop}</h3>
-                  <p className="text-muted-foreground">{t.keepShopping}</p>
+                <div
+                  className="text-center py-6 flex flex-col items-center justify-center h-full rounded-lg relative overflow-hidden"
+                  style={{
+                    backgroundColor: getAtTheTopBgImage() ? undefined : getAtTheTopBgColor(),
+                    backgroundImage: getAtTheTopBgImage() ? `url(${getAtTheTopBgImage()})` : undefined,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                  }}
+                >
+                  {getAtTheTopBgImage() && <div className="absolute inset-0 bg-black/20" />}
+                  <div className="relative z-10">
+                    <img
+                      src={getAtTheTopIcon()}
+                      alt="ILE ALA"
+                      className="w-32 h-32 mx-auto mb-6 object-contain"
+                    />
+                    <h3
+                      className="text-xl font-bold mb-2"
+                      style={{ color: getAtTheTopBgImage() ? '#fff' : undefined }}
+                    >
+                      {getAtTheTopTitle(language)}
+                    </h3>
+                    <p
+                      className={getAtTheTopBgImage() ? '' : 'text-muted-foreground'}
+                      style={{ color: getAtTheTopBgImage() ? 'rgba(255,255,255,0.8)' : undefined }}
+                    >
+                      {getAtTheTopSubtitle(language)}
+                    </p>
+                  </div>
                 </div>
               )}
             </Card>

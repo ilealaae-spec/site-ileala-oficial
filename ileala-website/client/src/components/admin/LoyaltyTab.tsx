@@ -337,6 +337,287 @@ function TierCardWithUpload({ tier, language, onUpdate, settings, updateSetting 
   );
 }
 
+// Component for "At the Top" card customization (when member is at max tier)
+function AtTheTopCardSettings({ language, settings, updateSetting }: {
+  language: string;
+  settings: Record<string, string>;
+  updateSetting: (key: string, value: string) => void;
+}) {
+  const [isUploadingIcon, setIsUploadingIcon] = useState(false);
+  const [isUploadingBg, setIsUploadingBg] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [titleEN, setTitleEN] = useState('');
+  const [titlePT, setTitlePT] = useState('');
+  const [subtitleEN, setSubtitleEN] = useState('');
+  const [subtitlePT, setSubtitlePT] = useState('');
+  const [bgColor, setBgColor] = useState('');
+  const iconRef = useRef<HTMLInputElement>(null);
+  const bgRef = useRef<HTMLInputElement>(null);
+
+  // Get current settings
+  const currentIcon = settings['atthetop-icon'] || '';
+  const currentBgImage = settings['atthetop-bg-image'] || '';
+  const currentBgColor = settings['atthetop-bg-color'] || '#ffffff';
+  const currentTitleEN = settings['atthetop-title-en'] || '';
+  const currentTitlePT = settings['atthetop-title-pt'] || '';
+  const currentSubtitleEN = settings['atthetop-subtitle-en'] || '';
+  const currentSubtitlePT = settings['atthetop-subtitle-pt'] || '';
+
+  // Initialize edit values
+  useEffect(() => {
+    setTitleEN(currentTitleEN);
+    setTitlePT(currentTitlePT);
+    setSubtitleEN(currentSubtitleEN);
+    setSubtitlePT(currentSubtitlePT);
+    setBgColor(currentBgColor);
+  }, [currentTitleEN, currentTitlePT, currentSubtitleEN, currentSubtitlePT, currentBgColor]);
+
+  const uploadIconMutation = (trpc.admin as any).uploadImage.useMutation({
+    onSuccess: (data: { url: string }) => {
+      updateSetting('atthetop-icon', data.url);
+      setIsUploadingIcon(false);
+      toast.success(language === 'en' ? 'Icon updated!' : 'Ícone atualizado!');
+    },
+    onError: (error: any) => {
+      setIsUploadingIcon(false);
+      toast.error(error.message || (language === 'en' ? 'Failed to upload' : 'Erro ao enviar'));
+    },
+  });
+
+  const uploadBgMutation = (trpc.admin as any).uploadImage.useMutation({
+    onSuccess: (data: { url: string }) => {
+      updateSetting('atthetop-bg-image', data.url);
+      setIsUploadingBg(false);
+      toast.success(language === 'en' ? 'Background updated!' : 'Fundo atualizado!');
+    },
+    onError: (error: any) => {
+      setIsUploadingBg(false);
+      toast.error(error.message || (language === 'en' ? 'Failed to upload' : 'Erro ao enviar'));
+    },
+  });
+
+  const handleUploadIcon = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error(language === 'en' ? 'Select an image file' : 'Selecione uma imagem');
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error(language === 'en' ? 'Max 2MB' : 'Máx 2MB');
+      return;
+    }
+
+    setIsUploadingIcon(true);
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = (reader.result as string).split(',')[1];
+      uploadIconMutation.mutate({
+        fileName: `atthetop-icon-${Date.now()}-${file.name}`,
+        fileData: base64,
+        contentType: file.type,
+      });
+    };
+    reader.onerror = () => {
+      setIsUploadingIcon(false);
+      toast.error(language === 'en' ? 'Failed to read file' : 'Erro ao ler arquivo');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleUploadBg = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error(language === 'en' ? 'Select an image file' : 'Selecione uma imagem');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error(language === 'en' ? 'Max 5MB' : 'Máx 5MB');
+      return;
+    }
+
+    setIsUploadingBg(true);
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = (reader.result as string).split(',')[1];
+      uploadBgMutation.mutate({
+        fileName: `atthetop-bg-${Date.now()}-${file.name}`,
+        fileData: base64,
+        contentType: file.type,
+      });
+    };
+    reader.onerror = () => {
+      setIsUploadingBg(false);
+      toast.error(language === 'en' ? 'Failed to read file' : 'Erro ao ler arquivo');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveTexts = () => {
+    if (titleEN) updateSetting('atthetop-title-en', titleEN);
+    if (titlePT) updateSetting('atthetop-title-pt', titlePT);
+    if (subtitleEN) updateSetting('atthetop-subtitle-en', subtitleEN);
+    if (subtitlePT) updateSetting('atthetop-subtitle-pt', subtitlePT);
+    if (bgColor) updateSetting('atthetop-bg-color', bgColor);
+    setIsEditing(false);
+    toast.success(language === 'en' ? 'Settings saved!' : 'Configurações salvas!');
+  };
+
+  return (
+    <div className="grid md:grid-cols-2 gap-6">
+      {/* Preview */}
+      <div>
+        <Label className="mb-2 block">{language === 'en' ? 'Preview' : 'Prévia'}</Label>
+        <div
+          className="rounded-lg p-6 text-center flex flex-col items-center justify-center min-h-[200px] border"
+          style={{
+            backgroundColor: currentBgImage ? undefined : currentBgColor,
+            backgroundImage: currentBgImage ? `url(${currentBgImage})` : undefined,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          }}
+        >
+          {currentBgImage && <div className="absolute inset-0 bg-black/20 rounded-lg" />}
+          <div className="relative z-10">
+            <img
+              src={currentIcon || '/images/palmeira-black.svg'}
+              alt="Icon"
+              className="w-24 h-24 mx-auto mb-4 object-contain"
+            />
+            <h3 className="text-xl font-bold mb-2" style={{ color: currentBgImage ? '#fff' : '#000' }}>
+              {(language === 'en' ? currentTitleEN : currentTitlePT) || (language === 'en' ? "You're at the top!" : 'Você está no topo!')}
+            </h3>
+            <p className="text-sm" style={{ color: currentBgImage ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.6)' }}>
+              {(language === 'en' ? currentSubtitleEN : currentSubtitlePT) || (language === 'en' ? 'Keep shopping to enjoy your exclusive benefits.' : 'Continue comprando para aproveitar seus benefícios exclusivos.')}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Settings */}
+      <div className="space-y-4">
+        {/* Hidden inputs */}
+        <input ref={iconRef} type="file" accept="image/*" onChange={handleUploadIcon} className="hidden" />
+        <input ref={bgRef} type="file" accept="image/*" onChange={handleUploadBg} className="hidden" />
+
+        {/* Icon Upload */}
+        <div>
+          <Label className="mb-2 block">{language === 'en' ? 'Icon/Image' : 'Ícone/Imagem'}</Label>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => iconRef.current?.click()} disabled={isUploadingIcon}>
+              {isUploadingIcon ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Upload className="w-4 h-4 mr-1" />}
+              {language === 'en' ? 'Upload Icon' : 'Enviar Ícone'}
+            </Button>
+            {currentIcon && (
+              <Button variant="ghost" size="sm" onClick={() => updateSetting('atthetop-icon', '')} className="text-red-600">
+                <X className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            {language === 'en' ? 'Default: Palmeira icon. Max 2MB.' : 'Padrão: Ícone palmeira. Máx 2MB.'}
+          </p>
+        </div>
+
+        {/* Background Image Upload */}
+        <div>
+          <Label className="mb-2 block">{language === 'en' ? 'Background Image' : 'Imagem de Fundo'}</Label>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => bgRef.current?.click()} disabled={isUploadingBg}>
+              {isUploadingBg ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <ImageIcon className="w-4 h-4 mr-1" />}
+              {language === 'en' ? 'Upload Background' : 'Enviar Fundo'}
+            </Button>
+            {currentBgImage && (
+              <Button variant="ghost" size="sm" onClick={() => updateSetting('atthetop-bg-image', '')} className="text-red-600">
+                <X className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            {language === 'en' ? 'Optional. If set, overrides background color.' : 'Opcional. Se definido, substitui a cor de fundo.'}
+          </p>
+        </div>
+
+        {/* Background Color */}
+        <div>
+          <Label className="mb-2 block">{language === 'en' ? 'Background Color' : 'Cor de Fundo'}</Label>
+          <div className="flex gap-2 items-center">
+            <input
+              type="color"
+              value={bgColor || '#ffffff'}
+              onChange={(e) => setBgColor(e.target.value)}
+              className="w-10 h-10 rounded border cursor-pointer"
+            />
+            <Input
+              value={bgColor || '#ffffff'}
+              onChange={(e) => setBgColor(e.target.value)}
+              placeholder="#ffffff"
+              className="flex-1"
+            />
+          </div>
+        </div>
+
+        {/* Text Settings */}
+        {isEditing ? (
+          <div className="space-y-3 pt-3 border-t">
+            <div>
+              <Label>{language === 'en' ? 'Title (EN)' : 'Título (EN)'}</Label>
+              <Input
+                value={titleEN}
+                onChange={(e) => setTitleEN(e.target.value)}
+                placeholder="You're at the top!"
+              />
+            </div>
+            <div>
+              <Label>{language === 'en' ? 'Title (PT)' : 'Título (PT)'}</Label>
+              <Input
+                value={titlePT}
+                onChange={(e) => setTitlePT(e.target.value)}
+                placeholder="Você está no topo!"
+              />
+            </div>
+            <div>
+              <Label>{language === 'en' ? 'Subtitle (EN)' : 'Subtítulo (EN)'}</Label>
+              <Textarea
+                value={subtitleEN}
+                onChange={(e) => setSubtitleEN(e.target.value)}
+                placeholder="Keep shopping to enjoy your exclusive benefits."
+                rows={2}
+              />
+            </div>
+            <div>
+              <Label>{language === 'en' ? 'Subtitle (PT)' : 'Subtítulo (PT)'}</Label>
+              <Textarea
+                value={subtitlePT}
+                onChange={(e) => setSubtitlePT(e.target.value)}
+                placeholder="Continue comprando para aproveitar seus benefícios exclusivos."
+                rows={2}
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" onClick={handleSaveTexts}>
+                <Save className="w-3 h-3 mr-1" /> {language === 'en' ? 'Save All' : 'Salvar Tudo'}
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setIsEditing(false)}>
+                <X className="w-3 h-3" />
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <Button variant="outline" size="sm" onClick={() => setIsEditing(true)} className="w-full">
+            <Pencil className="w-3 h-3 mr-1" /> {language === 'en' ? 'Edit Texts & Color' : 'Editar Textos e Cor'}
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function LoyaltyTab() {
   const { language } = useLanguage();
   const [tierFilter, setTierFilter] = useState('all');
@@ -894,6 +1175,27 @@ export default function LoyaltyTab() {
           </Card>
         </div>
       )}
+
+      {/* "At the Top" Card Customization */}
+      <Card className="p-6">
+        <div className="mb-4">
+          <h3 className="text-lg font-semibold flex items-center gap-2">
+            <Crown className="w-5 h-5 text-yellow-500" />
+            {language === 'en' ? '"At the Top" Card' : 'Cartão "No Topo"'}
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            {language === 'en'
+              ? 'Customize the card that appears when a member reaches the highest tier (Black).'
+              : 'Personalize o cartão que aparece quando um membro atinge o nível máximo (Black).'}
+          </p>
+        </div>
+
+        <AtTheTopCardSettings
+          language={language}
+          settings={tierSettings}
+          updateSetting={updateTierSetting}
+        />
+      </Card>
 
       {/* Tier Cards with Image Upload */}
       {tiers && tiers.length > 0 && (
