@@ -4,10 +4,16 @@ import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Loader2, Crown, Gift, Truck, Clock, Star, Phone, Calendar, ChevronRight, Check, Lock } from 'lucide-react';
-import { useState } from 'react';
+import { Loader2, Crown, Gift, Truck, Clock, Star, Phone, Calendar, ChevronRight, Check, Lock, ShoppingBag } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Link } from 'wouter';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  type CarouselApi,
+} from '@/components/ui/carousel';
 
 // Default hero image - can be changed via admin settings
 const DEFAULT_HERO_IMAGE = '/images/loyalty-hero.webp';
@@ -21,6 +27,23 @@ export default function MyLoyalty() {
 
   // State for card flip
   const [isCardFlipped, setIsCardFlipped] = useState(false);
+
+  // State for product carousel
+  const [productCarouselApi, setProductCarouselApi] = useState<CarouselApi>();
+
+  // Fetch featured products for the carousel
+  const { data: featuredProducts } = trpc.products.featured.useQuery();
+
+  // Auto-play product carousel
+  useEffect(() => {
+    if (!productCarouselApi) return;
+
+    const interval = setInterval(() => {
+      productCarouselApi.scrollNext();
+    }, 4000); // Change slide every 4 seconds
+
+    return () => clearInterval(interval);
+  }, [productCarouselApi]);
 
   // Fetch loyalty hero settings
   const { data: heroImageSetting, isLoading: isHeroLoading } = trpc.settings.get.useQuery({ key: 'loyalty-hero-image' });
@@ -548,74 +571,77 @@ export default function MyLoyalty() {
               </div>
             </div>
 
-            {/* Progress Card - Customized for each tier */}
-            <Card className="p-6 overflow-hidden">
-              {/* Custom Progress Card for current tier */}
-              <div
-                className="text-center py-6 flex flex-col items-center justify-center h-full rounded-lg relative overflow-hidden"
-                style={{
-                  backgroundColor: getProgressBgImage(currentUserTier) ? undefined : getProgressBgColor(currentUserTier),
-                  backgroundImage: getProgressBgImage(currentUserTier) ? `url(${getProgressBgImage(currentUserTier)})` : undefined,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                }}
-              >
-                {getProgressBgImage(currentUserTier) && <div className="absolute inset-0 bg-black/20" />}
-                <div className="relative z-10">
-                  <img
-                    src={getProgressIcon(currentUserTier)}
-                    alt="ILE ALA"
-                    className="w-24 h-24 mx-auto mb-4 object-contain"
-                  />
-                  <h3
-                    className="text-xl font-bold mb-2"
-                    style={{ color: getProgressBgImage(currentUserTier) ? '#fff' : undefined }}
-                  >
-                    {getProgressTitle(currentUserTier, language)}
-                  </h3>
-                  <p
-                    className={getProgressBgImage(currentUserTier) ? '' : 'text-muted-foreground'}
-                    style={{ color: getProgressBgImage(currentUserTier) ? 'rgba(255,255,255,0.8)' : undefined }}
-                  >
-                    {getProgressSubtitle(currentUserTier, language)}
-                  </p>
-                </div>
+            {/* Featured Products Carousel */}
+            <Card className="p-4 overflow-hidden">
+              <div className="flex items-center gap-2 mb-3">
+                <ShoppingBag className="w-5 h-5" style={{ color: '#255238' }} />
+                <h3 className="font-semibold text-lg">
+                  {language === 'en' ? 'Shop & Earn Points' : 'Compre e Ganhe Pontos'}
+                </h3>
               </div>
 
-              {/* Progress bar to next tier (only if not at max) */}
+              {featuredProducts && featuredProducts.length > 0 ? (
+                <Carousel
+                  className="w-full"
+                  setApi={setProductCarouselApi}
+                  opts={{
+                    align: "start",
+                    loop: true,
+                  }}
+                >
+                  <CarouselContent>
+                    {featuredProducts.slice(0, 6).map((product: any) => (
+                      <CarouselItem key={product.id} className="basis-full">
+                        <Link href={`/product/${product.slug || product.id}`}>
+                          <div className="relative aspect-square rounded-lg overflow-hidden cursor-pointer group">
+                            <img
+                              src={product.imageUrl || '/images/placeholder-product.png'}
+                              alt={language === 'en' ? product.nameEN : product.namePT}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                            <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
+                              <p className="font-semibold text-sm line-clamp-1">
+                                {language === 'en' ? product.nameEN : product.namePT}
+                              </p>
+                              <p className="text-sm opacity-90">
+                                {(product.price / 100).toFixed(0)} AED
+                              </p>
+                            </div>
+                            <div className="absolute top-2 right-2 bg-white/90 text-xs font-medium px-2 py-1 rounded" style={{ color: '#255238' }}>
+                              {language === 'en' ? 'Shop Now' : 'Comprar'}
+                            </div>
+                          </div>
+                        </Link>
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                </Carousel>
+              ) : (
+                <div className="aspect-square rounded-lg bg-gray-100 flex items-center justify-center">
+                  <p className="text-sm text-muted-foreground">
+                    {language === 'en' ? 'Loading products...' : 'Carregando produtos...'}
+                  </p>
+                </div>
+              )}
+
+              {/* Progress bar to next tier */}
               {nextTierInfo?.nextTier && (
                 <div className="mt-4 pt-4 border-t">
-                  <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
-                    <ChevronRight className="w-4 h-4" />
-                    {t.nextTier}: {nextTierInfo.nextTier === 'platinum' ? 'Black' : nextTierInfo.nextTier.charAt(0).toUpperCase() + nextTierInfo.nextTier.slice(1)}
-                  </h4>
-
-                  <div className="mb-3">
-                    <div className="flex justify-between text-xs mb-1">
-                      <span>{t.progress}</span>
-                      <span className="font-semibold">{nextTierInfo.progress}%</span>
-                    </div>
-                    <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-primary to-primary/70 rounded-full transition-all duration-500"
-                        style={{ width: `${nextTierInfo.progress}%` }}
-                      />
-                    </div>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="font-medium">{t.nextTier}: {nextTierInfo.nextTier === 'platinum' ? 'Black' : nextTierInfo.nextTier.charAt(0).toUpperCase() + nextTierInfo.nextTier.slice(1)}</span>
+                    <span className="font-semibold">{nextTierInfo.progress}%</span>
                   </div>
-
-                  <p className="text-xs text-muted-foreground mb-3">
-                    <span className="font-semibold text-primary">{formatPrice(nextTierInfo.amountNeeded)}</span>{' '}
-                    {t.toReach}{' '}
-                    <span className="font-semibold">
-                      {nextTierInfo.nextTier === 'platinum' ? 'Black' : nextTierInfo.nextTier.charAt(0).toUpperCase() + nextTierInfo.nextTier.slice(1)}
-                    </span>
+                  <div className="h-2 bg-gray-200 rounded-full overflow-hidden mb-2">
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{ width: `${nextTierInfo.progress}%`, backgroundColor: '#255238' }}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    <span className="font-semibold" style={{ color: '#255238' }}>{formatPrice(nextTierInfo.amountNeeded)}</span>{' '}
+                    {t.toReach} {nextTierInfo.nextTier === 'platinum' ? 'Black' : nextTierInfo.nextTier.charAt(0).toUpperCase() + nextTierInfo.nextTier.slice(1)}
                   </p>
-
-                  <Link href="/shop">
-                    <Button className="w-full" size="sm">
-                      {language === 'en' ? 'Shop Now' : 'Comprar Agora'}
-                    </Button>
-                  </Link>
                 </div>
               )}
             </Card>
