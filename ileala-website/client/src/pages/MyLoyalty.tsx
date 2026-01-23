@@ -763,45 +763,54 @@ export default function MyLoyalty() {
 
                   <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {/* Free Standard Shipping */}
-                    <div className={`p-4 rounded-lg border ${selectedTier.freeStandardShipping === 1 ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200 opacity-50'}`}>
+                    <div
+                      className={`p-4 rounded-lg border ${selectedTier.freeStandardShipping !== 1 ? 'bg-gray-50 border-gray-200 opacity-50' : ''}`}
+                      style={selectedTier.freeStandardShipping === 1 ? { backgroundColor: 'rgba(37, 82, 56, 0.1)', borderColor: 'rgba(37, 82, 56, 0.3)' } : undefined}
+                    >
                       <div className="flex items-center gap-3">
                         {selectedTier.freeStandardShipping === 1 ? (
-                          <Check className="w-5 h-5 text-green-600" />
+                          <Check className="w-5 h-5" style={{ color: '#255238' }} />
                         ) : (
                           <Lock className="w-5 h-5 text-gray-400" />
                         )}
                         <div>
-                          <Truck className="w-5 h-5 text-primary mb-1" />
+                          <Truck className="w-5 h-5 mb-1" style={{ color: '#255238' }} />
                           <p className="font-medium text-sm">{t.freeStandardShipping}</p>
                         </div>
                       </div>
                     </div>
 
                     {/* Free Express Shipping */}
-                    <div className={`p-4 rounded-lg border ${selectedTier.freeExpressShipping === 1 ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200 opacity-50'}`}>
+                    <div
+                      className={`p-4 rounded-lg border ${selectedTier.freeExpressShipping !== 1 ? 'bg-gray-50 border-gray-200 opacity-50' : ''}`}
+                      style={selectedTier.freeExpressShipping === 1 ? { backgroundColor: 'rgba(37, 82, 56, 0.1)', borderColor: 'rgba(37, 82, 56, 0.3)' } : undefined}
+                    >
                       <div className="flex items-center gap-3">
                         {selectedTier.freeExpressShipping === 1 ? (
-                          <Check className="w-5 h-5 text-green-600" />
+                          <Check className="w-5 h-5" style={{ color: '#255238' }} />
                         ) : (
                           <Lock className="w-5 h-5 text-gray-400" />
                         )}
                         <div>
-                          <Truck className="w-5 h-5 text-primary mb-1" />
+                          <Truck className="w-5 h-5 mb-1" style={{ color: '#255238' }} />
                           <p className="font-medium text-sm">{t.freeExpressShipping}</p>
                         </div>
                       </div>
                     </div>
 
                     {/* Early Access */}
-                    <div className={`p-4 rounded-lg border ${(selectedTier.earlyAccessHours || 0) > 0 ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200 opacity-50'}`}>
+                    <div
+                      className={`p-4 rounded-lg border ${(selectedTier.earlyAccessHours || 0) <= 0 ? 'bg-gray-50 border-gray-200 opacity-50' : ''}`}
+                      style={(selectedTier.earlyAccessHours || 0) > 0 ? { backgroundColor: 'rgba(37, 82, 56, 0.1)', borderColor: 'rgba(37, 82, 56, 0.3)' } : undefined}
+                    >
                       <div className="flex items-center gap-3">
                         {(selectedTier.earlyAccessHours || 0) > 0 ? (
-                          <Check className="w-5 h-5 text-green-600" />
+                          <Check className="w-5 h-5" style={{ color: '#255238' }} />
                         ) : (
                           <Lock className="w-5 h-5 text-gray-400" />
                         )}
                         <div>
-                          <Clock className="w-5 h-5 text-primary mb-1" />
+                          <Clock className="w-5 h-5 mb-1" style={{ color: '#255238' }} />
                           <p className="font-medium text-sm">{t.earlyAccess}</p>
                           {(selectedTier.earlyAccessHours || 0) > 0 && (
                             <p className="text-xs text-muted-foreground">{selectedTier.earlyAccessHours} {t.hours}</p>
@@ -811,90 +820,108 @@ export default function MyLoyalty() {
                     </div>
 
                     {/* Birthday Gift */}
-                    <div className={`p-4 rounded-lg border ${selectedTier.birthdayReward === 1 ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200 opacity-50'}`}>
+                    <div
+                      className={`p-4 rounded-lg border ${selectedTier.birthdayReward !== 1 ? 'bg-gray-50 border-gray-200 opacity-50' : ''}`}
+                      style={selectedTier.birthdayReward === 1 ? { backgroundColor: 'rgba(37, 82, 56, 0.1)', borderColor: 'rgba(37, 82, 56, 0.3)' } : undefined}
+                    >
                       <div className="flex items-center gap-3">
                         {selectedTier.birthdayReward === 1 ? (
-                          <Check className="w-5 h-5 text-green-600" />
+                          <Check className="w-5 h-5" style={{ color: '#255238' }} />
                         ) : (
                           <Lock className="w-5 h-5 text-gray-400" />
                         )}
                         <div>
-                          <Gift className="w-5 h-5 text-primary mb-1" />
+                          <Gift className="w-5 h-5 mb-1" style={{ color: '#255238' }} />
                           <p className="font-medium text-sm">{t.birthdayGift}</p>
                         </div>
                       </div>
                     </div>
 
                     {/* Priority Support */}
-                    <div className={`p-4 rounded-lg border ${selectedTier.prioritySupport === 1 ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200 opacity-50'}`}>
+                    <div
+                      className={`p-4 rounded-lg border ${selectedTier.prioritySupport !== 1 ? 'bg-gray-50 border-gray-200 opacity-50' : ''}`}
+                      style={selectedTier.prioritySupport === 1 ? { backgroundColor: 'rgba(37, 82, 56, 0.1)', borderColor: 'rgba(37, 82, 56, 0.3)' } : undefined}
+                    >
                       <div className="flex items-center gap-3">
                         {selectedTier.prioritySupport === 1 ? (
-                          <Check className="w-5 h-5 text-green-600" />
+                          <Check className="w-5 h-5" style={{ color: '#255238' }} />
                         ) : (
                           <Lock className="w-5 h-5 text-gray-400" />
                         )}
                         <div>
-                          <Star className="w-5 h-5 text-primary mb-1" />
+                          <Star className="w-5 h-5 mb-1" style={{ color: '#255238' }} />
                           <p className="font-medium text-sm">{t.prioritySupport}</p>
                         </div>
                       </div>
                     </div>
 
                     {/* Personal Concierge */}
-                    <div className={`p-4 rounded-lg border ${selectedTier.personalConcierge === 1 ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200 opacity-50'}`}>
+                    <div
+                      className={`p-4 rounded-lg border ${selectedTier.personalConcierge !== 1 ? 'bg-gray-50 border-gray-200 opacity-50' : ''}`}
+                      style={selectedTier.personalConcierge === 1 ? { backgroundColor: 'rgba(37, 82, 56, 0.1)', borderColor: 'rgba(37, 82, 56, 0.3)' } : undefined}
+                    >
                       <div className="flex items-center gap-3">
                         {selectedTier.personalConcierge === 1 ? (
-                          <Check className="w-5 h-5 text-green-600" />
+                          <Check className="w-5 h-5" style={{ color: '#255238' }} />
                         ) : (
                           <Lock className="w-5 h-5 text-gray-400" />
                         )}
                         <div>
-                          <Phone className="w-5 h-5 text-primary mb-1" />
+                          <Phone className="w-5 h-5 mb-1" style={{ color: '#255238' }} />
                           <p className="font-medium text-sm">{t.concierge}</p>
                         </div>
                       </div>
                     </div>
 
                     {/* Event Invites */}
-                    <div className={`p-4 rounded-lg border ${selectedTier.eventInvites === 1 ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200 opacity-50'}`}>
+                    <div
+                      className={`p-4 rounded-lg border ${selectedTier.eventInvites !== 1 ? 'bg-gray-50 border-gray-200 opacity-50' : ''}`}
+                      style={selectedTier.eventInvites === 1 ? { backgroundColor: 'rgba(37, 82, 56, 0.1)', borderColor: 'rgba(37, 82, 56, 0.3)' } : undefined}
+                    >
                       <div className="flex items-center gap-3">
                         {selectedTier.eventInvites === 1 ? (
-                          <Check className="w-5 h-5 text-green-600" />
+                          <Check className="w-5 h-5" style={{ color: '#255238' }} />
                         ) : (
                           <Lock className="w-5 h-5 text-gray-400" />
                         )}
                         <div>
-                          <Calendar className="w-5 h-5 text-primary mb-1" />
+                          <Calendar className="w-5 h-5 mb-1" style={{ color: '#255238' }} />
                           <p className="font-medium text-sm">{t.eventInvites}</p>
                         </div>
                       </div>
                     </div>
 
                     {/* Surprise Gifts */}
-                    <div className={`p-4 rounded-lg border ${selectedTier.surpriseGifts === 1 ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200 opacity-50'}`}>
+                    <div
+                      className={`p-4 rounded-lg border ${selectedTier.surpriseGifts !== 1 ? 'bg-gray-50 border-gray-200 opacity-50' : ''}`}
+                      style={selectedTier.surpriseGifts === 1 ? { backgroundColor: 'rgba(37, 82, 56, 0.1)', borderColor: 'rgba(37, 82, 56, 0.3)' } : undefined}
+                    >
                       <div className="flex items-center gap-3">
                         {selectedTier.surpriseGifts === 1 ? (
-                          <Check className="w-5 h-5 text-green-600" />
+                          <Check className="w-5 h-5" style={{ color: '#255238' }} />
                         ) : (
                           <Lock className="w-5 h-5 text-gray-400" />
                         )}
                         <div>
-                          <Gift className="w-5 h-5 text-primary mb-1" />
+                          <Gift className="w-5 h-5 mb-1" style={{ color: '#255238' }} />
                           <p className="font-medium text-sm">{t.surpriseGifts}</p>
                         </div>
                       </div>
                     </div>
 
                     {/* Exclusive Products */}
-                    <div className={`p-4 rounded-lg border ${selectedTier.exclusiveProducts === 1 ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200 opacity-50'}`}>
+                    <div
+                      className={`p-4 rounded-lg border ${selectedTier.exclusiveProducts !== 1 ? 'bg-gray-50 border-gray-200 opacity-50' : ''}`}
+                      style={selectedTier.exclusiveProducts === 1 ? { backgroundColor: 'rgba(37, 82, 56, 0.1)', borderColor: 'rgba(37, 82, 56, 0.3)' } : undefined}
+                    >
                       <div className="flex items-center gap-3">
                         {selectedTier.exclusiveProducts === 1 ? (
-                          <Check className="w-5 h-5 text-green-600" />
+                          <Check className="w-5 h-5" style={{ color: '#255238' }} />
                         ) : (
                           <Lock className="w-5 h-5 text-gray-400" />
                         )}
                         <div>
-                          <Crown className="w-5 h-5 text-primary mb-1" />
+                          <Crown className="w-5 h-5 mb-1" style={{ color: '#255238' }} />
                           <p className="font-medium text-sm">{t.exclusiveProducts}</p>
                         </div>
                       </div>
