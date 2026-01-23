@@ -419,45 +419,45 @@ export default function MyLoyalty() {
 
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {/* Free Standard Shipping */}
-              <div className={`p-4 rounded-lg border ${benefits?.freeStandardShipping === 1 ? 'bg-[#255238]/10 border-[#255238]/30' : 'bg-gray-50 border-gray-200 opacity-50'}`}>
+              <div className={`p-4 rounded-lg border ${benefits?.freeStandardShipping === 1 ? 'bg-primary/10 border-primary/30' : 'bg-gray-50 border-gray-200 opacity-50'}`}>
                 <div className="flex items-center gap-3">
                   {benefits?.freeStandardShipping === 1 ? (
-                    <Check className="w-5 h-5 text-[#255238]" />
+                    <Check className="w-5 h-5 text-primary" />
                   ) : (
                     <Lock className="w-5 h-5 text-gray-400" />
                   )}
                   <div>
-                    <Truck className="w-5 h-5 text-[#255238] mb-1" />
+                    <Truck className="w-5 h-5 text-primary mb-1" />
                     <p className="font-medium text-sm">{t.freeStandardShipping}</p>
                   </div>
                 </div>
               </div>
 
               {/* Free Express Shipping */}
-              <div className={`p-4 rounded-lg border ${benefits?.freeExpressShipping === 1 ? 'bg-[#255238]/10 border-[#255238]/30' : 'bg-gray-50 border-gray-200 opacity-50'}`}>
+              <div className={`p-4 rounded-lg border ${benefits?.freeExpressShipping === 1 ? 'bg-primary/10 border-primary/30' : 'bg-gray-50 border-gray-200 opacity-50'}`}>
                 <div className="flex items-center gap-3">
                   {benefits?.freeExpressShipping === 1 ? (
-                    <Check className="w-5 h-5 text-[#255238]" />
+                    <Check className="w-5 h-5 text-primary" />
                   ) : (
                     <Lock className="w-5 h-5 text-gray-400" />
                   )}
                   <div>
-                    <Truck className="w-5 h-5 text-[#255238] mb-1" />
+                    <Truck className="w-5 h-5 text-primary mb-1" />
                     <p className="font-medium text-sm">{t.freeExpressShipping}</p>
                   </div>
                 </div>
               </div>
 
               {/* Early Access */}
-              <div className={`p-4 rounded-lg border ${(benefits?.earlyAccessHours || 0) > 0 ? 'bg-[#255238]/10 border-[#255238]/30' : 'bg-gray-50 border-gray-200 opacity-50'}`}>
+              <div className={`p-4 rounded-lg border ${(benefits?.earlyAccessHours || 0) > 0 ? 'bg-primary/10 border-primary/30' : 'bg-gray-50 border-gray-200 opacity-50'}`}>
                 <div className="flex items-center gap-3">
                   {(benefits?.earlyAccessHours || 0) > 0 ? (
-                    <Check className="w-5 h-5 text-[#255238]" />
+                    <Check className="w-5 h-5 text-primary" />
                   ) : (
                     <Lock className="w-5 h-5 text-gray-400" />
                   )}
                   <div>
-                    <Clock className="w-5 h-5 text-[#255238] mb-1" />
+                    <Clock className="w-5 h-5 text-primary mb-1" />
                     <p className="font-medium text-sm">{t.earlyAccess}</p>
                     {(benefits?.earlyAccessHours || 0) > 0 && (
                       <p className="text-xs text-muted-foreground">{benefits?.earlyAccessHours} {t.hours}</p>
@@ -467,90 +467,90 @@ export default function MyLoyalty() {
               </div>
 
               {/* Birthday Gift */}
-              <div className={`p-4 rounded-lg border ${benefits?.birthdayReward === 1 ? 'bg-[#255238]/10 border-[#255238]/30' : 'bg-gray-50 border-gray-200 opacity-50'}`}>
+              <div className={`p-4 rounded-lg border ${benefits?.birthdayReward === 1 ? 'bg-primary/10 border-primary/30' : 'bg-gray-50 border-gray-200 opacity-50'}`}>
                 <div className="flex items-center gap-3">
                   {benefits?.birthdayReward === 1 ? (
-                    <Check className="w-5 h-5 text-[#255238]" />
+                    <Check className="w-5 h-5 text-primary" />
                   ) : (
                     <Lock className="w-5 h-5 text-gray-400" />
                   )}
                   <div>
-                    <Gift className="w-5 h-5 text-[#255238] mb-1" />
+                    <Gift className="w-5 h-5 text-primary mb-1" />
                     <p className="font-medium text-sm">{t.birthdayGift}</p>
                   </div>
                 </div>
               </div>
 
               {/* Priority Support */}
-              <div className={`p-4 rounded-lg border ${benefits?.prioritySupport === 1 ? 'bg-[#255238]/10 border-[#255238]/30' : 'bg-gray-50 border-gray-200 opacity-50'}`}>
+              <div className={`p-4 rounded-lg border ${benefits?.prioritySupport === 1 ? 'bg-primary/10 border-primary/30' : 'bg-gray-50 border-gray-200 opacity-50'}`}>
                 <div className="flex items-center gap-3">
                   {benefits?.prioritySupport === 1 ? (
-                    <Check className="w-5 h-5 text-[#255238]" />
+                    <Check className="w-5 h-5 text-primary" />
                   ) : (
                     <Lock className="w-5 h-5 text-gray-400" />
                   )}
                   <div>
-                    <Star className="w-5 h-5 text-[#255238] mb-1" />
+                    <Star className="w-5 h-5 text-primary mb-1" />
                     <p className="font-medium text-sm">{t.prioritySupport}</p>
                   </div>
                 </div>
               </div>
 
               {/* Personal Concierge */}
-              <div className={`p-4 rounded-lg border ${benefits?.personalConcierge === 1 ? 'bg-[#255238]/10 border-[#255238]/30' : 'bg-gray-50 border-gray-200 opacity-50'}`}>
+              <div className={`p-4 rounded-lg border ${benefits?.personalConcierge === 1 ? 'bg-primary/10 border-primary/30' : 'bg-gray-50 border-gray-200 opacity-50'}`}>
                 <div className="flex items-center gap-3">
                   {benefits?.personalConcierge === 1 ? (
-                    <Check className="w-5 h-5 text-[#255238]" />
+                    <Check className="w-5 h-5 text-primary" />
                   ) : (
                     <Lock className="w-5 h-5 text-gray-400" />
                   )}
                   <div>
-                    <Phone className="w-5 h-5 text-[#255238] mb-1" />
+                    <Phone className="w-5 h-5 text-primary mb-1" />
                     <p className="font-medium text-sm">{t.concierge}</p>
                   </div>
                 </div>
               </div>
 
               {/* Event Invites */}
-              <div className={`p-4 rounded-lg border ${benefits?.eventInvites === 1 ? 'bg-[#255238]/10 border-[#255238]/30' : 'bg-gray-50 border-gray-200 opacity-50'}`}>
+              <div className={`p-4 rounded-lg border ${benefits?.eventInvites === 1 ? 'bg-primary/10 border-primary/30' : 'bg-gray-50 border-gray-200 opacity-50'}`}>
                 <div className="flex items-center gap-3">
                   {benefits?.eventInvites === 1 ? (
-                    <Check className="w-5 h-5 text-[#255238]" />
+                    <Check className="w-5 h-5 text-primary" />
                   ) : (
                     <Lock className="w-5 h-5 text-gray-400" />
                   )}
                   <div>
-                    <Calendar className="w-5 h-5 text-[#255238] mb-1" />
+                    <Calendar className="w-5 h-5 text-primary mb-1" />
                     <p className="font-medium text-sm">{t.eventInvites}</p>
                   </div>
                 </div>
               </div>
 
               {/* Surprise Gifts */}
-              <div className={`p-4 rounded-lg border ${benefits?.surpriseGifts === 1 ? 'bg-[#255238]/10 border-[#255238]/30' : 'bg-gray-50 border-gray-200 opacity-50'}`}>
+              <div className={`p-4 rounded-lg border ${benefits?.surpriseGifts === 1 ? 'bg-primary/10 border-primary/30' : 'bg-gray-50 border-gray-200 opacity-50'}`}>
                 <div className="flex items-center gap-3">
                   {benefits?.surpriseGifts === 1 ? (
-                    <Check className="w-5 h-5 text-[#255238]" />
+                    <Check className="w-5 h-5 text-primary" />
                   ) : (
                     <Lock className="w-5 h-5 text-gray-400" />
                   )}
                   <div>
-                    <Gift className="w-5 h-5 text-[#255238] mb-1" />
+                    <Gift className="w-5 h-5 text-primary mb-1" />
                     <p className="font-medium text-sm">{t.surpriseGifts}</p>
                   </div>
                 </div>
               </div>
 
               {/* Exclusive Products */}
-              <div className={`p-4 rounded-lg border ${benefits?.exclusiveProducts === 1 ? 'bg-[#255238]/10 border-[#255238]/30' : 'bg-gray-50 border-gray-200 opacity-50'}`}>
+              <div className={`p-4 rounded-lg border ${benefits?.exclusiveProducts === 1 ? 'bg-primary/10 border-primary/30' : 'bg-gray-50 border-gray-200 opacity-50'}`}>
                 <div className="flex items-center gap-3">
                   {benefits?.exclusiveProducts === 1 ? (
-                    <Check className="w-5 h-5 text-[#255238]" />
+                    <Check className="w-5 h-5 text-primary" />
                   ) : (
                     <Lock className="w-5 h-5 text-gray-400" />
                   )}
                   <div>
-                    <Crown className="w-5 h-5 text-[#255238] mb-1" />
+                    <Crown className="w-5 h-5 text-primary mb-1" />
                     <p className="font-medium text-sm">{t.exclusiveProducts}</p>
                   </div>
                 </div>
