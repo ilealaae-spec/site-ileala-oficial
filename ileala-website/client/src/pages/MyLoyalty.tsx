@@ -809,7 +809,7 @@ export default function MyLoyalty() {
             {benefits?.birthdayReward === 1 && (
               <Card className="p-6">
                 <h3 className="font-semibold mb-2 flex items-center gap-2">
-                  <Gift className="w-5 h-5 text-pink-500" />
+                  <Gift className="w-5 h-5" style={{ color: '#255238' }} />
                   {t.updateBirthday}
                 </h3>
                 <p className="text-sm text-muted-foreground mb-4">{t.birthdayDesc}</p>
