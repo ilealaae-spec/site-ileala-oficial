@@ -11,7 +11,7 @@ interface PageBannerProps {
   showOverlay?: boolean;
 }
 
-// Cache banner URLs in localStorage to prevent flash of default content
+// Cache banner URLs in localStorage
 const getBannerCache = (pageSlug: string) => {
   try {
     const cached = localStorage.getItem(`banner_${pageSlug}`);
@@ -22,9 +22,7 @@ const getBannerCache = (pageSlug: string) => {
         return parsed.imageUrl;
       }
     }
-  } catch (e) {
-    // Ignore localStorage errors
-  }
+  } catch (e) {}
   return null;
 };
 
@@ -34,19 +32,7 @@ const setBannerCache = (pageSlug: string, imageUrl: string) => {
       imageUrl,
       timestamp: Date.now()
     }));
-  } catch (e) {
-    // Ignore localStorage errors
-  }
-};
-
-// Preload an image
-const preloadImage = (src: string): Promise<void> => {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => resolve();
-    img.onerror = () => resolve(); // Resolve anyway to not block
-    img.src = src;
-  });
+  } catch (e) {}
 };
 
 export default function PageBanner({
@@ -58,34 +44,38 @@ export default function PageBanner({
   height = 'h-[50vh] min-h-[400px]',
   showOverlay = true
 }: PageBannerProps) {
-  // Start with cached URL or default
+  // Get cached URL immediately (synchronous)
   const cachedUrl = getBannerCache(pageSlug);
+
+  // Use cached URL or default image immediately - no waiting
   const [imageUrl, setImageUrl] = useState(cachedUrl || defaultImage);
-  const [imageLoaded, setImageLoaded] = useState(!!cachedUrl);
+  const [imageLoaded, setImageLoaded] = useState(false);
   const [altText, setAltText] = useState(defaultAlt);
 
-  // Fetch banner from database
+  // Fetch banner from database (in background)
   const { data: dbBanner } = (trpc as any).pageBanners.get.useQuery(
     { pageSlug },
     {
-      staleTime: 5 * 60 * 1000, // 5 minutes
+      staleTime: 5 * 60 * 1000,
       refetchOnWindowFocus: false
     }
   );
 
-  // When banner data arrives, update and cache
+  // When DB banner arrives and is different from current, update
   useEffect(() => {
     if (dbBanner?.imageUrl) {
       const newUrl = dbBanner.imageUrl.includes('/uploads/')
         ? `${dbBanner.imageUrl}?v=${dbBanner.updatedAt || Date.now()}`
         : dbBanner.imageUrl;
 
-      // Preload the new image before showing it
-      preloadImage(newUrl).then(() => {
+      // Only update if different from current
+      if (newUrl !== imageUrl) {
         setImageUrl(newUrl);
-        setImageLoaded(true);
-        setBannerCache(pageSlug, newUrl);
-      });
+        setImageLoaded(false); // Reset to trigger new load
+      }
+
+      // Always cache the DB URL
+      setBannerCache(pageSlug, newUrl);
 
       if (dbBanner.altText) {
         setAltText(dbBanner.altText);
@@ -93,31 +83,18 @@ export default function PageBanner({
     }
   }, [dbBanner, pageSlug]);
 
-  // Preload default image on mount if no cache
-  useEffect(() => {
-    if (!cachedUrl) {
-      preloadImage(defaultImage).then(() => {
-        if (!dbBanner?.imageUrl) {
-          setImageLoaded(true);
-        }
-      });
-    }
-  }, [cachedUrl, defaultImage, dbBanner]);
-
   return (
     <section className={`relative ${height} w-full overflow-hidden`}>
-      {/* Background color while loading */}
-      <div
-        className={`absolute inset-0 bg-[#255238] transition-opacity duration-300 ${
-          imageLoaded ? 'opacity-0' : 'opacity-100'
-        }`}
-      />
+      {/* Background - only show if image not loaded */}
+      {!imageLoaded && (
+        <div className="absolute inset-0 bg-[#255238]" />
+      )}
 
-      {/* Banner Image */}
+      {/* Banner Image - always render, just control opacity */}
       <img
         src={imageUrl}
         alt={altText}
-        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${
+        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 ${
           imageLoaded ? 'opacity-100' : 'opacity-0'
         }`}
         loading="eager"
