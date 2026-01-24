@@ -6,9 +6,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { trpc } from '@/lib/trpc';
-import { Loader2, Plus, Edit, Trash2, Upload, X, ImagePlus } from 'lucide-react';
+import { Loader2, Plus, Edit, Trash2, Upload, X, ImagePlus, Search, Filter } from 'lucide-react';
 import { toast } from 'sonner';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -23,6 +23,11 @@ export default function ProductsTab() {
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [uploadingMain, setUploadingMain] = useState(false);
   const [additionalImages, setAdditionalImages] = useState<Array<{url: string, alt: string}>>([]);
+
+  // Filtros
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterCategory, setFilterCategory] = useState('all');
+  const [filterCollection, setFilterCollection] = useState('all');
   
   const [formData, setFormData] = useState({
     nameEN: '',
@@ -60,7 +65,50 @@ export default function ProductsTab() {
   const { data: products, isLoading } = trpc.admin.products.list.useQuery();
   const { data: collections } = trpc.collections.list.useQuery() as { data: any[] | undefined };
   const { data: categories } = trpc.categories.list.useQuery() as { data: any[] | undefined };
-  
+
+  // Filtrar produtos
+  const filteredProducts = useMemo(() => {
+    if (!products) return [];
+
+    return products.filter((product: any) => {
+      // Filtro de busca por nome
+      const matchesSearch = searchQuery === '' ||
+        product.nameEN?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.namePT?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.sku?.toLowerCase().includes(searchQuery.toLowerCase());
+
+      // Filtro por categoria
+      const matchesCategory = filterCategory === 'all' || product.category === filterCategory;
+
+      // Filtro por coleção
+      const matchesCollection = filterCollection === 'all' || product.collection === filterCollection;
+
+      return matchesSearch && matchesCategory && matchesCollection;
+    });
+  }, [products, searchQuery, filterCategory, filterCollection]);
+
+  // Agrupar produtos por categoria para exibição
+  const productsByCategory = useMemo(() => {
+    const grouped: Record<string, any[]> = {};
+
+    filteredProducts.forEach((product: any) => {
+      const categoryKey = product.category || 'uncategorized';
+      if (!grouped[categoryKey]) {
+        grouped[categoryKey] = [];
+      }
+      grouped[categoryKey].push(product);
+    });
+
+    return grouped;
+  }, [filteredProducts]);
+
+  // Obter nome da categoria
+  const getCategoryName = (slug: string) => {
+    if (slug === 'uncategorized') return language === 'en' ? 'Uncategorized' : 'Sem Categoria';
+    const cat = categories?.find((c: any) => c.slug === slug);
+    return cat ? (language === 'en' ? cat.nameEN : cat.namePT) : slug;
+  };
+
   const createMutation = trpc.admin.products.create.useMutation({
     onSuccess: () => {
       toast.success(language === 'en' ? 'Product created!' : 'Produto criado!');
@@ -274,8 +322,8 @@ export default function ProductsTab() {
             {language === 'en' ? 'Product Management' : 'Gerenciamento de Produtos'}
           </h2>
           <p className="text-sage-600">
-            {language === 'en' 
-              ? 'Add, edit, and manage your products' 
+            {language === 'en'
+              ? 'Add, edit, and manage your products'
               : 'Adicione, edite e gerencie seus produtos'}
           </p>
         </div>
@@ -285,83 +333,190 @@ export default function ProductsTab() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 gap-4">
-        {products && products.length > 0 ? (
-          products.map((product) => (
-            <Card key={product.id} className="p-6">
-              <div className="flex gap-6">
-                <div className="w-24 h-24 flex-shrink-0 overflow-hidden rounded-md bg-muted">
-                  {(product.mainImage || product.imageUrl) ? (
-                    <img
-                      src={product.mainImage || product.imageUrl}
-                      alt={product.mainImageAlt || product.nameEN}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
-                      No image
-                    </div>
-                  )}
-                </div>
+      {/* Filtros */}
+      <Card className="p-4">
+        <div className="flex flex-wrap gap-4 items-end">
+          {/* Busca */}
+          <div className="flex-1 min-w-[200px]">
+            <Label className="text-xs text-muted-foreground mb-1 block">
+              {language === 'en' ? 'Search' : 'Buscar'}
+            </Label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder={language === 'en' ? 'Search by name or SKU...' : 'Buscar por nome ou SKU...'}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+          </div>
 
-                <div className="flex-1">
-                  <h3 className="text-xl font-semibold mb-2">{product.nameEN}</h3>
-                  <p className="text-sm text-muted-foreground mb-2">{product.namePT}</p>
-                  <div className="flex gap-4 text-sm flex-wrap">
-                    <span className="font-semibold text-primary">{formatPrice(product.price)}</span>
-                    {product.salePrice && (
-                      <span className="text-green-600 font-semibold">Sale: {formatPrice(product.salePrice)}</span>
-                    )}
-                    <span className={product.stock < 10 ? 'text-orange-600 font-semibold' : ''}>
-                      Stock: {product.stock}
-                    </span>
-                    {product.sku && <span>SKU: {product.sku}</span>}
-                    {product.collection && <span>Collection: {product.collection}</span>}
-                    {product.featured === 1 && (
-                      <span className="text-green-600 font-semibold">⭐ Featured</span>
-                    )}
-                    {product.isNew && (
-                      <span className="text-blue-600 font-semibold">🆕 New</span>
-                    )}
-                    {product.onSale && (
-                      <span className="text-red-600 font-semibold">🔥 Sale</span>
-                    )}
-                  </div>
-                </div>
+          {/* Filtro por Categoria */}
+          <div className="w-[200px]">
+            <Label className="text-xs text-muted-foreground mb-1 block">
+              {language === 'en' ? 'Category' : 'Categoria'}
+            </Label>
+            <Select value={filterCategory} onValueChange={setFilterCategory}>
+              <SelectTrigger>
+                <Filter className="w-4 h-4 mr-2" />
+                <SelectValue placeholder={language === 'en' ? 'All Categories' : 'Todas Categorias'} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">
+                  {language === 'en' ? 'All Categories' : 'Todas Categorias'}
+                </SelectItem>
+                {categories?.map((cat: any) => (
+                  <SelectItem key={cat.id} value={cat.slug}>
+                    {language === 'en' ? cat.nameEN : cat.namePT}
+                  </SelectItem>
+                ))}
+                <SelectItem value="uncategorized">
+                  {language === 'en' ? 'Uncategorized' : 'Sem Categoria'}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => handleEdit(product)}
-                  >
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => handleDelete(product.id)}
-                    disabled={deleteMutation.isPending}
-                  >
-                    <Trash2 className="w-4 h-4 text-destructive" />
-                  </Button>
-                </div>
+          {/* Filtro por Coleção */}
+          <div className="w-[200px]">
+            <Label className="text-xs text-muted-foreground mb-1 block">
+              {language === 'en' ? 'Collection' : 'Coleção'}
+            </Label>
+            <Select value={filterCollection} onValueChange={setFilterCollection}>
+              <SelectTrigger>
+                <SelectValue placeholder={language === 'en' ? 'All Collections' : 'Todas Coleções'} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">
+                  {language === 'en' ? 'All Collections' : 'Todas Coleções'}
+                </SelectItem>
+                {collections?.map((col: any) => (
+                  <SelectItem key={col.id} value={col.slug}>
+                    {language === 'en' ? col.nameEN : col.namePT}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Contador e Limpar Filtros */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">
+              {filteredProducts.length} {language === 'en' ? 'products' : 'produtos'}
+              {(searchQuery || filterCategory !== 'all' || filterCollection !== 'all') && (
+                <> ({language === 'en' ? 'filtered' : 'filtrados'})</>
+              )}
+            </span>
+            {(searchQuery || filterCategory !== 'all' || filterCollection !== 'all') && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSearchQuery('');
+                  setFilterCategory('all');
+                  setFilterCollection('all');
+                }}
+              >
+                {language === 'en' ? 'Clear' : 'Limpar'}
+              </Button>
+            )}
+          </div>
+        </div>
+      </Card>
+
+      {/* Lista de Produtos por Categoria */}
+      <div className="space-y-6">
+        {Object.keys(productsByCategory).length > 0 ? (
+          Object.entries(productsByCategory).map(([categorySlug, categoryProducts]) => (
+            <div key={categorySlug} className="space-y-3">
+              {/* Cabeçalho da Categoria */}
+              <div className="flex items-center gap-2 border-b pb-2">
+                <h3 className="text-lg font-semibold text-primary">
+                  {getCategoryName(categorySlug)}
+                </h3>
+                <span className="text-sm text-muted-foreground bg-muted px-2 py-0.5 rounded">
+                  {categoryProducts.length} {categoryProducts.length === 1 ? 'produto' : 'produtos'}
+                </span>
               </div>
-            </Card>
+
+              {/* Produtos da Categoria */}
+              <div className="grid grid-cols-1 gap-3">
+                {categoryProducts.map((product: any) => (
+                  <Card key={product.id} className="p-4">
+                    <div className="flex gap-4">
+                      <div className="w-20 h-20 flex-shrink-0 overflow-hidden rounded-md bg-muted">
+                        {(product.mainImage || product.imageUrl) ? (
+                          <img
+                            src={product.mainImage || product.imageUrl}
+                            alt={product.mainImageAlt || product.nameEN}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
+                            No image
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold truncate">{product.nameEN}</h4>
+                        <p className="text-sm text-muted-foreground truncate">{product.namePT}</p>
+                        <div className="flex gap-3 text-sm flex-wrap mt-1">
+                          <span className="font-semibold text-primary">{formatPrice(product.price)}</span>
+                          {product.salePrice && (
+                            <span className="text-green-600 font-semibold">Sale: {formatPrice(product.salePrice)}</span>
+                          )}
+                          <span className={product.stock < 10 ? 'text-orange-600' : 'text-muted-foreground'}>
+                            Stock: {product.stock}
+                          </span>
+                          {product.sku && <span className="text-muted-foreground">SKU: {product.sku}</span>}
+                          {product.featured === 1 && <span className="text-green-600">⭐</span>}
+                          {product.isNew && <span className="text-blue-600">🆕</span>}
+                          {product.onSale && <span className="text-red-600">🔥</span>}
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2 flex-shrink-0">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => handleEdit(product)}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => handleDelete(product.id)}
+                          disabled={deleteMutation.isPending}
+                        >
+                          <Trash2 className="w-4 h-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
           ))
         ) : (
           <Card className="p-12">
             <div className="text-center text-muted-foreground">
               <p className="text-lg font-medium mb-2">
-                {language === 'en' ? 'No products yet' : 'Nenhum produto ainda'}
+                {language === 'en' ? 'No products found' : 'Nenhum produto encontrado'}
               </p>
               <p className="text-sm mb-4">
-                {language === 'en' ? 'Start by adding your first product' : 'Comece adicionando seu primeiro produto'}
+                {(searchQuery || filterCategory !== 'all' || filterCollection !== 'all')
+                  ? (language === 'en' ? 'Try adjusting your filters' : 'Tente ajustar seus filtros')
+                  : (language === 'en' ? 'Start by adding your first product' : 'Comece adicionando seu primeiro produto')}
               </p>
-              <Button onClick={() => { resetForm(); setIsDialogOpen(true); }}>
-                <Plus className="w-4 h-4 mr-2" />
-                {language === 'en' ? 'Add Product' : 'Adicionar Produto'}
-              </Button>
+              {!(searchQuery || filterCategory !== 'all' || filterCollection !== 'all') && (
+                <Button onClick={() => { resetForm(); setIsDialogOpen(true); }}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  {language === 'en' ? 'Add Product' : 'Adicionar Produto'}
+                </Button>
+              )}
             </div>
           </Card>
         )}
