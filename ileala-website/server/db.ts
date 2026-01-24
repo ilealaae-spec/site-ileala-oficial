@@ -1426,10 +1426,10 @@ export async function getNewsletterStats() {
 export async function listArtisans() {
   const db = await getDb();
   if (!db) return [];
-  
+
   try {
     const { artisans } = await import("../drizzle/schema");
-    const result = await db.select().from(artisans).orderBy(artisans.createdAt);
+    const result = await db.select().from(artisans).orderBy(artisans.displayOrder);
     return result;
   } catch (error) {
     logger.error("[Database] Failed to list artisans:", error);
@@ -1872,7 +1872,7 @@ export async function listActiveArtisans() {
     const { eq } = await import("drizzle-orm");
     const result = await db.select().from(artisans)
       .where(eq(artisans.active, 1))
-      .orderBy(artisans.createdAt);
+      .orderBy(artisans.displayOrder);
     return result;
   } catch (error) {
     logger.error("[Database] Failed to list active artisans:", error);

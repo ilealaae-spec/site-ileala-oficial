@@ -180,6 +180,7 @@ export const artisans = pgTable("artisans", {
   socialMedia: text("socialMedia"), // JSON string with social links
   featured: integer("featured").default(0).notNull(), // 0 = false, 1 = true
   active: integer("active").default(1).notNull(), // 0 = inactive, 1 = active
+  displayOrder: integer("displayOrder").default(0).notNull(), // For manual ordering
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 });
