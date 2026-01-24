@@ -9,21 +9,12 @@ import { toast } from 'sonner';
 import { trpc } from '@/lib/trpc';
 import LazyImage from '@/components/LazyImage';
 import WishlistButton from '@/components/WishlistButton';
-
-// Default banner
-const defaultBanner = {
-  imageUrl: '/images/home_accents_hero.jpeg',
-  altText: 'ILE ALA Home Accents - Embroidered Hand Towels',
-};
+import PageBanner from '@/components/PageBanner';
 
 export default function HomeAccents() {
   const { language } = useLanguage();
   const { addItem } = useCart();
   const [searchQuery, setSearchQuery] = useState('');
-
-  // Fetch banner from database
-  const { data: dbBanner, isLoading: isBannerLoading } = (trpc as any).pageBanners.get.useQuery({ pageSlug: 'home-accents' });
-  const banner = dbBanner || defaultBanner;
   
   // Fetch all products and filter by collections
   const productsQuery = trpc.products.list.useQuery(undefined, {
@@ -99,31 +90,15 @@ export default function HomeAccents() {
   return (
     <div className="w-full">
       {/* Hero Section */}
-      <section className="relative h-[50vh] min-h-[400px] w-full overflow-hidden bg-[#255238]">
-        <img
-          src={banner.imageUrl}
-          alt={banner.altText || 'ILE ALA Home Accents'}
-          className="absolute inset-0 w-full h-full object-cover"
-          loading="eager"
-          fetchPriority="high"
-          onError={(e) => {
-            (e.target as HTMLImageElement).style.display = 'none';
-          }}
-        />
-        <div className="absolute inset-0 bg-black/20" />
-        <div className="relative container h-full flex items-center justify-center">
-          <div className="text-center text-white">
-            <h1 className="text-4xl md:text-6xl font-bold mb-4">
-              {language === 'en' ? 'Home Accents' : 'Detalhes para Casa'}
-            </h1>
-            <p className="text-lg md:text-xl">
-              {language === 'en' 
-                ? 'Elegant details to enhance your home' 
-                : 'Detalhes elegantes para valorizar sua casa'}
-            </p>
-          </div>
-        </div>
-      </section>
+      <PageBanner
+        pageSlug="home-accents"
+        defaultImage="/images/home_accents_hero.jpeg"
+        defaultAlt="ILE ALA Home Accents - Embroidered Hand Towels"
+        title={language === 'en' ? 'Home Accents' : 'Detalhes para Casa'}
+        subtitle={language === 'en'
+          ? 'Elegant details to enhance your home'
+          : 'Detalhes elegantes para valorizar sua casa'}
+      />
 
       {/* Search Bar */}
       <section className="py-8 bg-muted/30">

@@ -9,24 +9,12 @@ import { toast } from 'sonner';
 import { trpc } from '@/lib/trpc';
 import LazyImage from '@/components/LazyImage';
 import WishlistButton from '@/components/WishlistButton';
-
-// Default banner
-const defaultBanner = {
-  imageUrl: '/images/napkin_rings_hero.jpeg',
-  altText: 'Napkin Rings - Elegant Table Accessories',
-};
+import PageBanner from '@/components/PageBanner';
 
 export default function NapkinRings() {
   const { language } = useLanguage();
   const { addItem } = useCart();
   const [searchQuery, setSearchQuery] = useState('');
-
-  // Fetch banner from database (staleTime: 0 ensures fresh data)
-  const { data: dbBanner, isLoading: isBannerLoading } = (trpc as any).pageBanners.get.useQuery(
-    { pageSlug: 'napkin-rings' },
-    { staleTime: 0, refetchOnWindowFocus: true }
-  );
-  const banner = dbBanner || defaultBanner;
   
   // Fetch all products and filter by collection
   const productsQuery = trpc.products.list.useQuery(undefined, {
@@ -97,36 +85,18 @@ export default function NapkinRings() {
     );
   }
 
-  // Add cache buster to image URL if it's from our uploads
-  const bannerImageUrl = banner.imageUrl?.includes('/uploads/')
-    ? `${banner.imageUrl}?v=${banner.updatedAt || Date.now()}`
-    : banner.imageUrl;
-
   return (
     <div className="w-full">
       {/* Hero Section */}
-      <section className="relative h-[50vh] min-h-[400px] w-full overflow-hidden bg-[#255238]">
-        <img
-          src={bannerImageUrl}
-          alt={banner.altText || 'Napkin Rings'}
-          className="absolute inset-0 w-full h-full object-cover"
-          loading="eager"
-          fetchPriority="high"
-        />
-        <div className="absolute inset-0 bg-black/30" />
-        <div className="relative container h-full flex items-center justify-center">
-          <div className="text-center text-white max-w-3xl">
-            <h1 className="text-4xl md:text-6xl font-bold mb-4">
-              {language === 'en' ? 'Napkin Rings' : 'Anéis de Guardanapo'}
-            </h1>
-            <p className="text-lg md:text-xl font-light">
-              {language === 'en' 
-                ? 'Elegant napkin rings to elevate your table setting' 
-                : 'Porta guardanapos elegantes para elevar sua mesa'}
-            </p>
-          </div>
-        </div>
-      </section>
+      <PageBanner
+        pageSlug="napkin-rings"
+        defaultImage="/images/napkin_rings_hero.jpeg"
+        defaultAlt="Napkin Rings - Elegant Table Accessories"
+        title={language === 'en' ? 'Napkin Rings' : 'Anéis de Guardanapo'}
+        subtitle={language === 'en'
+          ? 'Elegant napkin rings to elevate your table setting'
+          : 'Porta guardanapos elegantes para elevar sua mesa'}
+      />
 
       {/* Search Bar */}
       <section className="py-8 bg-muted/30">

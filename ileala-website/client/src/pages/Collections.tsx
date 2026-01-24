@@ -1,7 +1,7 @@
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Card } from '@/components/ui/card';
 import { Link } from 'wouter';
-import { trpc } from '@/lib/trpc';
+import PageBanner from '@/components/PageBanner';
 
 const collections = [
   {
@@ -87,40 +87,19 @@ const collections = [
   },
 ];
 
-// Default banner data
-const defaultBanner = {
-  imageUrl: '/images/collections_hero_porcelain.webp',
-  altText: 'ILE ALA Collections',
-};
-
 export default function Collections() {
   const { language, t } = useLanguage();
-
-  // Fetch banner from database
-  const { data: dbBanner, isLoading: isBannerLoading } = (trpc as any).pageBanners.get.useQuery({ pageSlug: 'collections' });
-  const banner = dbBanner || defaultBanner;
 
   return (
     <div className="w-full">
       {/* Hero Section */}
-      <section className="relative h-[50vh] min-h-[400px] w-full overflow-hidden bg-[#255238]">
-        <img
-          src={banner.imageUrl}
-          alt={banner.altText || 'ILE ALA Collections'}
-          className="absolute inset-0 w-full h-full object-cover"
-          loading="eager"
-          fetchPriority="high"
-        />
-        <div className="absolute inset-0 bg-black/40" />
-        <div className="relative container h-full flex items-center justify-center">
-          <div className="text-center text-white max-w-3xl">
-            <h1 className="text-5xl md:text-6xl font-bold mb-6">{t.collections.title}</h1>
-            <p className="text-xl md:text-2xl font-light">
-              {t.collections.subtitle}
-            </p>
-          </div>
-        </div>
-      </section>
+      <PageBanner
+        pageSlug="collections"
+        defaultImage="/images/collections_hero_porcelain.webp"
+        defaultAlt="ILE ALA Collections"
+        title={t.collections.title}
+        subtitle={t.collections.subtitle}
+      />
 
       {/* Intro Section */}
       <section className="py-16 bg-muted/30">

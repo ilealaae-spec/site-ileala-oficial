@@ -9,21 +9,12 @@ import { toast } from 'sonner';
 import { trpc } from '@/lib/trpc';
 import LazyImage from '@/components/LazyImage';
 import WishlistButton from '@/components/WishlistButton';
-
-// Default banner
-const defaultBanner = {
-  imageUrl: '/images/pet_collection_logo.png?v=4',
-  altText: 'Pet Collection - ILE ALA',
-};
+import PageBanner from '@/components/PageBanner';
 
 export default function PetCollection() {
   const { language } = useLanguage();
   const { addItem } = useCart();
   const [searchQuery, setSearchQuery] = useState('');
-
-  // Fetch banner from database
-  const { data: dbBanner, isLoading: isBannerLoading } = (trpc as any).pageBanners.get.useQuery({ pageSlug: 'pet-collection' });
-  const banner = dbBanner || defaultBanner;
   
   // Fetch all products and filter by category
   const productsQuery = trpc.products.list.useQuery(undefined, {
@@ -97,18 +88,12 @@ export default function PetCollection() {
   return (
     <div className="w-full">
       {/* Hero Section */}
-      <section className="relative h-[50vh] min-h-[400px] w-full overflow-hidden bg-[#255238]">
-        <img
-          src={banner.imageUrl}
-          alt={banner.altText || 'Pet Collection - ILE ALA'}
-          className="absolute inset-0 w-full h-full object-cover"
-          loading="eager"
-          fetchPriority="high"
-          onError={(e) => {
-            (e.target as HTMLImageElement).style.display = 'none';
-          }}
-        />
-      </section>
+      <PageBanner
+        pageSlug="pet-collection"
+        defaultImage="/images/pet_collection_logo.png?v=4"
+        defaultAlt="Pet Collection - ILE ALA"
+        showOverlay={false}
+      />
 
       {/* Search Bar */}
       <section className="py-8 bg-muted/30">

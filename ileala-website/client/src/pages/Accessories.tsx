@@ -9,21 +9,12 @@ import { toast } from 'sonner';
 import { trpc } from '@/lib/trpc';
 import LazyImage from '@/components/LazyImage';
 import WishlistButton from '@/components/WishlistButton';
-
-// Default banner
-const defaultBanner = {
-  imageUrl: '/images/accessories_hero.jpeg',
-  altText: 'ILE ALA Accessories - Beach Tote Bag with Pearls',
-};
+import PageBanner from '@/components/PageBanner';
 
 export default function Accessories() {
   const { language } = useLanguage();
   const { addItem } = useCart();
   const [searchQuery, setSearchQuery] = useState('');
-
-  // Fetch banner from database
-  const { data: dbBanner, isLoading: isBannerLoading } = (trpc as any).pageBanners.get.useQuery({ pageSlug: 'accessories' });
-  const banner = dbBanner || defaultBanner;
   
   // Fetch all products and filter by category
   const productsQuery = trpc.products.list.useQuery(undefined, {
@@ -97,31 +88,15 @@ export default function Accessories() {
   return (
     <div className="w-full">
       {/* Hero Section */}
-      <section className="relative h-[50vh] min-h-[400px] w-full overflow-hidden bg-[#255238]">
-        <img
-          src={banner.imageUrl}
-          alt={banner.altText || 'ILE ALA Accessories'}
-          className="absolute inset-0 w-full h-full object-cover"
-          loading="eager"
-          fetchPriority="high"
-          onError={(e) => {
-            (e.target as HTMLImageElement).style.display = 'none';
-          }}
-        />
-        <div className="absolute inset-0 bg-black/20" />
-        <div className="relative container h-full flex items-center justify-center">
-          <div className="text-center text-white">
-            <h1 className="text-4xl md:text-6xl font-bold mb-4">
-              {language === 'en' ? 'Accessories' : 'Acessórios'}
-            </h1>
-            <p className="text-lg md:text-xl">
-              {language === 'en' 
-                ? 'Elegant accessories and necessaires for travel and organization' 
-                : 'Acessórios elegantes e necessaires para viagem e organização'}
-            </p>
-          </div>
-        </div>
-      </section>
+      <PageBanner
+        pageSlug="accessories"
+        defaultImage="/images/accessories_hero.jpeg"
+        defaultAlt="ILE ALA Accessories - Beach Tote Bag with Pearls"
+        title={language === 'en' ? 'Accessories' : 'Acessórios'}
+        subtitle={language === 'en'
+          ? 'Elegant accessories and necessaires for travel and organization'
+          : 'Acessórios elegantes e necessaires para viagem e organização'}
+      />
 
       {/* Search Bar */}
       <section className="py-8 bg-muted/30">

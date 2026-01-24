@@ -9,21 +9,12 @@ import { toast } from 'sonner';
 import { trpc } from '@/lib/trpc';
 import LazyImage from '@/components/LazyImage';
 import WishlistButton from '@/components/WishlistButton';
-
-// Default banner
-const defaultBanner = {
-  imageUrl: '/images/table_essentials_hero.jpeg',
-  altText: 'ILE ALA Table Essentials - Luxury Outdoor Dining Setting',
-};
+import PageBanner from '@/components/PageBanner';
 
 export default function TableEssentials() {
   const { language } = useLanguage();
   const { addItem } = useCart();
   const [searchQuery, setSearchQuery] = useState('');
-
-  // Fetch banner from database
-  const { data: dbBanner, isLoading: isBannerLoading } = (trpc as any).pageBanners.get.useQuery({ pageSlug: 'table-essentials' });
-  const banner = dbBanner || defaultBanner;
   
   // Fetch all products and filter by collections
   const { data: allProductsData, isLoading: loading, error: queryError } = trpc.products.list.useQuery(undefined, {
@@ -99,28 +90,15 @@ export default function TableEssentials() {
   return (
     <div className="w-full">
       {/* Hero Section */}
-      <section className="relative h-[50vh] min-h-[400px] w-full overflow-hidden bg-[#255238]">
-        <img
-          src={banner.imageUrl}
-          alt={banner.altText || 'ILE ALA Table Essentials'}
-          className="absolute inset-0 w-full h-full object-cover"
-          loading="eager"
-          fetchPriority="high"
-        />
-        <div className="absolute inset-0 bg-black/30" />
-        <div className="relative container h-full flex items-center justify-center">
-          <div className="text-center text-white">
-            <h1 className="text-4xl md:text-6xl font-bold mb-4">
-              {language === 'en' ? 'Table Essentials' : 'Essenciais de Mesa'}
-            </h1>
-            <p className="text-lg md:text-xl font-light">
-              {language === 'en' 
-                ? 'Complete your table with elegance and style' 
-                : 'Complete sua mesa com elegância e estilo'}
-            </p>
-          </div>
-        </div>
-      </section>
+      <PageBanner
+        pageSlug="table-essentials"
+        defaultImage="/images/table_essentials_hero.jpeg"
+        defaultAlt="ILE ALA Table Essentials - Luxury Outdoor Dining Setting"
+        title={language === 'en' ? 'Table Essentials' : 'Essenciais de Mesa'}
+        subtitle={language === 'en'
+          ? 'Complete your table with elegance and style'
+          : 'Complete sua mesa com elegância e estilo'}
+      />
 
       {/* Search Bar */}
       <section className="py-8 bg-muted/30">
