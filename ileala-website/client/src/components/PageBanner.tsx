@@ -17,7 +17,6 @@ const getBannerCache = (pageSlug: string) => {
     const cached = localStorage.getItem(`banner_${pageSlug}`);
     if (cached) {
       const parsed = JSON.parse(cached);
-      // Cache valid for 1 hour
       if (Date.now() - parsed.timestamp < 60 * 60 * 1000) {
         return parsed.imageUrl;
       }
@@ -44,15 +43,10 @@ export default function PageBanner({
   height = 'h-[50vh] min-h-[400px]',
   showOverlay = true
 }: PageBannerProps) {
-  // Get cached URL immediately (synchronous)
   const cachedUrl = getBannerCache(pageSlug);
-
-  // Use cached URL or default image immediately - no waiting
   const [imageUrl, setImageUrl] = useState(cachedUrl || defaultImage);
-  const [imageLoaded, setImageLoaded] = useState(false);
   const [altText, setAltText] = useState(defaultAlt);
 
-  // Fetch banner from database (in background)
   const { data: dbBanner } = (trpc as any).pageBanners.get.useQuery(
     { pageSlug },
     {
@@ -61,20 +55,15 @@ export default function PageBanner({
     }
   );
 
-  // When DB banner arrives and is different from current, update
   useEffect(() => {
     if (dbBanner?.imageUrl) {
       const newUrl = dbBanner.imageUrl.includes('/uploads/')
         ? `${dbBanner.imageUrl}?v=${dbBanner.updatedAt || Date.now()}`
         : dbBanner.imageUrl;
 
-      // Only update if different from current
       if (newUrl !== imageUrl) {
         setImageUrl(newUrl);
-        setImageLoaded(false); // Reset to trigger new load
       }
-
-      // Always cache the DB URL
       setBannerCache(pageSlug, newUrl);
 
       if (dbBanner.altText) {
@@ -84,24 +73,14 @@ export default function PageBanner({
   }, [dbBanner, pageSlug]);
 
   return (
-    <section className={`relative ${height} w-full overflow-hidden`}>
-      {/* Background - only show if image not loaded */}
-      {!imageLoaded && (
-        <div className="absolute inset-0 bg-[#255238]" />
-      )}
-
-      {/* Banner Image - always render, just control opacity */}
-      <img
-        src={imageUrl}
-        alt={altText}
-        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 ${
-          imageLoaded ? 'opacity-100' : 'opacity-0'
-        }`}
-        loading="eager"
-        fetchPriority="high"
-        onLoad={() => setImageLoaded(true)}
-      />
-
+    <section
+      className={`relative ${height} w-full overflow-hidden`}
+      style={{
+        backgroundImage: `url(${imageUrl})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center'
+      }}
+    >
       {/* Overlay */}
       {showOverlay && <div className="absolute inset-0 bg-black/30" />}
 
