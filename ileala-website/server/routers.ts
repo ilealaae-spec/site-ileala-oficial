@@ -1777,10 +1777,10 @@ export const appRouter = router({
     getLastAddress: protectedProcedure.query(async ({ ctx }) => {
       if (!ctx.user) throw new Error('Not authenticated');
       const orders = await db.getUserOrders(ctx.user.id);
-      // Find the most recent order with shipping address (paid or completed)
+      // Find order with shipping address - prefer paid/completed, then any order with address
       const orderWithAddress = orders?.find((o: any) =>
         o.shippingAddress && (o.paymentStatus === 'paid' || o.status === 'completed' || o.status === 'delivered')
-      ) || orders?.[0];
+      ) || orders?.find((o: any) => o.shippingAddress && o.status !== 'cancelled');
 
       if (!orderWithAddress || !orderWithAddress.shippingAddress) {
         return null;
