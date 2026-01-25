@@ -7,43 +7,58 @@ import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { trpc } from '@/lib/trpc';
 
+// Maximum times to show popup per session
+const MAX_POPUP_SHOWS_PER_SESSION = 2;
+// Delay before showing popup again (3 minutes)
+const SECOND_POPUP_DELAY = 3 * 60 * 1000;
+
 export default function WelcomePopup() {
   const { language } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showCount, setShowCount] = useState(0);
 
   // Fetch the active popup coupon from database
   const { data: popupCoupon } = trpc.coupons.getPopupCoupon.useQuery();
 
+  // Initialize show count from sessionStorage
   useEffect(() => {
-    // Check if user has seen the popup recently (within 7 days)
-    const lastSeenStr = localStorage.getItem('ileala_welcome_popup_seen');
+    const sessionCount = parseInt(sessionStorage.getItem('ileala_popup_session_count') || '0');
+    setShowCount(sessionCount);
+  }, []);
 
-    if (lastSeenStr) {
-      const lastSeen = parseInt(lastSeenStr);
-      const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
-
-      // If seen within last 7 days, don't show
-      if (lastSeen > sevenDaysAgo) {
-        return;
-      }
+  useEffect(() => {
+    // Don't show if already shown max times this session
+    if (showCount >= MAX_POPUP_SHOWS_PER_SESSION) {
+      return;
     }
 
-    // Show popup after 2 seconds on first visit (only if there's an active popup coupon)
+    // Check if user subscribed (don't show popup again)
+    const hasSubscribed = localStorage.getItem('ileala_popup_subscribed');
+    if (hasSubscribed) {
+      return;
+    }
+
+    // Determine delay based on how many times shown
+    const delay = showCount === 0 ? 2000 : SECOND_POPUP_DELAY;
+
+    // Show popup after delay (only if there's an active popup coupon)
     const timer = setTimeout(() => {
       if (popupCoupon) {
         setIsOpen(true);
       }
-    }, 2000);
+    }, delay);
 
     return () => clearTimeout(timer);
-  }, [popupCoupon]);
+  }, [popupCoupon, showCount]);
 
   const handleClose = () => {
     setIsOpen(false);
-    // Save timestamp so popup can appear again after 7 days
-    localStorage.setItem('ileala_welcome_popup_seen', Date.now().toString());
+    // Increment session count
+    const newCount = showCount + 1;
+    setShowCount(newCount);
+    sessionStorage.setItem('ileala_popup_session_count', newCount.toString());
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -74,7 +89,9 @@ export default function WelcomePopup() {
         { duration: 8000 }
       );
 
-      handleClose();
+      // Mark as subscribed so popup won't show again
+      localStorage.setItem('ileala_popup_subscribed', 'true');
+      setIsOpen(false);
     } catch (error) {
       toast.error(language === 'en' ? 'Something went wrong' : 'Algo deu errado');
     } finally {
