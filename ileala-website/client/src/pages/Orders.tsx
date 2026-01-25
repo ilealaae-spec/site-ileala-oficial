@@ -5,7 +5,7 @@ import { trpc } from '@/lib/trpc';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Package, Calendar, CreditCard, MapPin, Loader2, ShoppingBag, Trash2, RefreshCw, AlertCircle } from 'lucide-react';
+import { Package, Calendar, CreditCard, MapPin, Loader2, ShoppingBag, Trash2, AlertCircle } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { toast } from 'sonner';
 
@@ -247,7 +247,7 @@ export default function Orders() {
                           </Button>
                           <Button
                             size="sm"
-                            className="bg-sage-600 hover:bg-sage-700"
+                            className="bg-green-600 hover:bg-green-700 text-white font-semibold"
                             onClick={() => handleRetryPayment(order.id)}
                             disabled={retryPaymentMutation.isPending}
                           >
@@ -255,8 +255,8 @@ export default function Orders() {
                               <Loader2 className="w-4 h-4 animate-spin" />
                             ) : (
                               <>
-                                <RefreshCw className="w-4 h-4 mr-1" />
-                                {language === 'en' ? 'Complete Payment' : 'Concluir Pagamento'}
+                                <CreditCard className="w-4 h-4 mr-1" />
+                                {language === 'en' ? 'Pay Now' : 'Pagar Agora'}
                               </>
                             )}
                           </Button>
