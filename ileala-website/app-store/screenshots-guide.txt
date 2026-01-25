@@ -1,0 +1,73 @@
+GUIA DE SCREENSHOTS PARA AS LOJAS
+==================================
+
+GOOGLE PLAY (Android):
+- Mínimo: 2 screenshots
+- Máximo: 8 screenshots
+- Tamanho: 1080 x 1920 pixels (ou 16:9)
+- Formato: PNG ou JPEG
+
+APPLE APP STORE (iOS):
+- Mínimo: 1 screenshot por tamanho
+- Máximo: 10 screenshots
+- iPhone 6.7": 1290 x 2796 pixels
+- iPhone 6.5": 1284 x 2778 pixels
+- iPhone 5.5": 1242 x 2208 pixels
+- Formato: PNG ou JPEG
+
+==================================
+SCREENSHOTS RECOMENDADOS (6 telas):
+==================================
+
+1. HOME PAGE
+   - Mostrar o carousel com produtos
+   - Texto: "Discover Luxury Linens" / "Descubra Roupas de Cama de Luxo"
+
+2. COLEÇÃO DE PRODUTOS
+   - Mostrar a página de Napkin Rings ou Collections
+   - Texto: "Exclusive Collections" / "Coleções Exclusivas"
+
+3. PÁGINA DE PRODUTO
+   - Mostrar um produto bonito com detalhes
+   - Texto: "Handcrafted Quality" / "Qualidade Artesanal"
+
+4. CARRINHO / CHECKOUT
+   - Mostrar o processo de compra
+   - Texto: "Easy & Secure Checkout" / "Compra Fácil e Segura"
+
+5. THE GREEN WORLD (Loyalty)
+   - Mostrar a página de fidelidade
+   - Texto: "Exclusive Rewards" / "Recompensas Exclusivas"
+
+6. MENU / NAVEGAÇÃO
+   - Mostrar a navegação do app
+   - Texto: "Shop Anywhere" / "Compre de Qualquer Lugar"
+
+==================================
+COMO TIRAR OS SCREENSHOTS:
+==================================
+
+OPÇÃO 1 - Pelo Celular:
+1. Abra www.ileala.ae no celular
+2. Tire screenshots das páginas acima
+3. Envie para o computador
+
+OPÇÃO 2 - Pelo Computador (Chrome):
+1. Abra www.ileala.ae no Chrome
+2. Pressione F12 (DevTools)
+3. Clique no ícone de celular (Toggle device toolbar)
+4. Selecione "iPhone 12 Pro" ou similar
+5. Tire screenshots (Cmd+Shift+4 no Mac)
+
+OPÇÃO 3 - Ferramentas Online:
+- mockuphone.com
+- placeit.net
+- previewed.app
+
+==================================
+DICAS:
+==================================
+- Use sempre o mesmo estilo visual
+- Adicione texto explicativo em cada screenshot
+- Mostre as melhores funcionalidades
+- Use cores da marca (#255238 verde)

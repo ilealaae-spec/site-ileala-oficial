@@ -194,19 +194,16 @@ export default function GiftCard() {
   return (
     <div className="w-full">
       {/* Hero Section */}
-      <section className="relative py-20 text-white overflow-hidden">
-        {/* Background - Image or Color */}
-        {giftCardHeroImage ? (
-          <>
-            <div
-              className="absolute inset-0 bg-cover bg-center"
-              style={{ backgroundImage: `url(${giftCardHeroImage})` }}
-            />
-            <div className="absolute inset-0 bg-black/40" />
-          </>
-        ) : (
-          <div className="absolute inset-0 bg-primary" />
-        )}
+      <section
+        className="relative py-20 text-white overflow-hidden"
+        style={{
+          backgroundImage: giftCardHeroImage ? `url(${giftCardHeroImage})` : 'linear-gradient(135deg, #255238 0%, #1a3a28 100%)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center'
+        }}
+      >
+        {/* Overlay */}
+        <div className="absolute inset-0 bg-black/40" />
 
         <div className="container relative z-10">
           <div className="max-w-3xl mx-auto text-center">
