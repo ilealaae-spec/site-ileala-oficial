@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { X, Gift, Facebook, Twitter, Linkedin, Mail } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { trpc } from '@/lib/trpc';
 
@@ -17,48 +17,77 @@ export default function WelcomePopup() {
   const [isOpen, setIsOpen] = useState(false);
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showCount, setShowCount] = useState(0);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const initializedRef = useRef(false);
 
   // Fetch the active popup coupon from database
   const { data: popupCoupon } = trpc.coupons.getPopupCoupon.useQuery();
 
-  // Initialize show count from sessionStorage
-  useEffect(() => {
-    const sessionCount = parseInt(sessionStorage.getItem('ileala_popup_session_count') || '0');
-    setShowCount(sessionCount);
-  }, []);
-
-  useEffect(() => {
-    // Don't show if already shown max times this session
-    if (showCount >= MAX_POPUP_SHOWS_PER_SESSION) {
-      return;
+  // Get current show count from sessionStorage
+  const getShowCount = () => {
+    try {
+      return parseInt(sessionStorage.getItem('ileala_popup_session_count') || '0');
+    } catch {
+      return 0;
     }
+  };
 
-    // Check if user subscribed (don't show popup again)
-    const hasSubscribed = localStorage.getItem('ileala_popup_subscribed');
-    if (hasSubscribed) {
-      return;
+  // Check if user has subscribed
+  const hasSubscribed = () => {
+    try {
+      return localStorage.getItem('ileala_popup_subscribed') === 'true';
+    } catch {
+      return false;
     }
+  };
 
-    // Determine delay based on how many times shown
-    const delay = showCount === 0 ? 2000 : SECOND_POPUP_DELAY;
-
-    // Show popup after delay (only if there's an active popup coupon)
-    const timer = setTimeout(() => {
-      if (popupCoupon) {
+  // Schedule popup to show
+  const schedulePopup = (delay: number) => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
+    timerRef.current = setTimeout(() => {
+      if (popupCoupon && !hasSubscribed() && getShowCount() < MAX_POPUP_SHOWS_PER_SESSION) {
         setIsOpen(true);
       }
     }, delay);
+  };
 
-    return () => clearTimeout(timer);
-  }, [popupCoupon, showCount]);
+  useEffect(() => {
+    // Only run once on mount
+    if (initializedRef.current) return;
+    initializedRef.current = true;
+
+    // Don't show if subscribed or max shown
+    if (hasSubscribed() || getShowCount() >= MAX_POPUP_SHOWS_PER_SESSION) {
+      return;
+    }
+
+    // Initial popup after 2 seconds
+    const delay = getShowCount() === 0 ? 2000 : SECOND_POPUP_DELAY;
+    schedulePopup(delay);
+
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, [popupCoupon]);
 
   const handleClose = () => {
     setIsOpen(false);
-    // Increment session count
-    const newCount = showCount + 1;
-    setShowCount(newCount);
-    sessionStorage.setItem('ileala_popup_session_count', newCount.toString());
+    try {
+      // Increment session count
+      const newCount = getShowCount() + 1;
+      sessionStorage.setItem('ileala_popup_session_count', newCount.toString());
+
+      // Schedule next popup if not at max
+      if (newCount < MAX_POPUP_SHOWS_PER_SESSION && !hasSubscribed()) {
+        schedulePopup(SECOND_POPUP_DELAY);
+      }
+    } catch {
+      // Ignore storage errors
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
