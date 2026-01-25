@@ -55,25 +55,26 @@ async function startServer() {
   
   // CORS configuration
   setupCORS(app);
-  
+
   // Request ID for tracing
   setupRequestId(app);
-  
+
+  // IMPORTANT: Stripe webhook routes MUST come BEFORE body parser
+  // Stripe requires raw body for signature verification
+  registerStripeWebhookRoutes(app);
+
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
-  
+
   // Apply general API rate limiting
   app.use("/api", apiLimiter);
-  
+
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
-  
+
   // Google OAuth routes (direct Google OAuth)
   registerGoogleOAuthRoutes(app);
-  
-  // Stripe webhook routes
-  registerStripeWebhookRoutes(app);
   
   // Health check endpoint
   app.get("/health", async (req, res) => {
