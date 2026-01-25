@@ -393,7 +393,9 @@ export default function About() {
         <div className="container">
           <div className="max-w-3xl mx-auto text-center">
             <p className="text-2xl md:text-3xl font-light italic leading-relaxed">
-              "Outside the home, we play roles. Inside it, we are our true selves. Within these walls, we disconnect from the world, recharge our energy, and create the rituals that ground and nourish our self-care."
+              {language === 'en'
+                ? '"Outside the home, we play roles. Inside it, we are our true selves. Within these walls, we disconnect from the world, recharge our energy, and create the rituals that ground and nourish our self-care."'
+                : '"Fora de casa, desempenhamos papéis. Dentro dela, somos quem realmente somos. Entre essas paredes, nos desconectamos do mundo, recarregamos nossas energias e criamos os rituais que nos ancoram e nutrem nosso autocuidado."'}
             </p>
           </div>
         </div>
