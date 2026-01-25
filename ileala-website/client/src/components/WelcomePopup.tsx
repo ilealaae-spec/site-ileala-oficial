@@ -5,12 +5,16 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { X, Gift, Facebook, Twitter, Linkedin, Mail } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
+import { trpc } from '@/lib/trpc';
 
 export default function WelcomePopup() {
   const { language } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Fetch the active popup coupon from database
+  const { data: popupCoupon } = trpc.coupons.getPopupCoupon.useQuery();
 
   useEffect(() => {
     // Check if user has seen the popup recently (within 7 days)
@@ -26,13 +30,15 @@ export default function WelcomePopup() {
       }
     }
 
-    // Show popup after 2 seconds on first visit
+    // Show popup after 2 seconds on first visit (only if there's an active popup coupon)
     const timer = setTimeout(() => {
-      setIsOpen(true);
+      if (popupCoupon) {
+        setIsOpen(true);
+      }
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [popupCoupon]);
 
   const handleClose = () => {
     setIsOpen(false);
@@ -42,7 +48,7 @@ export default function WelcomePopup() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email) {
       toast.error(language === 'en' ? 'Please enter your email' : 'Por favor, insira seu e-mail');
       return;
@@ -52,18 +58,19 @@ export default function WelcomePopup() {
 
     try {
       // Store email in localStorage (in production, send to backend)
+      const couponCode = popupCoupon?.code || 'WELCOME10';
       const subscribers = JSON.parse(localStorage.getItem('ileala_subscribers') || '[]');
       subscribers.push({
         email,
         date: new Date().toISOString(),
-        coupon: 'WELCOME10',
+        coupon: couponCode,
       });
       localStorage.setItem('ileala_subscribers', JSON.stringify(subscribers));
 
       toast.success(
-        language === 'en' 
-          ? 'Success! Your coupon code is: WELCOME10' 
-          : 'Sucesso! Seu código de cupom é: WELCOME10',
+        language === 'en'
+          ? `Success! Your coupon code is: ${couponCode}`
+          : `Sucesso! Seu código de cupom é: ${couponCode}`,
         { duration: 8000 }
       );
 
@@ -75,19 +82,28 @@ export default function WelcomePopup() {
     }
   };
 
+  // Get coupon details
+  const couponCode = popupCoupon?.code || 'WELCOME10';
+  const discountText = popupCoupon
+    ? (popupCoupon.discountType === 'percentage'
+      ? `${popupCoupon.discountValue}%`
+      : `${(popupCoupon.discountValue / 100).toFixed(0)} AED`)
+    : '10%';
+
+  // Dynamic content from coupon or defaults
   const content = {
     en: {
-      title: 'Welcome to ILE ALA',
-      subtitle: 'Get 10% OFF your first order',
-      description: 'Subscribe to our newsletter and receive an exclusive discount code for your first purchase.',
+      title: popupCoupon?.titleEN || 'Welcome to ILE ALA',
+      subtitle: `Get ${discountText} OFF your first order`,
+      description: popupCoupon?.descriptionEN || 'Subscribe to our newsletter and receive an exclusive discount code for your first purchase.',
       emailPlaceholder: 'Enter your email',
       button: 'Get My Discount',
       terms: 'By subscribing, you agree to receive marketing emails from ILE ALA.',
     },
     pt: {
-      title: 'Bem-vindo à ILE ALA',
-      subtitle: 'Ganhe 10% OFF na sua primeira compra',
-      description: 'Inscreva-se em nossa newsletter e receba um código de desconto exclusivo para sua primeira compra.',
+      title: popupCoupon?.titlePT || 'Bem-vindo à ILE ALA',
+      subtitle: `Ganhe ${discountText} OFF na sua primeira compra`,
+      description: popupCoupon?.descriptionPT || 'Inscreva-se em nossa newsletter e receba um código de desconto exclusivo para sua primeira compra.',
       emailPlaceholder: 'Digite seu e-mail',
       button: 'Quero Meu Desconto',
       terms: 'Ao se inscrever, você concorda em receber e-mails de marketing da ILE ALA.',
@@ -95,6 +111,11 @@ export default function WelcomePopup() {
   };
 
   const t = content[language];
+
+  // Don't render if no popup coupon is configured
+  if (!popupCoupon) {
+    return null;
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -109,25 +130,35 @@ export default function WelcomePopup() {
         </button>
 
         <div className="relative">
-          {/* Background gradient */}
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/10 to-background" />
-          
+          {/* Background - Image or Gradient */}
+          {popupCoupon.imageUrl ? (
+            <div
+              className="absolute inset-0 bg-cover bg-center"
+              style={{ backgroundImage: `url(${popupCoupon.imageUrl})` }}
+            />
+          ) : (
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/10 to-background" />
+          )}
+          {popupCoupon.imageUrl && <div className="absolute inset-0 bg-black/40" />}
+
           <div className="relative p-8 text-center">
-            {/* Icon */}
-            <div className="mx-auto mb-4 w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
-              <Gift className="w-8 h-8 text-primary" />
-            </div>
+            {/* Icon - only show if no image */}
+            {!popupCoupon.imageUrl && (
+              <div className="mx-auto mb-4 w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
+                <Gift className="w-8 h-8 text-primary" />
+              </div>
+            )}
 
             {/* Title */}
-            <h2 className="text-3xl font-bold mb-2">{t.title}</h2>
-            
+            <h2 className={`text-3xl font-bold mb-2 ${popupCoupon.imageUrl ? 'text-white' : ''}`}>{t.title}</h2>
+
             {/* Subtitle */}
             <div className="inline-block bg-primary text-primary-foreground px-4 py-2 rounded-full text-lg font-semibold mb-4">
               {t.subtitle}
             </div>
 
             {/* Description */}
-            <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
+            <p className={`mb-6 max-w-sm mx-auto ${popupCoupon.imageUrl ? 'text-white/90' : 'text-muted-foreground'}`}>
               {t.description}
             </p>
 
@@ -138,13 +169,13 @@ export default function WelcomePopup() {
                 placeholder={t.emailPlaceholder}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="text-center text-lg h-12"
+                className="text-center text-lg h-12 bg-white/90"
                 required
               />
-              
-              <Button 
-                type="submit" 
-                size="lg" 
+
+              <Button
+                type="submit"
+                size="lg"
                 className="w-full h-12 text-lg"
                 disabled={isSubmitting}
               >
@@ -160,22 +191,22 @@ export default function WelcomePopup() {
             </form>
 
             {/* Terms */}
-            <p className="text-xs text-muted-foreground mt-4">
+            <p className={`text-xs mt-4 ${popupCoupon.imageUrl ? 'text-white/70' : 'text-muted-foreground'}`}>
               {t.terms}
             </p>
 
             {/* Social Sharing */}
-            <div className="mt-6 pt-6 border-t">
-              <p className="text-sm font-medium mb-3">
+            <div className={`mt-6 pt-6 border-t ${popupCoupon.imageUrl ? 'border-white/20' : ''}`}>
+              <p className={`text-sm font-medium mb-3 ${popupCoupon.imageUrl ? 'text-white' : ''}`}>
                 {language === 'en' ? 'Share this offer with friends:' : 'Compartilhe esta oferta com amigos:'}
               </p>
               <div className="flex justify-center gap-3">
                 <button
                   onClick={() => {
                     const url = window.location.href;
-                    const text = language === 'en' 
-                      ? 'Get 10% OFF at ILE ALA! Use code WELCOME10' 
-                      : 'Ganhe 10% OFF na ILE ALA! Use o código WELCOME10';
+                    const text = language === 'en'
+                      ? `Get ${discountText} OFF at ILE ALA! Use code ${couponCode}`
+                      : `Ganhe ${discountText} OFF na ILE ALA! Use o código ${couponCode}`;
                     window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(text)}`, '_blank', 'width=600,height=400');
                   }}
                   className="p-2 rounded-full bg-[#1877F2] text-white hover:opacity-90 transition-opacity"
@@ -186,9 +217,9 @@ export default function WelcomePopup() {
                 <button
                   onClick={() => {
                     const url = window.location.href;
-                    const text = language === 'en' 
-                      ? 'Get 10% OFF at ILE ALA! Use code WELCOME10' 
-                      : 'Ganhe 10% OFF na ILE ALA! Use o código WELCOME10';
+                    const text = language === 'en'
+                      ? `Get ${discountText} OFF at ILE ALA! Use code ${couponCode}`
+                      : `Ganhe ${discountText} OFF na ILE ALA! Use o código ${couponCode}`;
                     window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`, '_blank', 'width=600,height=400');
                   }}
                   className="p-2 rounded-full bg-[#1DA1F2] text-white hover:opacity-90 transition-opacity"
@@ -199,9 +230,6 @@ export default function WelcomePopup() {
                 <button
                   onClick={() => {
                     const url = window.location.href;
-                    const text = language === 'en' 
-                      ? 'Get 10% OFF at ILE ALA! Use code WELCOME10' 
-                      : 'Ganhe 10% OFF na ILE ALA! Use o código WELCOME10';
                     window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`, '_blank', 'width=600,height=400');
                   }}
                   className="p-2 rounded-full bg-[#0A66C2] text-white hover:opacity-90 transition-opacity"
@@ -213,9 +241,9 @@ export default function WelcomePopup() {
                   onClick={() => {
                     const url = window.location.href;
                     const subject = language === 'en' ? 'Special Offer from ILE ALA' : 'Oferta Especial da ILE ALA';
-                    const body = language === 'en' 
-                      ? `Check out this amazing offer from ILE ALA! Get 10% OFF your first order with code WELCOME10. Visit: ${url}` 
-                      : `Confira esta oferta incrível da ILE ALA! Ganhe 10% OFF na sua primeira compra com o código WELCOME10. Visite: ${url}`;
+                    const body = language === 'en'
+                      ? `Check out this amazing offer from ILE ALA! Get ${discountText} OFF your first order with code ${couponCode}. Visit: ${url}`
+                      : `Confira esta oferta incrível da ILE ALA! Ganhe ${discountText} OFF na sua primeira compra com o código ${couponCode}. Visite: ${url}`;
                     window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
                   }}
                   className="p-2 rounded-full bg-gray-600 text-white hover:opacity-90 transition-opacity"

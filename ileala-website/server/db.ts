@@ -525,6 +525,21 @@ export async function deleteCoupon(id: number) {
   await db.delete(coupons).where(eq(coupons.id, id));
 }
 
+export async function getPopupCoupon() {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(coupons)
+    .where(and(eq(coupons.showInPopup, 1), eq(coupons.active, 1)))
+    .limit(1);
+  return result[0] || null;
+}
+
+export async function disableAllPopupCoupons() {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(coupons).set({ showInPopup: 0 }).where(eq(coupons.showInPopup, 1));
+}
+
 // ===== GIFT CARDS =====
 
 /**

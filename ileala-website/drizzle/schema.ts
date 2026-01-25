@@ -147,6 +147,13 @@ export const coupons = pgTable("coupons", {
   validFrom: timestamp("validFrom").defaultNow().notNull(),
   validUntil: timestamp("validUntil"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
+  // New fields for promotional images and popup
+  imageUrl: text("imageUrl"), // Custom promotional image
+  showInPopup: integer("showInPopup").default(0).notNull(), // 1 = show in welcome popup
+  titleEN: varchar("titleEN", { length: 255 }), // Title for popup (English)
+  titlePT: varchar("titlePT", { length: 255 }), // Title for popup (Portuguese)
+  descriptionEN: text("descriptionEN"), // Description for popup (English)
+  descriptionPT: text("descriptionPT"), // Description for popup (Portuguese)
 });
 
 export type Coupon = typeof coupons.$inferSelect;

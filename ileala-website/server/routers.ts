@@ -1403,7 +1403,7 @@ export const appRouter = router({
       }))
       .mutation(async ({ input }) => {
         const validation = await db.validateCoupon(input.code, input.orderTotal);
-        
+
         if (!validation.valid) {
           return {
             valid: false,
@@ -1411,15 +1411,19 @@ export const appRouter = router({
             discount: 0,
           };
         }
-        
+
         const discount = await db.calculateDiscount(validation.coupon!, input.orderTotal);
-        
+
         return {
           valid: true,
           discount,
           coupon: validation.coupon,
         };
       }),
+    // Get the active coupon for the welcome popup
+    getPopupCoupon: publicProcedure.query(async () => {
+      return await db.getPopupCoupon();
+    }),
   }),
 
   // Gift Cards router
@@ -2238,9 +2242,19 @@ export const appRouter = router({
           active: z.number().default(1),
           validFrom: z.date().optional(),
           validUntil: z.date().optional(),
+          imageUrl: z.string().optional(),
+          showInPopup: z.number().default(0),
+          titleEN: z.string().optional(),
+          titlePT: z.string().optional(),
+          descriptionEN: z.string().optional(),
+          descriptionPT: z.string().optional(),
         }))
         .mutation(async ({ input, ctx }) => {
           if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+          // If setting this coupon as popup, disable others first
+          if (input.showInPopup === 1) {
+            await db.disableAllPopupCoupons();
+          }
           const couponId = await db.createCoupon(input as any);
           return { id: couponId };
         }),
@@ -2254,10 +2268,20 @@ export const appRouter = router({
           maxUses: z.number().optional(),
           active: z.number().optional(),
           validUntil: z.date().optional(),
+          imageUrl: z.string().optional().nullable(),
+          showInPopup: z.number().optional(),
+          titleEN: z.string().optional().nullable(),
+          titlePT: z.string().optional().nullable(),
+          descriptionEN: z.string().optional().nullable(),
+          descriptionPT: z.string().optional().nullable(),
         }))
         .mutation(async ({ input, ctx }) => {
           if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
           const { id, ...updates } = input;
+          // If setting this coupon as popup, disable others first
+          if (updates.showInPopup === 1) {
+            await db.disableAllPopupCoupons();
+          }
           await db.updateCoupon(id, updates as any);
           return { success: true };
         }),

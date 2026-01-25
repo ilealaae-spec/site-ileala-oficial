@@ -3,10 +3,11 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { trpc } from '@/lib/trpc';
-import { Loader2, Plus, Edit, Trash2, Ticket, Copy } from 'lucide-react';
+import { Loader2, Plus, Edit, Trash2, Ticket, Copy, Image, Star } from 'lucide-react';
 import { toast } from 'sonner';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -25,7 +26,9 @@ export default function CouponsTab() {
   const { language } = useLanguage();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCoupon, setEditingCoupon] = useState<any>(null);
-  
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [formData, setFormData] = useState({
     code: '',
     discountType: 'percentage' as 'percentage' | 'fixed',
@@ -35,6 +38,13 @@ export default function CouponsTab() {
     validFrom: '',
     validUntil: '',
     active: true,
+    // New fields for promotional images and popup
+    imageUrl: '',
+    showInPopup: false,
+    titleEN: '',
+    titlePT: '',
+    descriptionEN: '',
+    descriptionPT: '',
   });
 
   const utils = trpc.useUtils();
@@ -74,6 +84,8 @@ export default function CouponsTab() {
     },
   });
 
+  const uploadMutation = trpc.admin.uploadImage.useMutation();
+
   const resetForm = () => {
     setFormData({
       code: '',
@@ -84,13 +96,19 @@ export default function CouponsTab() {
       validFrom: '',
       validUntil: '',
       active: true,
+      imageUrl: '',
+      showInPopup: false,
+      titleEN: '',
+      titlePT: '',
+      descriptionEN: '',
+      descriptionPT: '',
     });
     setEditingCoupon(null);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const data = {
       code: formData.code.toUpperCase(),
       discountType: formData.discountType,
@@ -100,12 +118,55 @@ export default function CouponsTab() {
       validFrom: formData.validFrom ? new Date(formData.validFrom) : undefined,
       validUntil: formData.validUntil ? new Date(formData.validUntil) : undefined,
       active: formData.active ? 1 : 0,
+      imageUrl: formData.imageUrl || undefined,
+      showInPopup: formData.showInPopup ? 1 : 0,
+      titleEN: formData.titleEN || undefined,
+      titlePT: formData.titlePT || undefined,
+      descriptionEN: formData.descriptionEN || undefined,
+      descriptionPT: formData.descriptionPT || undefined,
     };
 
     if (editingCoupon) {
       updateMutation.mutate({ id: editingCoupon.id, ...data });
     } else {
       createMutation.mutate(data);
+    }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error(language === 'en' ? 'Please select an image file' : 'Por favor, selecione um arquivo de imagem');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error(language === 'en' ? 'Image must be less than 5MB' : 'A imagem deve ter menos de 5MB');
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64 = reader.result as string;
+        const result = await uploadMutation.mutateAsync({
+          base64,
+          filename: `coupon-${Date.now()}-${file.name}`,
+          contentType: file.type,
+        });
+        setFormData({ ...formData, imageUrl: result.url });
+        toast.success(language === 'en' ? 'Image uploaded!' : 'Imagem enviada!');
+        setIsUploading(false);
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      toast.error(language === 'en' ? 'Failed to upload image' : 'Falha ao enviar imagem');
+      setIsUploading(false);
     }
   };
 
@@ -120,6 +181,12 @@ export default function CouponsTab() {
       validFrom: coupon.validFrom ? new Date(coupon.validFrom).toISOString().split('T')[0] : '',
       validUntil: coupon.validUntil ? new Date(coupon.validUntil).toISOString().split('T')[0] : '',
       active: coupon.active === 1,
+      imageUrl: coupon.imageUrl || '',
+      showInPopup: coupon.showInPopup === 1,
+      titleEN: coupon.titleEN || '',
+      titlePT: coupon.titlePT || '',
+      descriptionEN: coupon.descriptionEN || '',
+      descriptionPT: coupon.descriptionPT || '',
     });
     setIsDialogOpen(true);
   };
@@ -177,12 +244,18 @@ export default function CouponsTab() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {coupons && coupons.length > 0 ? (
-          coupons.map((coupon) => (
-            <Card key={coupon.id} className="p-6">
+          coupons.map((coupon: any) => (
+            <Card key={coupon.id} className={`p-6 ${coupon.showInPopup === 1 ? 'ring-2 ring-yellow-400' : ''}`}>
               <div className="flex items-start gap-4">
-                <div className="p-3 bg-sage-100 rounded-lg">
-                  <Ticket className="w-6 h-6 text-sage-700" />
-                </div>
+                {coupon.imageUrl ? (
+                  <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
+                    <img src={coupon.imageUrl} alt={coupon.code} className="w-full h-full object-cover" />
+                  </div>
+                ) : (
+                  <div className="p-3 bg-sage-100 rounded-lg flex-shrink-0">
+                    <Ticket className="w-6 h-6 text-sage-700" />
+                  </div>
+                )}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-2">
                     <h3 className="font-bold text-lg font-mono">{coupon.code}</h3>
@@ -192,44 +265,47 @@ export default function CouponsTab() {
                     >
                       <Copy className="w-4 h-4" />
                     </button>
+                    {coupon.showInPopup === 1 && (
+                      <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" title={language === 'en' ? 'Shown in Popup' : 'Exibido no Popup'} />
+                    )}
                   </div>
-                  
+
                   <div className="space-y-2 text-sm">
                     <p className="text-lg font-semibold text-sage-700">
                       {formatDiscount(coupon)} {language === 'en' ? 'OFF' : 'DESC'}
                     </p>
-                    
+
                     {coupon.minPurchaseAmount > 0 && (
                       <p className="text-muted-foreground">
                         {language === 'en' ? 'Min:' : 'Mín:'} {coupon.minPurchaseAmount.toFixed(2)} AED
                       </p>
                     )}
-                    
+
                     {coupon.maxUses > 0 && (
                       <p className="text-muted-foreground">
                         {language === 'en' ? 'Uses:' : 'Usos:'} {coupon.usedCount || 0}/{coupon.maxUses}
                       </p>
                     )}
-                    
+
                     {coupon.validUntil && (
                       <p className="text-muted-foreground">
                         {language === 'en' ? 'Expires:' : 'Expira:'} {new Date(coupon.validUntil).toLocaleDateString()}
                       </p>
                     )}
-                    
+
                     <div className="flex items-center gap-2 pt-2">
                       <span className={`text-xs px-2 py-1 rounded ${
-                        coupon.active === 1 
-                          ? 'bg-green-100 text-green-700' 
+                        coupon.active === 1
+                          ? 'bg-green-100 text-green-700'
                           : 'bg-gray-100 text-gray-700'
                       }`}>
-                        {coupon.active === 1 
+                        {coupon.active === 1
                           ? (language === 'en' ? 'Active' : 'Ativo')
                           : (language === 'en' ? 'Inactive' : 'Inativo')}
                       </span>
                     </div>
                   </div>
-                  
+
                   <div className="flex gap-2 mt-4">
                     <Button
                       variant="outline"
@@ -370,16 +446,140 @@ export default function CouponsTab() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="active"
-                checked={formData.active}
-                onChange={(e) => setFormData({ ...formData, active: e.target.checked })}
-                className="w-4 h-4"
-              />
-              <Label htmlFor="active">{language === 'en' ? 'Active' : 'Ativo'}</Label>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="active"
+                  checked={formData.active}
+                  onChange={(e) => setFormData({ ...formData, active: e.target.checked })}
+                  className="w-4 h-4"
+                />
+                <Label htmlFor="active">{language === 'en' ? 'Active' : 'Ativo'}</Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="showInPopup"
+                  checked={formData.showInPopup}
+                  onChange={(e) => setFormData({ ...formData, showInPopup: e.target.checked })}
+                  className="w-4 h-4"
+                />
+                <Label htmlFor="showInPopup" className="flex items-center gap-1">
+                  <Star className="w-4 h-4 text-yellow-500" />
+                  {language === 'en' ? 'Show in Welcome Popup' : 'Mostrar no Popup de Boas-vindas'}
+                </Label>
+              </div>
             </div>
+
+            {/* Promotional Image */}
+            <div className="border-t pt-4 mt-4">
+              <h4 className="font-semibold mb-3 flex items-center gap-2">
+                <Image className="w-4 h-4" />
+                {language === 'en' ? 'Promotional Image (optional)' : 'Imagem Promocional (opcional)'}
+              </h4>
+              <div className="space-y-3">
+                {formData.imageUrl && (
+                  <div className="relative w-full max-w-xs">
+                    <img
+                      src={formData.imageUrl}
+                      alt="Coupon"
+                      className="w-full h-32 object-cover rounded-lg"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      className="absolute top-2 right-2"
+                      onClick={() => setFormData({ ...formData, imageUrl: '' })}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </div>
+                )}
+                <div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading}
+                  >
+                    {isUploading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        {language === 'en' ? 'Uploading...' : 'Enviando...'}
+                      </>
+                    ) : (
+                      <>
+                        <Image className="w-4 h-4 mr-2" />
+                        {language === 'en' ? 'Upload Image' : 'Enviar Imagem'}
+                      </>
+                    )}
+                  </Button>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {language === 'en' ? 'Recommended: 400x200px, max 5MB' : 'Recomendado: 400x200px, máx 5MB'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Popup Text Customization */}
+            {formData.showInPopup && (
+              <div className="border-t pt-4 mt-4">
+                <h4 className="font-semibold mb-3">
+                  {language === 'en' ? 'Popup Text (shown when this coupon is in popup)' : 'Texto do Popup (exibido quando este cupom está no popup)'}
+                </h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="titleEN">Title (EN)</Label>
+                    <Input
+                      id="titleEN"
+                      value={formData.titleEN}
+                      onChange={(e) => setFormData({ ...formData, titleEN: e.target.value })}
+                      placeholder="Welcome to ILE ALA"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="titlePT">Título (PT)</Label>
+                    <Input
+                      id="titlePT"
+                      value={formData.titlePT}
+                      onChange={(e) => setFormData({ ...formData, titlePT: e.target.value })}
+                      placeholder="Bem-vindo à ILE ALA"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4 mt-3">
+                  <div>
+                    <Label htmlFor="descriptionEN">Description (EN)</Label>
+                    <Textarea
+                      id="descriptionEN"
+                      value={formData.descriptionEN}
+                      onChange={(e) => setFormData({ ...formData, descriptionEN: e.target.value })}
+                      placeholder="Subscribe and get an exclusive discount..."
+                      rows={2}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="descriptionPT">Descrição (PT)</Label>
+                    <Textarea
+                      id="descriptionPT"
+                      value={formData.descriptionPT}
+                      onChange={(e) => setFormData({ ...formData, descriptionPT: e.target.value })}
+                      placeholder="Inscreva-se e ganhe um desconto exclusivo..."
+                      rows={2}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="flex gap-2 justify-end pt-4">
               <Button
