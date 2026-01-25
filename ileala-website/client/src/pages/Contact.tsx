@@ -41,7 +41,6 @@ export default function Contact() {
     ? (heroSubtitleENSetting?.value || "We'd love to hear from you. Get in touch with us.")
     : (heroSubtitlePTSetting?.value || 'Adoraríamos ouvir de você. Entre em contato conosco.');
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -49,23 +48,33 @@ export default function Contact() {
     message: '',
   });
 
+  const sendMessageMutation = trpc.contact.sendMessage.useMutation({
+    onSuccess: () => {
+      toast.success(
+        language === 'en'
+          ? 'Message sent successfully! We will get back to you soon.'
+          : 'Mensagem enviada com sucesso! Retornaremos em breve.'
+      );
+      setFormData({ name: '', email: '', subject: '', message: '' });
+    },
+    onError: (error) => {
+      toast.error(
+        error.message ||
+          (language === 'en'
+            ? 'Failed to send message. Please try again.'
+            : 'Falha ao enviar mensagem. Tente novamente.')
+      );
+    },
+  });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
-
-    // Create mailto link with form data
-    const mailtoLink = `mailto:${settings.email}?subject=${encodeURIComponent(formData.subject || 'Contact from website')}&body=${encodeURIComponent(
-      `Name: ${formData.name}\nEmail: ${formData.email}\n\nMessage:\n${formData.message}`
-    )}`;
-
-    // Open email client
-    window.location.href = mailtoLink;
-
-    // Reset form after a short delay
-    setTimeout(() => {
-      setIsSubmitting(false);
-      toast.success(language === 'en' ? 'Opening your email client...' : 'Abrindo seu cliente de email...');
-    }, 500);
+    sendMessageMutation.mutate({
+      name: formData.name,
+      email: formData.email,
+      subject: formData.subject || undefined,
+      message: formData.message,
+    });
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -255,9 +264,9 @@ export default function Contact() {
                   type="submit"
                   size="lg"
                   className="w-full"
-                  disabled={isSubmitting}
+                  disabled={sendMessageMutation.isPending}
                 >
-                  {isSubmitting ? (
+                  {sendMessageMutation.isPending ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       {language === 'en' ? 'Sending...' : 'Enviando...'}

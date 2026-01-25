@@ -700,6 +700,96 @@ export async function sendGiftCardEmail(
 }
 
 /**
+ * Send a contact form email to the business
+ * Used when customers submit the contact form on the website
+ */
+export async function sendContactFormEmail(
+  customerName: string,
+  customerEmail: string,
+  subject: string,
+  message: string
+): Promise<boolean> {
+  const siteUrl = getSiteUrl();
+  const CONTACT_EMAIL = process.env.CONTACT_EMAIL || 'contact@ileala.ae';
+
+  logger.info(`[Email] Sending contact form email from ${customerEmail}`);
+  logger.debug(`[Email] Subject: ${subject}`);
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>New Contact Form Message</title>
+      </head>
+      <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
+        ${getEmailHeader()}
+
+        <div style="background: #ffffff; padding: 40px; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 10px 10px;">
+          <h2 style="color: #255238; margin-top: 0;">New Contact Form Message</h2>
+
+          <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <p style="margin: 0 0 10px 0;"><strong>From:</strong> ${customerName}</p>
+            <p style="margin: 0 0 10px 0;"><strong>Email:</strong> <a href="mailto:${customerEmail}" style="color: #255238;">${customerEmail}</a></p>
+            <p style="margin: 0;"><strong>Subject:</strong> ${subject || 'No subject'}</p>
+          </div>
+
+          <div style="margin: 25px 0;">
+            <h3 style="color: #255238; margin-bottom: 15px;">Message:</h3>
+            <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; border-left: 4px solid #255238;">
+              <p style="margin: 0; white-space: pre-wrap;">${message}</p>
+            </div>
+          </div>
+
+          <div style="text-align: center; margin: 30px 0;">
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">
+              <tr>
+                <td style="background: #255238; border-radius: 5px; text-align: center;">
+                  <a href="mailto:${customerEmail}?subject=Re: ${encodeURIComponent(subject || 'Your message to ILE ALA')}" style="display: block; padding: 14px 30px; color: #ffffff; text-decoration: none; font-weight: bold; font-size: 16px; border-radius: 5px;">
+                    Reply to Customer
+                  </a>
+                </td>
+              </tr>
+            </table>
+          </div>
+
+          <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;">
+
+          <p style="color: #999; font-size: 12px; margin-bottom: 0;">
+            This message was sent from the contact form at <a href="${siteUrl}/contact" style="color: #255238;">ileala.ae/contact</a>
+          </p>
+        </div>
+
+        <div style="text-align: center; padding: 20px; color: #999; font-size: 12px;">
+          <p>© ${new Date().getFullYear()} ILE ALA. All rights reserved.</p>
+        </div>
+      </body>
+    </html>
+  `;
+
+  try {
+    const result = await getResend().emails.send({
+      from: FROM_EMAIL,
+      to: CONTACT_EMAIL,
+      replyTo: customerEmail,
+      subject: `[Website Contact] ${subject || 'New message from ' + customerName}`,
+      html,
+    });
+
+    logger.info(`[Email] Contact form email sent successfully`);
+    logger.debug(`[Email] Resend API response:`, JSON.stringify(result));
+    return true;
+  } catch (error) {
+    logger.error('[Email] ERROR sending contact form email:', error);
+    if (error instanceof Error) {
+      logger.error('[Email] Error details:', { message: error.message, stack: error.stack });
+    }
+    return false;
+  }
+}
+
+/**
  * Send a tier upgrade congratulations email
  * Beautiful template congratulating the customer on reaching a new loyalty tier
  */

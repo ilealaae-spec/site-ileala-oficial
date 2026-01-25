@@ -951,6 +951,37 @@ export const appRouter = router({
       }),
   }),
 
+  // Contact form router
+  contact: router({
+    sendMessage: publicProcedure
+      .input(z.object({
+        name: nameSchema,
+        email: emailSchema,
+        subject: z.string().max(200).optional(),
+        message: z.string().min(10, 'Message must be at least 10 characters').max(5000),
+      }))
+      .mutation(async ({ input }) => {
+        try {
+          const { sendContactFormEmail } = await import('./email');
+          const success = await sendContactFormEmail(
+            input.name,
+            input.email,
+            input.subject || '',
+            input.message
+          );
+
+          if (!success) {
+            throw new Error('Failed to send message. Please try again.');
+          }
+
+          return { success: true };
+        } catch (error) {
+          console.error('[Contact] Error sending message:', error);
+          throw new Error('Failed to send message. Please try again later.');
+        }
+      }),
+  }),
+
   // Email Campaigns router (Marketing)
   emailCampaigns: router({
     list: protectedProcedure.query(async ({ ctx }) => {
