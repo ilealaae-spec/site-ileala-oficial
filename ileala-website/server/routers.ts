@@ -2203,6 +2203,13 @@ export const appRouter = router({
           await db.updateOrderStatus(input.id, input.status);
           return { success: true };
         }),
+      delete: protectedProcedure
+        .input(z.object({ id: z.number() }))
+        .mutation(async ({ input, ctx }) => {
+          if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
+          await db.deleteOrder(input.id);
+          return { success: true };
+        }),
     }),
     
     // Image upload

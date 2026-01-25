@@ -3,7 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { trpc } from '@/lib/trpc';
-import { Loader2, Search, Package, Calendar, DollarSign, User } from 'lucide-react';
+import { Loader2, Search, Package, Calendar, DollarSign, User, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import {
@@ -41,6 +41,27 @@ export default function OrdersTab() {
       toast.error(error.message);
     },
   });
+
+  const deleteMutation = trpc.admin.orders.delete.useMutation({
+    onSuccess: () => {
+      toast.success(language === 'en' ? 'Order deleted!' : 'Pedido excluído!');
+      utils.orders.list.invalidate();
+      setSelectedOrder(null);
+    },
+    onError: (error: any) => {
+      toast.error(error.message);
+    },
+  });
+
+  const handleDelete = (orderId: number) => {
+    if (window.confirm(
+      language === 'en'
+        ? `Are you sure you want to permanently delete Order #${orderId}? This action cannot be undone.`
+        : `Tem certeza que deseja excluir permanentemente o Pedido #${orderId}? Esta ação não pode ser desfeita.`
+    )) {
+      deleteMutation.mutate({ id: orderId });
+    }
+  };
 
   const filteredOrders = Array.isArray(orders) ? orders.filter((order: any) =>
     order.id.toString().includes(searchTerm) ||
@@ -309,6 +330,28 @@ export default function OrdersTab() {
                   </div>
                 </div>
               )}
+
+              {/* Delete Order */}
+              <div className="pt-4 border-t">
+                <Button
+                  variant="destructive"
+                  onClick={() => handleDelete(selectedOrder.id)}
+                  disabled={deleteMutation.isPending}
+                  className="w-full"
+                >
+                  {deleteMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-4 h-4 mr-2" />
+                  )}
+                  {language === 'en' ? 'Delete Order Permanently' : 'Excluir Pedido Permanentemente'}
+                </Button>
+                <p className="text-xs text-muted-foreground mt-2 text-center">
+                  {language === 'en'
+                    ? 'This will permanently delete the order and remove it from the customer\'s account.'
+                    : 'Isso excluirá permanentemente o pedido e o removerá da conta do cliente.'}
+                </p>
+              </div>
             </div>
           )}
         </DialogContent>

@@ -427,10 +427,19 @@ export async function updateOrderStatus(id: number, status: string) {
 export async function updateOrderPaymentStatus(id: number, paymentStatus: string, paymentIntentId?: string) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db.update(orders).set({ 
+  await db.update(orders).set({
     paymentStatus: paymentStatus as any,
-    paymentIntentId 
+    paymentIntentId
   }).where(eq(orders.id, id));
+}
+
+export async function deleteOrder(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  // First delete order items (foreign key constraint)
+  await db.delete(orderItems).where(eq(orderItems.orderId, id));
+  // Then delete the order itself
+  await db.delete(orders).where(eq(orders.id, id));
 }
 
 // ===== COUPONS =====
