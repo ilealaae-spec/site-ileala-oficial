@@ -958,7 +958,7 @@ export const appRouter = router({
         name: nameSchema,
         email: emailSchema,
         subject: z.string().max(200).optional(),
-        message: z.string().min(10, 'Message must be at least 10 characters').max(5000),
+        message: z.string().min(1, 'Message is required').max(5000),
       }))
       .mutation(async ({ input }) => {
         try {
