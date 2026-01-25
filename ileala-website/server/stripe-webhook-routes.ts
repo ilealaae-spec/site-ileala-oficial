@@ -1,6 +1,7 @@
 import express, { Express, Request, Response } from "express";
 import { logger } from "./_core/logger";
 import Stripe from "stripe";
+import * as db from "./db";
 
 // Initialize Stripe with the secret key
 const getStripe = () => {
@@ -59,12 +60,68 @@ export function registerStripeWebhookRoutes(app: Express) {
 
         // Handle specific event types
         switch (event.type) {
-          case "checkout.session.completed":
+          case "checkout.session.completed": {
+            const session = event.data.object as Stripe.Checkout.Session;
             logger.info("[Stripe Webhook] Checkout session completed", {
-              sessionId: (event.data.object as any).id,
+              sessionId: session.id,
+              paymentStatus: session.payment_status,
+              orderId: session.metadata?.orderId,
             });
-            // TODO: Fulfill the order
+
+            // Fulfill the order - update payment status
+            if (session.payment_status === "paid" && session.metadata?.orderId) {
+              const orderId = parseInt(session.metadata.orderId);
+              try {
+                await db.updateOrderPaymentStatus(orderId, "paid");
+                logger.info(`[Stripe Webhook] Order #${orderId} marked as paid`);
+
+                // Send order confirmation email
+                try {
+                  const order = await db.getOrderById(orderId);
+                  if (order && order.customerEmail) {
+                    const orderItems = await db.getOrderItems(orderId);
+                    const { sendOrderConfirmationEmail } = await import("./email");
+                    await sendOrderConfirmationEmail(
+                      order.customerEmail,
+                      order.customerName || "Customer",
+                      orderId,
+                      order.totalAmount,
+                      orderItems.map((item: any) => ({
+                        name: item.product?.nameEN || "Product",
+                        quantity: item.quantity,
+                        price: item.priceAtPurchase,
+                      }))
+                    );
+                    logger.info(`[Stripe Webhook] Confirmation email sent to ${order.customerEmail}`);
+
+                    // Update loyalty program
+                    if (order.userId) {
+                      try {
+                        const amountInFils = Math.round(order.totalAmount * 100);
+                        const loyaltyResult = await db.updateMemberSpending(order.userId, amountInFils, orderId);
+                        if (loyaltyResult.tierChanged && loyaltyResult.newTier) {
+                          const { sendTierUpgradeEmail } = await import("./email");
+                          await sendTierUpgradeEmail(
+                            order.customerEmail,
+                            order.customerName || "Valued Customer",
+                            loyaltyResult.newTier,
+                            loyaltyResult.member?.previousTier || "green"
+                          );
+                        }
+                      } catch (loyaltyError) {
+                        logger.error("[Stripe Webhook] Loyalty update failed:", loyaltyError);
+                      }
+                    }
+                  }
+                } catch (emailError) {
+                  logger.error("[Stripe Webhook] Failed to send confirmation email:", emailError);
+                }
+              } catch (dbError) {
+                logger.error(`[Stripe Webhook] Failed to update order #${orderId}:`, dbError);
+              }
+            }
             break;
+          }
 
           case "payment_intent.succeeded":
             logger.info("[Stripe Webhook] Payment intent succeeded", {
