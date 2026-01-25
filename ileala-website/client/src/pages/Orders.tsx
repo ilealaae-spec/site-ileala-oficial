@@ -5,7 +5,7 @@ import { trpc } from '@/lib/trpc';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Package, Calendar, CreditCard, MapPin, Loader2, ShoppingBag, Trash2, AlertCircle } from 'lucide-react';
+import { Package, Calendar, CreditCard, MapPin, Loader2, ShoppingBag, AlertCircle } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { toast } from 'sonner';
 
@@ -26,16 +26,6 @@ export default function Orders() {
     enabled: isAuthenticated,
   });
 
-  const cancelMutation = trpc.orders.cancel.useMutation({
-    onSuccess: () => {
-      toast.success(language === 'en' ? 'Order cancelled successfully' : 'Pedido cancelado com sucesso');
-      utils.orders.myOrders.invalidate();
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
-
   const retryPaymentMutation = trpc.payment.createCheckoutSession.useMutation({
     onSuccess: (data) => {
       if (data.url) {
@@ -51,16 +41,6 @@ export default function Orders() {
   // Separate orders into pending and completed
   const pendingOrders = orders?.filter((o: any) => o.paymentStatus === 'pending' && o.status !== 'cancelled') || [];
   const completedOrders = orders?.filter((o: any) => o.paymentStatus !== 'pending' || o.status === 'cancelled') || [];
-
-  const handleCancelOrder = (orderId: number, orderNumber: number) => {
-    if (window.confirm(
-      language === 'en'
-        ? `Are you sure you want to cancel order #${orderNumber}?`
-        : `Tem certeza que deseja cancelar o pedido #${orderNumber}?`
-    )) {
-      cancelMutation.mutate({ orderId });
-    }
-  };
 
   const handleRetryPayment = (orderId: number) => {
     retryPaymentMutation.mutate({ orderId });
@@ -228,39 +208,21 @@ export default function Orders() {
                             {formatPrice(order.totalAmount)}
                           </span>
                         </div>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-red-600 border-red-200 hover:bg-red-50"
-                            onClick={() => handleCancelOrder(order.id, order.id)}
-                            disabled={cancelMutation.isPending}
-                          >
-                            {cancelMutation.isPending ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <>
-                                <Trash2 className="w-4 h-4 mr-1" />
-                                {language === 'en' ? 'Cancel' : 'Cancelar'}
-                              </>
-                            )}
-                          </Button>
-                          <Button
-                            size="sm"
-                            className="bg-green-600 hover:bg-green-700 text-white font-semibold"
-                            onClick={() => handleRetryPayment(order.id)}
-                            disabled={retryPaymentMutation.isPending}
-                          >
-                            {retryPaymentMutation.isPending ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <>
-                                <CreditCard className="w-4 h-4 mr-1" />
-                                {language === 'en' ? 'Pay Now' : 'Pagar Agora'}
-                              </>
-                            )}
-                          </Button>
-                        </div>
+                        <Button
+                          size="sm"
+                          className="bg-green-600 hover:bg-green-700 text-white font-semibold"
+                          onClick={() => handleRetryPayment(order.id)}
+                          disabled={retryPaymentMutation.isPending}
+                        >
+                          {retryPaymentMutation.isPending ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <>
+                              <CreditCard className="w-4 h-4 mr-1" />
+                              {language === 'en' ? 'Pay Now' : 'Pagar Agora'}
+                            </>
+                          )}
+                        </Button>
                       </div>
                     </Card>
                   ))}
