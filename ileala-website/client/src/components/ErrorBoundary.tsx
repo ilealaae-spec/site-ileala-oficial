@@ -9,22 +9,35 @@ import { errorTracker } from "@/lib/errorTracking";
 interface Props {
   children: ReactNode;
   fallback?: ReactNode;
+  resetKey?: string; // Key to force reset when it changes
 }
 
 interface State {
   hasError: boolean;
   error: Error | null;
   errorInfo: React.ErrorInfo | null;
+  lastResetKey?: string;
 }
 
 class ErrorBoundaryClass extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false, error: null, errorInfo: null };
+    this.state = { hasError: false, error: null, errorInfo: null, lastResetKey: props.resetKey };
   }
 
   static getDerivedStateFromError(error: Error): Partial<State> {
     return { hasError: true, error };
+  }
+
+  static getDerivedStateFromProps(props: Props, state: State): Partial<State> | null {
+    // Reset error boundary when resetKey changes (e.g., on navigation)
+    if (props.resetKey !== state.lastResetKey && state.hasError) {
+      return { hasError: false, error: null, errorInfo: null, lastResetKey: props.resetKey };
+    }
+    if (props.resetKey !== state.lastResetKey) {
+      return { lastResetKey: props.resetKey };
+    }
+    return null;
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
@@ -34,7 +47,7 @@ class ErrorBoundaryClass extends Component<Props, State> {
       type: 'react-error-boundary',
       path: typeof window !== 'undefined' ? window.location.pathname : undefined,
     });
-    
+
     this.setState({ errorInfo });
   }
 
@@ -143,9 +156,41 @@ function ErrorFallback({ error, errorInfo }: { error: Error | null; errorInfo: R
   );
 }
 
-// Wrapper component to provide ErrorBoundary with hooks support
-function ErrorBoundary({ children, fallback }: Props) {
-  return <ErrorBoundaryClass fallback={fallback}>{children}</ErrorBoundaryClass>;
+// Wrapper component to provide ErrorBoundary with hooks support and auto-reset on navigation
+function ErrorBoundary({ children, fallback, resetKey }: Props) {
+  // Use pathname as resetKey to auto-reset on navigation
+  const [pathname, setPathname] = React.useState(
+    typeof window !== 'undefined' ? window.location.pathname : ''
+  );
+
+  React.useEffect(() => {
+    // Listen for navigation changes
+    const handleLocationChange = () => {
+      setPathname(window.location.pathname);
+    };
+
+    // Listen for popstate (back/forward navigation)
+    window.addEventListener('popstate', handleLocationChange);
+
+    // Also observe URL changes using a MutationObserver on the title (which changes with pages)
+    // or periodically check the pathname
+    const checkInterval = setInterval(() => {
+      if (window.location.pathname !== pathname) {
+        setPathname(window.location.pathname);
+      }
+    }, 100);
+
+    return () => {
+      window.removeEventListener('popstate', handleLocationChange);
+      clearInterval(checkInterval);
+    };
+  }, [pathname]);
+
+  return (
+    <ErrorBoundaryClass fallback={fallback} resetKey={resetKey || pathname}>
+      {children}
+    </ErrorBoundaryClass>
+  );
 }
 
 // Hook to reset error boundary programmatically
