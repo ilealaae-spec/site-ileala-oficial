@@ -1781,13 +1781,38 @@ export const appRouter = router({
       return await db.getAllOrders();
     }),
     updateStatus: protectedProcedure
-      .input(z.object({ 
+      .input(z.object({
         orderId: z.number(),
         status: z.enum(['pending', 'processing', 'shipped', 'delivered', 'completed', 'cancelled'])
       }))
       .mutation(async ({ ctx, input }) => {
         if (ctx.user?.role !== 'admin') throw new Error('Unauthorized');
         await db.updateOrderStatus(input.orderId, input.status);
+        return { success: true };
+      }),
+    // Cancel order - users can only cancel their own pending orders
+    cancel: protectedProcedure
+      .input(z.object({ orderId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        if (!ctx.user) throw new Error('Not authenticated');
+
+        const order = await db.getOrderById(input.orderId);
+        if (!order) throw new Error('Order not found');
+
+        // Check ownership
+        if (order.userId !== ctx.user.id) {
+          throw new Error('You can only cancel your own orders');
+        }
+
+        // Can only cancel pending payment orders
+        if (order.paymentStatus !== 'pending') {
+          throw new Error('Only orders with pending payment can be cancelled');
+        }
+
+        // Update both status and payment status to cancelled
+        await db.updateOrderStatus(input.orderId, 'cancelled');
+        await db.updateOrderPaymentStatus(input.orderId, 'cancelled');
+
         return { success: true };
       }),
   }),
@@ -2816,7 +2841,13 @@ export const appRouter = router({
           line_items: lineItems,
           mode: 'payment',
           success_url: `${baseUrl}/order-confirmation/${input.orderId}?session_id={CHECKOUT_SESSION_ID}`,
-          cancel_url: `${baseUrl}/checkout`,
+          cancel_url: `${baseUrl}/orders`,
+          // Pre-fill customer email from order
+          customer_email: order.customerEmail || ctx.user.email || undefined,
+          // Allow phone number collection (editable)
+          phone_number_collection: {
+            enabled: true,
+          },
           metadata: {
             orderId: input.orderId.toString(),
           },

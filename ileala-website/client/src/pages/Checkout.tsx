@@ -12,6 +12,7 @@ import { Loader2, Lock, UserPlus, LogIn, Truck, MapPin, Gift, Crown } from 'luci
 import { toast } from 'sonner';
 import { useState } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
+import { useEffect } from 'react';
 
 // Shipping Zones and Countries
 const SHIPPING_ZONES = {
@@ -152,13 +153,22 @@ export default function Checkout() {
   const [appliedGiftCard, setAppliedGiftCard] = useState<{ code: string; balance: number; amountToUse: number } | null>(null);
   const [giftCardError, setGiftCardError] = useState('');
 
+  // Pre-fill user data when authenticated
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      // Always use the logged-in user's email - cannot be changed
+      if (user.email) setCustomerEmail(user.email);
+      // Pre-fill name if available
+      if (user.name) setCustomerName(user.name);
+    }
+  }, [isAuthenticated, user]);
+
   // Handle using registered address
   const handleUseRegisteredAddress = (checked: boolean) => {
     setUseRegisteredAddress(checked);
     if (checked && user) {
       // Pre-fill with user's registered info if available
       if (user.name) setCustomerName(user.name);
-      if (user.email) setCustomerEmail(user.email);
       // Note: You may need to add address fields to user profile later
     }
   };
@@ -502,17 +512,31 @@ export default function Checkout() {
                   </div>
 
                   <div>
-                    <Label htmlFor="email">
+                    <Label htmlFor="email" className="flex items-center gap-2">
                       {language === 'en' ? 'Email' : 'E-mail'} *
+                      {isAuthenticated && (
+                        <span className="text-xs text-muted-foreground font-normal">
+                          ({language === 'en' ? 'from your account' : 'da sua conta'})
+                        </span>
+                      )}
                     </Label>
                     <Input
                       id="email"
                       type="email"
                       required
                       value={customerEmail}
-                      onChange={(e) => setCustomerEmail(e.target.value)}
+                      onChange={(e) => !isAuthenticated && setCustomerEmail(e.target.value)}
                       placeholder={language === 'en' ? 'john@example.com' : 'joao@exemplo.com'}
+                      readOnly={isAuthenticated}
+                      className={isAuthenticated ? 'bg-muted cursor-not-allowed' : ''}
                     />
+                    {isAuthenticated && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {language === 'en'
+                          ? 'This is your account email and cannot be changed for security.'
+                          : 'Este é o email da sua conta e não pode ser alterado por segurança.'}
+                      </p>
+                    )}
                   </div>
 
                   <div>
