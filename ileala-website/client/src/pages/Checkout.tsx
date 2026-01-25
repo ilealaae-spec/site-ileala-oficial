@@ -692,32 +692,31 @@ export default function Checkout() {
 
                   {/* Shipping Cost Info */}
                   {selectedZone && selectedLocation && (
-                    <div className={`flex items-center gap-3 p-4 rounded-lg ${getShippingCost() === 0 ? 'bg-green-50 border border-green-200' : 'bg-blue-50 border border-blue-200'}`}>
+                    <div className={`flex items-center gap-3 p-4 rounded-lg ${getShippingCost() === 0 ? 'bg-primary/5 border border-primary' : 'bg-blue-50 border border-blue-200'}`}>
                       {isLoyaltyFreeShipping() ? (
                         <Crown className="w-5 h-5 text-amber-500" />
                       ) : (
-                        <Truck className={`w-5 h-5 ${getShippingCost() === 0 ? 'text-green-600' : 'text-blue-600'}`} />
+                        <Truck className={`w-5 h-5 ${getShippingCost() === 0 ? 'text-primary' : 'text-blue-600'}`} />
                       )}
                       <div>
                         {getShippingCost() === 0 ? (
                           isLoyaltyFreeShipping() ? (
                             <>
-                              <p className="text-sm font-semibold text-green-800 flex items-center gap-1">
-                                <Crown className="w-4 h-4 text-amber-500" />
+                              <p className="text-sm font-semibold text-primary">
                                 {language === 'en' ? 'Free Shipping - Loyalty Benefit!' : 'Frete Grátis - Benefício de Fidelidade!'}
                               </p>
-                              <p className="text-xs text-green-600">
+                              <p className="text-xs text-primary/70">
                                 {language === 'en'
-                                  ? `${loyaltyShipping?.tier?.toUpperCase()} member perk • Estimated delivery: ${getDeliveryTime()}`
-                                  : `Benefício ${loyaltyShipping?.tier?.toUpperCase()} • Entrega estimada: ${getDeliveryTime()}`}
+                                  ? `${loyaltyShipping?.tierName || loyaltyShipping?.tier?.toUpperCase()} member perk • Estimated delivery: ${getDeliveryTime()}`
+                                  : `Benefício ${loyaltyShipping?.tierName || loyaltyShipping?.tier?.toUpperCase()} • Entrega estimada: ${getDeliveryTime()}`}
                               </p>
                             </>
                           ) : (
                             <>
-                              <p className="text-sm font-semibold text-green-800">
+                              <p className="text-sm font-semibold text-primary">
                                 {language === 'en' ? '🎉 Free Delivery to Dubai!' : '🎉 Entrega Grátis para Dubai!'}
                               </p>
-                              <p className="text-xs text-green-600">
+                              <p className="text-xs text-primary/70">
                                 {language === 'en' ? `Estimated delivery: ${getDeliveryTime()}` : `Entrega estimada: ${getDeliveryTime()}`}
                               </p>
                             </>
@@ -751,19 +750,19 @@ export default function Checkout() {
 
                 {/* Use Last Order Address Checkbox */}
                 {isAuthenticated && user && lastAddress && (
-                  <div className="flex items-center space-x-3 mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-center space-x-3 mb-6 p-4 bg-primary/5 border border-primary rounded-lg">
                     <Checkbox
                       id="useRegisteredAddress"
                       checked={useRegisteredAddress}
                       onCheckedChange={handleUseRegisteredAddress}
                     />
                     <div>
-                      <Label htmlFor="useRegisteredAddress" className="cursor-pointer text-sm font-medium text-green-800">
+                      <Label htmlFor="useRegisteredAddress" className="cursor-pointer text-sm font-medium text-primary">
                         {language === 'en'
                           ? 'Use address from my last order'
                           : 'Usar endereço do meu último pedido'}
                       </Label>
-                      <p className="text-xs text-green-600 mt-0.5">
+                      <p className="text-xs text-primary/70 mt-0.5">
                         {lastAddress.shippingAddress?.split('\n')[0]}
                       </p>
                     </div>

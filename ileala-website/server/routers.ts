@@ -2802,10 +2802,18 @@ export const appRouter = router({
     checkFreeShipping: protectedProcedure
       .input(z.object({ shippingType: z.enum(['standard', 'express']) }))
       .query(async ({ ctx, input }) => {
-        if (!ctx.user) return { hasFreeShipping: false, tier: null };
+        if (!ctx.user) return { hasFreeShipping: false, tier: null, tierName: null };
         const hasFreeShipping = await db.memberHasFreeShipping(ctx.user.id, input.shippingType);
         const member = await db.getLoyaltyMemberByUserId(ctx.user.id);
-        return { hasFreeShipping, tier: member?.tier || null };
+        // Map tier to display name (platinum -> Black)
+        const tierDisplayNames: Record<string, string> = {
+          green: 'Green',
+          silver: 'Silver',
+          gold: 'Gold',
+          platinum: 'Black',
+        };
+        const tierName = member?.tier ? tierDisplayNames[member.tier] || member.tier : null;
+        return { hasFreeShipping, tier: member?.tier || null, tierName };
       }),
   }),
 
