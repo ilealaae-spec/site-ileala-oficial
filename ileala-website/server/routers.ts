@@ -1773,6 +1773,26 @@ export const appRouter = router({
       if (!ctx.user) throw new Error('Not authenticated');
       return await db.getUserOrders(ctx.user.id);
     }),
+    // Get user's last shipping address from their most recent order
+    getLastAddress: protectedProcedure.query(async ({ ctx }) => {
+      if (!ctx.user) throw new Error('Not authenticated');
+      const orders = await db.getUserOrders(ctx.user.id);
+      // Find the most recent order with shipping address (paid or completed)
+      const orderWithAddress = orders?.find((o: any) =>
+        o.shippingAddress && (o.paymentStatus === 'paid' || o.status === 'completed' || o.status === 'delivered')
+      ) || orders?.[0];
+
+      if (!orderWithAddress || !orderWithAddress.shippingAddress) {
+        return null;
+      }
+
+      return {
+        customerName: orderWithAddress.customerName,
+        customerEmail: orderWithAddress.customerEmail,
+        customerPhone: orderWithAddress.customerPhone,
+        shippingAddress: orderWithAddress.shippingAddress,
+      };
+    }),
     list: protectedProcedure.query(async ({ ctx }) => {
       // Only admins can list all orders
       if (ctx.user?.role !== 'admin') {

@@ -153,6 +153,11 @@ export default function Checkout() {
   const [appliedGiftCard, setAppliedGiftCard] = useState<{ code: string; balance: number; amountToUse: number } | null>(null);
   const [giftCardError, setGiftCardError] = useState('');
 
+  // Fetch user's last shipping address
+  const { data: lastAddress } = trpc.orders.getLastAddress.useQuery(undefined, {
+    enabled: isAuthenticated,
+  });
+
   // Pre-fill user data when authenticated
   useEffect(() => {
     if (isAuthenticated && user) {
@@ -163,13 +168,65 @@ export default function Checkout() {
     }
   }, [isAuthenticated, user]);
 
+  // Parse saved address into separate fields
+  const parseShippingAddress = (address: string) => {
+    const lines = address.split('\n');
+    let parsedStreet = '';
+    let parsedBuilding = '';
+    let parsedApartment = '';
+    let parsedCity = '';
+    let parsedPostalCode = '';
+
+    lines.forEach((line, index) => {
+      const trimmed = line.trim();
+      if (trimmed.startsWith('Building:')) {
+        parsedBuilding = trimmed.replace('Building:', '').trim();
+      } else if (trimmed.startsWith('Apt/Unit:')) {
+        parsedApartment = trimmed.replace('Apt/Unit:', '').trim();
+      } else if (trimmed.startsWith('Postal Code:')) {
+        parsedPostalCode = trimmed.replace('Postal Code:', '').trim();
+      } else if (index === 0) {
+        // First line is usually street address
+        parsedStreet = trimmed;
+      } else if (!parsedCity && trimmed && !trimmed.includes(':')) {
+        // Next non-prefixed line is likely the city
+        parsedCity = trimmed;
+      }
+    });
+
+    return { parsedStreet, parsedBuilding, parsedApartment, parsedCity, parsedPostalCode };
+  };
+
   // Handle using registered address
-  const handleUseRegisteredAddress = (checked: boolean) => {
-    setUseRegisteredAddress(checked);
-    if (checked && user) {
-      // Pre-fill with user's registered info if available
-      if (user.name) setCustomerName(user.name);
-      // Note: You may need to add address fields to user profile later
+  const handleUseRegisteredAddress = (checked: boolean | 'indeterminate') => {
+    const isChecked = checked === true;
+    setUseRegisteredAddress(isChecked);
+    if (isChecked && lastAddress) {
+      // Pre-fill with last order's info
+      if (lastAddress.customerName) setCustomerName(lastAddress.customerName);
+      if (lastAddress.customerPhone) setCustomerPhone(lastAddress.customerPhone);
+      if (lastAddress.shippingAddress) {
+        const { parsedStreet, parsedBuilding, parsedApartment, parsedCity, parsedPostalCode } =
+          parseShippingAddress(lastAddress.shippingAddress);
+        if (parsedStreet) setStreetAddress(parsedStreet);
+        if (parsedBuilding) setBuildingName(parsedBuilding);
+        if (parsedApartment) setApartmentUnit(parsedApartment);
+        if (parsedCity) setCity(parsedCity);
+        if (parsedPostalCode) setPostalCode(parsedPostalCode);
+      }
+      toast.success(
+        language === 'en'
+          ? 'Address loaded from your last order'
+          : 'Endereço carregado do seu último pedido'
+      );
+    } else if (!isChecked) {
+      // Clear all fields when unchecked
+      setStreetAddress('');
+      setBuildingName('');
+      setApartmentUnit('');
+      setCity('');
+      setPostalCode('');
+      setCustomerPhone('');
     }
   };
 
@@ -692,19 +749,24 @@ export default function Checkout() {
                   </h2>
                 </div>
 
-                {/* Use Registered Address Checkbox */}
-                {isAuthenticated && user && (
-                  <div className="flex items-center space-x-3 mb-6 p-4 bg-muted/50 rounded-lg">
+                {/* Use Last Order Address Checkbox */}
+                {isAuthenticated && user && lastAddress && (
+                  <div className="flex items-center space-x-3 mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
                     <Checkbox
                       id="useRegisteredAddress"
                       checked={useRegisteredAddress}
                       onCheckedChange={handleUseRegisteredAddress}
                     />
-                    <Label htmlFor="useRegisteredAddress" className="cursor-pointer text-sm">
-                      {language === 'en'
-                        ? 'Use my registered account information'
-                        : 'Usar informações da minha conta'}
-                    </Label>
+                    <div>
+                      <Label htmlFor="useRegisteredAddress" className="cursor-pointer text-sm font-medium text-green-800">
+                        {language === 'en'
+                          ? 'Use address from my last order'
+                          : 'Usar endereço do meu último pedido'}
+                      </Label>
+                      <p className="text-xs text-green-600 mt-0.5">
+                        {lastAddress.shippingAddress?.split('\n')[0]}
+                      </p>
+                    </div>
                   </div>
                 )}
 
