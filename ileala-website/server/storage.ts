@@ -109,12 +109,13 @@ export async function storagePut(
   
   // Let AWS SDK validate the bucket name format - it has the correct rules
   
-  // Upload to S3
+  // Upload to S3 with cache control to prevent aggressive browser caching
   const command = new PutObjectCommand({
     Bucket: bucketName,
     Key: key,
     Body: buffer,
     ContentType: contentType,
+    CacheControl: 'public, max-age=300, must-revalidate', // Cache for 5 minutes, then must revalidate
     // ACL removed - bucket should be configured with public access policy instead
   });
   

@@ -136,7 +136,16 @@ export default function MyLoyalty() {
     return tierCustomSettings[key] || (lang === 'en' ? defaults?.subtitleEN : defaults?.subtitlePT) || '';
   };
 
-  const heroImage = heroImageSetting?.value || DEFAULT_HERO_IMAGE;
+  // Add cache busting to uploaded images
+  const addCacheBust = (url: string | undefined) => {
+    if (!url) return url;
+    if (url.includes('/uploads/')) {
+      return `${url}?v=${Date.now()}`;
+    }
+    return url;
+  };
+
+  const heroImage = addCacheBust(heroImageSetting?.value) || DEFAULT_HERO_IMAGE;
   const heroTitle = heroTitleSetting?.value || 'Inside The Green World';
   const heroSubtitle = heroSubtitleSetting?.value || 'A private universe where ritual, beauty, and time shape the art of living.';
 

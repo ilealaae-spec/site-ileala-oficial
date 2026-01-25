@@ -11,13 +11,14 @@ interface PageBannerProps {
   showOverlay?: boolean;
 }
 
-// Cache banner URLs in localStorage
+// Cache banner URLs in localStorage (5 minutes instead of 1 hour for faster updates)
 const getBannerCache = (pageSlug: string) => {
   try {
     const cached = localStorage.getItem(`banner_${pageSlug}`);
     if (cached) {
       const parsed = JSON.parse(cached);
-      if (Date.now() - parsed.timestamp < 60 * 60 * 1000) {
+      // 5 minutes cache - shorter time for faster updates
+      if (Date.now() - parsed.timestamp < 5 * 60 * 1000) {
         return parsed.imageUrl;
       }
     }

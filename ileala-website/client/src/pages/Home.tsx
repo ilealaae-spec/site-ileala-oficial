@@ -51,10 +51,25 @@ export default function Home() {
   const { data: dbVideos } = trpc.homepageVideos.listActive.useQuery();
   const { data: dbCards } = trpc.homepageCards.listActive.useQuery();
 
-  // Use database data if available, otherwise use defaults
-  const slides = (dbSlides && dbSlides.length > 0) ? dbSlides : defaultSlides;
-  const videos = (dbVideos && dbVideos.length > 0) ? dbVideos : defaultVideos;
-  const cards = (dbCards && dbCards.length > 0) ? dbCards : defaultCards;
+  // Add cache busting to uploaded images
+  const addCacheBust = (url: string | undefined) => {
+    if (!url) return url;
+    if (url.includes('/uploads/')) {
+      return `${url}?v=${Date.now()}`;
+    }
+    return url;
+  };
+
+  // Use database data if available, otherwise use defaults (with cache busting)
+  const slides = (dbSlides && dbSlides.length > 0)
+    ? dbSlides.map(s => ({ ...s, imageUrl: addCacheBust(s.imageUrl) || s.imageUrl }))
+    : defaultSlides;
+  const videos = (dbVideos && dbVideos.length > 0)
+    ? dbVideos.map(v => ({ ...v, videoUrl: addCacheBust(v.videoUrl) || v.videoUrl }))
+    : defaultVideos;
+  const cards = (dbCards && dbCards.length > 0)
+    ? dbCards.map(c => ({ ...c, imageUrl: addCacheBust(c.imageUrl) || c.imageUrl }))
+    : defaultCards;
 
   // Auto-play do carrossel
   useEffect(() => {

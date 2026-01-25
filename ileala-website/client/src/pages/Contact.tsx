@@ -24,7 +24,16 @@ export default function Contact() {
   const { data: heroSubtitleENSetting } = trpc.settings.get.useQuery({ key: 'contact-hero-subtitle-en' });
   const { data: heroSubtitlePTSetting } = trpc.settings.get.useQuery({ key: 'contact-hero-subtitle-pt' });
 
-  const heroImage = heroImageSetting?.value || DEFAULT_HERO_IMAGE;
+  // Add cache busting to uploaded images
+  const addCacheBust = (url: string | undefined) => {
+    if (!url) return url;
+    if (url.includes('/uploads/')) {
+      return `${url}?v=${Date.now()}`;
+    }
+    return url;
+  };
+
+  const heroImage = addCacheBust(heroImageSetting?.value) || DEFAULT_HERO_IMAGE;
   const heroTitle = language === 'en'
     ? (heroTitleENSetting?.value || t.contact.title)
     : (heroTitlePTSetting?.value || t.contact.title);

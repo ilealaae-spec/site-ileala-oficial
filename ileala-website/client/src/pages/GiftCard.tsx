@@ -38,9 +38,18 @@ export default function GiftCard() {
   // Icon/logo setting
   const { data: cardIconSetting } = trpc.settings.get.useQuery({ key: 'gift-card-icon' });
 
-  const giftCardImage = giftCardImageSetting?.value;
-  const giftCardHeroImage = giftCardHeroImageSetting?.value;
-  const cardIcon = cardIconSetting?.value;
+  // Add cache busting to uploaded images
+  const addCacheBust = (url: string | undefined) => {
+    if (!url) return url;
+    if (url.includes('/uploads/')) {
+      return `${url}?v=${Date.now()}`;
+    }
+    return url;
+  };
+
+  const giftCardImage = addCacheBust(giftCardImageSetting?.value);
+  const giftCardHeroImage = addCacheBust(giftCardHeroImageSetting?.value);
+  const cardIcon = addCacheBust(cardIconSetting?.value);
   const minValue = minValueSetting?.value ? parseInt(minValueSetting.value) : 50;
   const maxValue = maxValueSetting?.value ? parseInt(maxValueSetting.value) : 2000;
   // Custom text values with defaults
