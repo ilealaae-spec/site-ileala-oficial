@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { trpc } from '@/lib/trpc';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface PageBannerProps {
   pageSlug: string;
@@ -39,14 +40,17 @@ export default function PageBanner({
   pageSlug,
   defaultImage,
   defaultAlt,
-  title,
-  subtitle,
+  title: propTitle,
+  subtitle: propSubtitle,
   height = 'h-[50vh] min-h-[400px]',
   showOverlay = true
 }: PageBannerProps) {
+  const { language } = useLanguage();
   const cachedUrl = getBannerCache(pageSlug);
   const [imageUrl, setImageUrl] = useState(cachedUrl || defaultImage);
   const [altText, setAltText] = useState(defaultAlt);
+  const [dbTitle, setDbTitle] = useState<string | null>(null);
+  const [dbSubtitle, setDbSubtitle] = useState<string | null>(null);
 
   const { data: dbBanner } = (trpc as any).pageBanners.get.useQuery(
     { pageSlug },
@@ -71,7 +75,24 @@ export default function PageBanner({
         setAltText(dbBanner.altText);
       }
     }
-  }, [dbBanner, pageSlug]);
+
+    // Set title and subtitle based on language
+    if (dbBanner) {
+      const title = language === 'pt'
+        ? (dbBanner.titlePT || dbBanner.titleEN)
+        : (dbBanner.titleEN || dbBanner.titlePT);
+      const subtitle = language === 'pt'
+        ? (dbBanner.subtitlePT || dbBanner.subtitleEN)
+        : (dbBanner.subtitleEN || dbBanner.subtitlePT);
+
+      setDbTitle(title || null);
+      setDbSubtitle(subtitle || null);
+    }
+  }, [dbBanner, pageSlug, language]);
+
+  // Use database values if available, otherwise fall back to props
+  const displayTitle = dbTitle || propTitle;
+  const displaySubtitle = dbSubtitle || propSubtitle;
 
   return (
     <section
@@ -86,15 +107,15 @@ export default function PageBanner({
       {showOverlay && <div className="absolute inset-0 bg-black/30" />}
 
       {/* Content */}
-      {title && (
+      {displayTitle && (
         <div className="relative container h-full flex items-center justify-center">
           <div className="text-center text-white max-w-3xl">
             <h1 className="text-4xl md:text-6xl font-bold mb-4">
-              {title}
+              {displayTitle}
             </h1>
-            {subtitle && (
+            {displaySubtitle && (
               <p className="text-lg md:text-xl font-light">
-                {subtitle}
+                {displaySubtitle}
               </p>
             )}
           </div>
