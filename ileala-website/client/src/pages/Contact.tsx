@@ -69,14 +69,14 @@ export default function Contact() {
   return (
     <div className="w-full">
       {/* Hero Section with Image */}
-      <section className="relative h-[50vh] min-h-[400px] flex items-center justify-center overflow-hidden bg-[#255238]">
-        <img
-          src={heroImage}
-          alt="Contact ILE ALA"
-          className="absolute inset-0 w-full h-full object-cover"
-          loading="eager"
-          fetchPriority="high"
-        />
+      <section
+        className="relative h-[50vh] min-h-[400px] flex items-center justify-center overflow-hidden"
+        style={{
+          backgroundImage: `url(${heroImage})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center'
+        }}
+      >
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/50" />
 
         <div className="relative z-10 text-center text-white px-4 max-w-3xl mx-auto">
