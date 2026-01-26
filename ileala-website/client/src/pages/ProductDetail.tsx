@@ -43,6 +43,7 @@ export default function ProductDetail() {
         price: product.price,
         imageUrl: product.imageUrl || product.mainImage || '',
         slug: product.slug,
+        stock: product.stock,
       }, quantity);
       setQuantity(1);
       setTimeout(() => setIsAdding(false), 500);

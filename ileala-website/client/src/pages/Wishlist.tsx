@@ -39,6 +39,7 @@ export default function Wishlist() {
       name: language === 'en' ? product.nameEN : product.namePT,
       price: product.price,
       imageUrl: product.imageUrl || product.mainImage || '',
+      stock: product.stock,
     }, 1);
     toast.success(language === 'en' ? 'Added to cart' : 'Adicionado ao carrinho');
   };

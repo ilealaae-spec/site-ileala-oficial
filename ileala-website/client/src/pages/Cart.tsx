@@ -104,25 +104,36 @@ export default function Cart() {
                       <Trash2 className="w-4 h-4 text-destructive" />
                     </Button>
 
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                        disabled={item.quantity <= 1}
-                      >
-                        <Minus className="w-3 h-3" />
-                      </Button>
-                      <span className="w-8 text-center font-semibold">{item.quantity}</span>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                      >
-                        <Plus className="w-3 h-3" />
-                      </Button>
+                    <div className="flex flex-col items-end gap-1">
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                          disabled={item.quantity <= 1}
+                        >
+                          <Minus className="w-3 h-3" />
+                        </Button>
+                        <span className="w-8 text-center font-semibold">{item.quantity}</span>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                          disabled={item.stock !== undefined && item.stock > 0 && item.quantity >= item.stock}
+                          title={item.stock !== undefined && item.stock > 0 && item.quantity >= item.stock
+                            ? (language === 'en' ? 'Maximum stock reached' : 'Estoque máximo atingido')
+                            : undefined}
+                        >
+                          <Plus className="w-3 h-3" />
+                        </Button>
+                      </div>
+                      {item.stock !== undefined && item.stock > 0 && item.quantity >= item.stock && (
+                        <span className="text-xs text-amber-600">
+                          {language === 'en' ? `Only ${item.stock} in stock` : `Apenas ${item.stock} em estoque`}
+                        </span>
+                      )}
                     </div>
 
                     <p className="text-sm font-semibold">

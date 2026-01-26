@@ -64,6 +64,7 @@ export default function CollectionPage() {
       price: product.price,
       imageUrl: product.imageUrl || undefined,
       slug: product.slug,
+      stock: product.stock,
     });
 
     toast.success(

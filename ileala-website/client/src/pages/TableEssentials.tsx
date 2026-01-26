@@ -208,6 +208,7 @@ export default function TableEssentials() {
                                 price: product.price,
                                 imageUrl: product.imageUrl || undefined,
                                 slug: product.slug,
+                                stock: product.stock,
                               });
                               toast.success(language === 'en' ? 'Added to cart' : 'Adicionado ao carrinho');
                             }}

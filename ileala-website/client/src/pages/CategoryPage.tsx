@@ -78,6 +78,7 @@ export default function CategoryPage() {
       price: product.price,
       imageUrl: product.imageUrl || undefined,
       slug: product.slug,
+      stock: product.stock,
     });
   };
 

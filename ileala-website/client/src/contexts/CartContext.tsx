@@ -10,6 +10,7 @@ export interface CartItem {
   quantity: number;
   imageUrl?: string;
   slug?: string;
+  stock?: number; // Available stock for validation
 }
 
 interface CartContextType {
@@ -96,6 +97,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         quantity: item.quantity,
         imageUrl: item.product?.imageUrl || item.product?.mainImage,
         slug: item.product?.slug,
+        stock: item.product?.stock || 0, // Include stock for validation
         cartItemId: item.id, // Keep track of the cart item ID for updates
       }));
     }
