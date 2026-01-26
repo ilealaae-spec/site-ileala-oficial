@@ -24,9 +24,10 @@ export default function TableEssentials() {
   const allProducts = (allProductsData || []) as any[];
 
   // Filter products by collections: Tablecloth, Table Runner, Cocktail Napkin, Coaster, Table Essentials
+  // Accepts both slug format (table-runner) and display format (table runner)
   const products = allProducts.filter((p: any) => {
-    const collection = (p.collection || '').toLowerCase();
-    const category = (p.category || '').toLowerCase();
+    const collection = (p.collection || '').toLowerCase().replace(/-/g, ' ');
+    const category = (p.category || '').toLowerCase().replace(/-/g, ' ');
     return (
       (collection.includes('tablecloth') ||
        collection.includes('table runner') ||

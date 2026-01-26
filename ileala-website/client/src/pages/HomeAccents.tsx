@@ -26,9 +26,10 @@ export default function HomeAccents() {
   const queryError = productsQuery.error;
 
   // Filter products by collections: Cushions, Hand Towels, Home Accents
+  // Accepts both slug format (hand-towel) and display format (hand towel)
   const products: any[] = allProducts.filter((p: any) => {
-    const collection = (p.collection || '').toLowerCase();
-    const category = (p.category || '').toLowerCase();
+    const collection = (p.collection || '').toLowerCase().replace(/-/g, ' ');
+    const category = (p.category || '').toLowerCase().replace(/-/g, ' ');
     return (
       (collection.includes('cushion') ||
        collection.includes('hand towel') ||

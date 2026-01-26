@@ -26,10 +26,11 @@ export default function NapkinRings() {
   const queryError = productsQuery.error;
 
   // Filter products by collection "Napkin Rings" - more flexible matching
+  // Accepts both slug format (napkin-rings) and display format (napkin rings)
   const products: any[] = allProducts.filter((p: any) => {
     if (p.active !== 1) return false;
-    const collection = (p.collection || '').toLowerCase();
-    const category = (p.category || '').toLowerCase();
+    const collection = (p.collection || '').toLowerCase().replace(/-/g, ' ');
+    const category = (p.category || '').toLowerCase().replace(/-/g, ' ');
     return collection.includes('napkin') || collection.includes('napkin ring') || category.includes('napkin');
   });
 

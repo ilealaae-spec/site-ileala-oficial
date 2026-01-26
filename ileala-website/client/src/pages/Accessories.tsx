@@ -26,9 +26,10 @@ export default function Accessories() {
   const queryError = productsQuery.error;
 
   // Filter products by category "bags-accessories" or "Accessories"
+  // Accepts both slug format (bags-accessories) and display format (bags accessories)
   const products: any[] = allProducts.filter((p: any) => {
-    const category = (p.category || '').toLowerCase();
-    return (category === 'bags-accessories' || category === 'accessories' || category.includes('accessor')) && p.active === 1;
+    const category = (p.category || '').toLowerCase().replace(/-/g, ' ');
+    return (category === 'bags accessories' || category === 'accessories' || category.includes('accessor')) && p.active === 1;
   });
 
   // Format price: database stores price directly in AED

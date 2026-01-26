@@ -26,9 +26,10 @@ export default function PetCollection() {
   const queryError = productsQuery.error;
 
   // Filter products by category "pet-collection" or "Pet Collections"
+  // Accepts both slug format (pet-collection) and display format (pet collection)
   const products: any[] = allProducts.filter((p: any) => {
-    const category = (p.category || '').toLowerCase();
-    return (category === 'pet-collection' || category === 'pet collections' || category.includes('pet')) && p.active === 1;
+    const category = (p.category || '').toLowerCase().replace(/-/g, ' ');
+    return (category === 'pet collection' || category === 'pet collections' || category.includes('pet')) && p.active === 1;
   });
 
   // Format price: database stores price directly in AED
