@@ -1051,7 +1051,7 @@ export async function updateUserPassword(userId: number, newPassword: string) {
   }
 
   // Hash the new password
-  const bcrypt = await import('bcrypt');
+  const bcrypt = await import('bcryptjs');
   const hashedPassword = await bcrypt.hash(newPassword, 10);
 
   // Update user password
@@ -3387,7 +3387,7 @@ export async function deleteLoyaltyMember(memberId: number): Promise<{ success: 
 
   try {
     // First delete any activity logs
-    await db.delete(loyaltyActivity).where(eq(loyaltyActivity.memberId, memberId));
+    await db.delete(loyaltyActivityLog).where(eq(loyaltyActivityLog.memberId, memberId));
 
     // Then delete the member
     await db.delete(loyaltyMembers).where(eq(loyaltyMembers.id, memberId));

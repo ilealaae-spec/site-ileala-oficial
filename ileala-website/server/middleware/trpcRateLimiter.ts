@@ -1,7 +1,7 @@
 // server/middleware/trpcRateLimiter.ts (Native tRPC Version)
 
 import { TRPCError } from '@trpc/server';
-import { router, publicProcedure } from '../_core/trpc';
+import { t, router, publicProcedure } from '../_core/trpc';
 // Import your original rate limiting functions (which received Express req, res, next):
 import {
     registerLimiter,

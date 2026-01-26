@@ -4,7 +4,7 @@ import superjson from "superjson";
 import type { TrpcContext } from "./context";
 import { logger } from "./logger";
 
-const t = initTRPC.context<TrpcContext>().create({
+export const t = initTRPC.context<TrpcContext>().create({
   transformer: superjson,
   errorFormatter: ({ shape, error, ctx }) => {
     // Log errors in production
@@ -12,7 +12,7 @@ const t = initTRPC.context<TrpcContext>().create({
       logger.error('[tRPC] Error:', {
         code: error.code,
         message: error.message,
-        path: error.path,
+        path: shape.data?.path,
         userId: ctx?.user?.id,
       });
     }
