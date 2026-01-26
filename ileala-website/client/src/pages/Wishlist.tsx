@@ -128,7 +128,7 @@ export default function Wishlist() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {wishlistItems.map((item) => (
             <Card key={item.id} className="overflow-hidden group">
-              <Link href={`/product/${item.product?.slug}`}>
+              <Link href={`/shop/${item.product?.slug}`}>
                 <div className="aspect-square overflow-hidden bg-sage-100">
                   <img
                     src={item.product?.imageUrl || item.product?.mainImage || '/images/placeholder.webp'}
@@ -138,7 +138,7 @@ export default function Wishlist() {
                 </div>
               </Link>
               <div className="p-4">
-                <Link href={`/product/${item.product?.slug}`}>
+                <Link href={`/shop/${item.product?.slug}`}>
                   <h3 className="font-semibold text-sage-900 mb-1 hover:text-sage-700 transition-colors">
                     {language === 'en' ? item.product?.nameEN : item.product?.namePT}
                   </h3>
