@@ -1,11 +1,10 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/_core/hooks/useAuth';
 import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,6 +36,29 @@ export default function Header() {
   const { user, isAuthenticated, logout } = useAuth();
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [location] = useLocation();
+
+  // Navigate on hover with delay to prevent accidental navigation
+  const handleMenuHover = useCallback((href: string) => {
+    // Clear any existing timeout
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+    }
+    // Don't navigate if already on this page
+    if (location === href) return;
+    // Set timeout to navigate after 300ms hover
+    hoverTimeoutRef.current = setTimeout(() => {
+      setLocation(href);
+    }, 300);
+  }, [location, setLocation]);
+
+  const handleMenuLeave = useCallback(() => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+  }, []);
 
   // Get wishlist count
   const { data: wishlistItems } = trpc.wishlist.items.useQuery(undefined, {
@@ -283,6 +305,8 @@ export default function Header() {
                   key={item.href}
                   href={item.href}
                   className="text-sm font-medium text-[#214430] hover:text-[#255238] transition-colors whitespace-nowrap"
+                  onMouseEnter={() => handleMenuHover(item.href)}
+                  onMouseLeave={handleMenuLeave}
                 >
                   {item.href === '/my-loyalty' ? (
                     <span className="flex flex-col items-center leading-tight">
