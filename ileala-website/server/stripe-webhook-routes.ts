@@ -3,6 +3,10 @@ import { logger } from "./_core/logger";
 import Stripe from "stripe";
 import * as db from "./db";
 
+// Get expected Stripe API version from the installed package
+// @ts-ignore - access the default API version
+const STRIPE_API_VERSION = "2025-10-29.clover" as const;
+
 // Initialize Stripe with the secret key
 const getStripe = () => {
   const secretKey = process.env.STRIPE_SECRET_KEY;
@@ -10,7 +14,7 @@ const getStripe = () => {
     logger.warn("[Stripe] STRIPE_SECRET_KEY not configured");
     return null;
   }
-  return new Stripe(secretKey, { apiVersion: "2025-10-29.clover" });
+  return new Stripe(secretKey, { apiVersion: STRIPE_API_VERSION });
 };
 
 /**
@@ -26,10 +30,15 @@ export function registerStripeWebhookRoutes(app: Express) {
       const sig = req.headers["stripe-signature"] as string;
       const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
+      const bodyBuffer = req.body;
+      const isBuffer = Buffer.isBuffer(bodyBuffer);
+
       logger.info("[Stripe Webhook] Received webhook request", {
         hasSignature: !!sig,
         hasWebhookSecret: !!webhookSecret,
-        bodySize: req.body ? req.body.length : 0,
+        bodySize: bodyBuffer ? bodyBuffer.length : 0,
+        isBuffer,
+        contentType: req.headers["content-type"],
       });
 
       // If no webhook secret is configured, just acknowledge
@@ -41,6 +50,11 @@ export function registerStripeWebhookRoutes(app: Express) {
       if (!sig) {
         logger.warn("[Stripe Webhook] Missing stripe-signature header");
         return res.status(400).json({ error: "Missing stripe-signature header" });
+      }
+
+      if (!bodyBuffer || bodyBuffer.length === 0) {
+        logger.warn("[Stripe Webhook] Empty request body");
+        return res.status(400).json({ error: "Empty request body" });
       }
 
       try {
@@ -145,11 +159,22 @@ export function registerStripeWebhookRoutes(app: Express) {
         if (error.type === "StripeSignatureVerificationError") {
           logger.error("[Stripe Webhook] Signature verification failed", {
             message: error.message,
+            signatureHeader: sig ? sig.substring(0, 50) + "..." : "none",
+            secretConfigured: !!webhookSecret,
+            secretLength: webhookSecret ? webhookSecret.length : 0,
           });
-          return res.status(400).json({ error: "Webhook signature verification failed" });
+          return res.status(400).json({
+            error: "Webhook signature verification failed",
+            hint: "Check STRIPE_WEBHOOK_SECRET environment variable"
+          });
         }
 
-        logger.error("[Stripe Webhook] Error processing webhook:", error);
+        logger.error("[Stripe Webhook] Error processing webhook:", {
+          errorName: error.name,
+          errorMessage: error.message,
+          errorType: error.type,
+          stack: error.stack?.substring(0, 500),
+        });
         // Return 200 to prevent Stripe from retrying for other errors
         res.status(200).json({ received: true, error: "processing_error_logged" });
       }
