@@ -107,6 +107,8 @@ export default function TableEssentials() {
           <div className="max-w-2xl mx-auto relative">
             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
             <input
+              id="table-essentials-search"
+              name="table-essentials-search"
               type="text"
               placeholder={language === 'en' ? 'Search table essentials...' : 'Buscar essenciais de mesa...'}
               value={searchQuery}

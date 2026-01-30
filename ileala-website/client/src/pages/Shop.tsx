@@ -138,6 +138,8 @@ export default function Shop() {
           <div className="max-w-2xl mx-auto relative">
             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
             <input
+              id="shop-search"
+              name="shop-search"
               type="text"
               placeholder={language === 'en' ? 'Search products, collections, categories...' : 'Buscar produtos, coleções, categorias...'}
               value={searchQuery}

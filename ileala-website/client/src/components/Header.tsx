@@ -113,6 +113,8 @@ export default function Header() {
           <form onSubmit={handleSearch} className="hidden md:flex items-center gap-2 flex-shrink-0 flex-1">
             <Search className="text-muted-foreground w-4 h-4" />
             <input
+              id="header-search"
+              name="header-search"
               type="text"
               placeholder={language === 'en' ? 'Search' : 'Pesquisar'}
               value={searchQuery}

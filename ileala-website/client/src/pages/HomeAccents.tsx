@@ -107,6 +107,8 @@ export default function HomeAccents() {
           <div className="max-w-2xl mx-auto relative">
             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
             <input
+              id="home-accents-search"
+              name="home-accents-search"
               type="text"
               placeholder={language === 'en' ? 'Search home accents...' : 'Buscar detalhes para casa...'}
               value={searchQuery}

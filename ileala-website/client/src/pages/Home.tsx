@@ -277,6 +277,8 @@ export default function Home() {
             </p>
             <form onSubmit={handleNewsletterSubmit} className="flex gap-4 max-w-md mx-auto">
               <input
+                id="newsletter-email"
+                name="newsletter-email"
                 type="email"
                 placeholder={language === 'en' ? 'Your email address' : 'Seu endereço de email'}
                 value={newsletterEmail}

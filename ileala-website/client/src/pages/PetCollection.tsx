@@ -102,6 +102,8 @@ export default function PetCollection() {
           <div className="max-w-2xl mx-auto relative">
             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
             <input
+              id="pet-collection-search"
+              name="pet-collection-search"
               type="text"
               placeholder={language === 'en' ? 'Search pet products...' : 'Buscar produtos para pets...'}
               value={searchQuery}
