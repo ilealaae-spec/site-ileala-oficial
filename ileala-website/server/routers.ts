@@ -1901,7 +1901,7 @@ export const appRouter = router({
           throw new Error('User is already an admin');
         }
 
-        await db.updateUserProfile(user.id, { role: 'admin' } as any);
+        await db.updateUserRole(user.id, 'admin');
         return { success: true, message: `User ${input.email} has been promoted to admin` };
       }),
 

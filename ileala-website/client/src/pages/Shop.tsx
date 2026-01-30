@@ -21,13 +21,35 @@ export default function Shop() {
   const urlParams = new URLSearchParams(window.location.search);
   const initialSearch = urlParams.get('search') || '';
   const [searchQuery, setSearchQuery] = useState(initialSearch);
-  
-  // Update search query when URL changes
+  const [urlSearch, setUrlSearch] = useState(window.location.search);
+
+  // Update search query when URL changes (including query params)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const searchParam = params.get('search') || '';
     setSearchQuery(searchParam);
-  }, [location]);
+    setUrlSearch(window.location.search);
+  }, [location, urlSearch]);
+
+  // Listen for URL changes that wouter might not detect (query params only)
+  useEffect(() => {
+    const checkUrlSearch = () => {
+      if (window.location.search !== urlSearch) {
+        setUrlSearch(window.location.search);
+      }
+    };
+
+    // Check on popstate (back/forward navigation)
+    window.addEventListener('popstate', checkUrlSearch);
+
+    // Also check periodically for programmatic navigation
+    const interval = setInterval(checkUrlSearch, 100);
+
+    return () => {
+      window.removeEventListener('popstate', checkUrlSearch);
+      clearInterval(interval);
+    };
+  }, [urlSearch]);
   
   // Fetch products from PostgreSQL via tRPC
   const { data: productsData, isLoading: loading, error: queryError } = trpc.products.list.useQuery(undefined, {

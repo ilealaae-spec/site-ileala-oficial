@@ -10,7 +10,7 @@ const getStripe = () => {
     logger.warn("[Stripe] STRIPE_SECRET_KEY not configured");
     return null;
   }
-  return new Stripe(secretKey, { apiVersion: "2024-12-18.acacia" });
+  return new Stripe(secretKey, { apiVersion: "2025-10-29.clover" });
 };
 
 /**

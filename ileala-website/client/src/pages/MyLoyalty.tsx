@@ -245,17 +245,38 @@ export default function MyLoyalty() {
 
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {(() => {
+                // Tier benefits with language support
+                const tierBenefitsContent: Record<string, { en: string[]; pt: string[] }> = {
+                  green: {
+                    en: ['Exclusive Newsletter', 'Private Sales Access'],
+                    pt: ['Newsletter Exclusiva', 'Acesso a Vendas Privadas'],
+                  },
+                  silver: {
+                    en: ['Free Standard Shipping (UAE)', 'Birthday Gift'],
+                    pt: ['Frete Padrão Grátis (UAE)', 'Presente de Aniversário'],
+                  },
+                  gold: {
+                    en: ['Free Express Shipping', 'Early Access 24h', 'Priority Support'],
+                    pt: ['Frete Expresso Grátis', 'Acesso Antecipado 24h', 'Suporte Prioritário'],
+                  },
+                  platinum: {
+                    en: ['WhatsApp VIP Concierge', 'Event Invitations', 'Surprise Gifts'],
+                    pt: ['Concierge WhatsApp VIP', 'Convites para Eventos', 'Presentes Surpresa'],
+                  },
+                };
+
                 const defaultTiers = [
-                  { tier: 'green', displayName: 'Green', gradient: 'linear-gradient(135deg, #3A5F4F 0%, #2D4A3E 50%, #1E3329 100%)', backgroundImage: '/images/tier-cards/green-card.png', textColor: 'text-white', range: '0 - 1,499 AED', benefits: ['Newsletter Exclusiva', 'Acesso a Vendas Privadas'] },
-                  { tier: 'silver', displayName: 'Silver', gradient: 'linear-gradient(135deg, #D8D8D8 0%, #A8A8A8 50%, #888888 100%)', backgroundImage: '/images/tier-cards/silver-card.png', textColor: 'text-white', range: '1,500 - 3,999 AED', benefits: ['Frete Padrão Grátis (UAE)', 'Presente de Aniversário'] },
-                  { tier: 'gold', displayName: 'Gold', gradient: 'linear-gradient(135deg, #E8D48A 0%, #C5A849 50%, #9A7B2F 100%)', backgroundImage: '/images/tier-cards/gold-card.png', textColor: 'text-white', range: '4,000 - 7,499 AED', benefits: ['Frete Expresso Grátis', 'Acesso Antecipado 24h', 'Suporte Prioritário'] },
-                  { tier: 'platinum', displayName: 'Black', gradient: 'linear-gradient(135deg, #5A5A5A 0%, #3D3D3D 50%, #2C2C2C 100%)', backgroundImage: '/images/tier-cards/black-card.png', textColor: 'text-white', range: '7,500+ AED', benefits: ['Concierge WhatsApp VIP', 'Convites para Eventos', 'Presentes Surpresa'] },
+                  { tier: 'green', displayNameEN: 'Member Green', displayNamePT: 'Membro Green', gradient: 'linear-gradient(135deg, #3A5F4F 0%, #2D4A3E 50%, #1E3329 100%)', backgroundImage: '/images/tier-cards/green-card.png', textColor: 'text-white', rangeEN: '50 AED - 1499 AED', rangePT: '50 AED - 1499 AED' },
+                  { tier: 'silver', displayNameEN: 'Member Silver', displayNamePT: 'Membro Silver', gradient: 'linear-gradient(135deg, #D8D8D8 0%, #A8A8A8 50%, #888888 100%)', backgroundImage: '/images/tier-cards/silver-card.png', textColor: 'text-white', rangeEN: '1500 AED - 3999 AED', rangePT: '1500 AED - 3999 AED' },
+                  { tier: 'gold', displayNameEN: 'Member Gold', displayNamePT: 'Membro Gold', gradient: 'linear-gradient(135deg, #E8D48A 0%, #C5A849 50%, #9A7B2F 100%)', backgroundImage: '/images/tier-cards/gold-card.png', textColor: 'text-white', rangeEN: '4000 AED - 7499 AED', rangePT: '4000 AED - 7499 AED' },
+                  { tier: 'platinum', displayNameEN: 'Member Black', displayNamePT: 'Membro Black', gradient: 'linear-gradient(135deg, #5A5A5A 0%, #3D3D3D 50%, #2C2C2C 100%)', backgroundImage: '/images/tier-cards/black-card.png', textColor: 'text-white', rangeEN: '7500 AED+', rangePT: '7500 AED+' },
                 ];
 
                 return defaultTiers.map((t) => {
                   const dbTier = tierBenefitsData?.find((tb: any) => tb.tier === t.tier);
                   const hasDbImage = dbTier?.iconUrl;
                   const backgroundImage = hasDbImage ? dbTier.iconUrl : t.backgroundImage;
+                  const benefits = tierBenefitsContent[t.tier]?.[language] || [];
 
                   return (
                     <div
@@ -272,14 +293,14 @@ export default function MyLoyalty() {
                       <div className="relative z-10">
                         {/* Header with tier name and icon */}
                         <div className="flex justify-between items-start mb-2">
-                          <h3 className="text-xl font-bold">{t.displayName}</h3>
+                          <h3 className="text-xl font-bold">{language === 'en' ? t.displayNameEN : t.displayNamePT}</h3>
                           <img
                             src={getTierIcon(t.tier)}
                             alt="tier icon"
                             className="w-8 h-8 object-contain"
                           />
                         </div>
-                        <p className="text-sm opacity-80 mb-4 text-left">{t.range}</p>
+                        <p className="text-sm opacity-80 mb-4 text-left">{language === 'en' ? t.rangeEN : t.rangePT}</p>
                         {/* Subtitle if configured */}
                         {getTierSubtitle(t.tier, language) && (
                           <p className="text-xs opacity-80 text-white mb-3 italic text-left">
@@ -287,7 +308,7 @@ export default function MyLoyalty() {
                           </p>
                         )}
                         <ul className="text-sm text-left space-y-2 opacity-90">
-                          {t.benefits.map((benefit, i) => (
+                          {benefits.map((benefit, i) => (
                             <li key={i} className="flex items-center gap-2">
                               <Check className="w-4 h-4" /> {benefit}
                             </li>

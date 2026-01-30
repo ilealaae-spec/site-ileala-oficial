@@ -1174,7 +1174,20 @@ export async function updateUserRole(userId: number, role: 'user' | 'admin') {
   await db.update(users)
     .set({ role })
     .where(eq(users.id, userId));
-  
+
+  return { success: true };
+}
+
+export async function updateLastSignedIn(userId: number) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  await db.update(users)
+    .set({ lastSignedIn: new Date() })
+    .where(eq(users.id, userId));
+
   return { success: true };
 }
 
