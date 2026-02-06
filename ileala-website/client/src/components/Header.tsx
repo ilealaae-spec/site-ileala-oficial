@@ -144,7 +144,7 @@ export default function Header() {
           </Link>
 
           {/* Icons - Right */}
-          <div className="flex items-center gap-2 md:gap-4">
+          <div className="flex items-center gap-1 lg:gap-4">
             {/* Language Selector - Desktop */}
             <Button
               variant="ghost"
@@ -156,8 +156,8 @@ export default function Header() {
               <span className="text-sm font-medium">{language.toUpperCase()}</span>
             </Button>
 
-            {/* Social Media Icons */}
-            <div className="flex items-center gap-2">
+            {/* Social Media Icons - Hidden on mobile */}
+            <div className="hidden lg:flex items-center gap-2">
               <a
                 href="https://instagram.com/ileala.ae"
                 target="_blank"
@@ -252,25 +252,45 @@ export default function Header() {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <div className="flex items-center gap-2">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
                 <Link href="/login">
-                  <Button variant="ghost" size="sm" className="h-9">
+                  <button style={{
+                    height: '24px',
+                    padding: '0 6px',
+                    fontSize: '9px',
+                    backgroundColor: 'transparent',
+                    border: '1px solid #ccc',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    color: '#000',
+                    fontWeight: '500'
+                  }}>
                     {language === 'en' ? 'Login' : 'Entrar'}
-                  </Button>
+                  </button>
                 </Link>
                 <Link href="/register">
-                  <Button variant="default" size="sm" className="h-9 bg-[#255238] hover:bg-[#1e3f2d] text-white">
+                  <button style={{
+                    height: '24px',
+                    padding: '0 6px',
+                    fontSize: '9px',
+                    backgroundColor: '#255238',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    color: 'white',
+                    fontWeight: '500'
+                  }}>
                     {language === 'en' ? 'Sign Up' : 'Criar Conta'}
-                  </Button>
+                  </button>
                 </Link>
               </div>
             )}
 
             {/* Wishlist Icon */}
             <Link href="/wishlist" className="inline-flex">
-              <Button variant="ghost" size="sm" className="relative h-9 w-9 p-0" asChild>
+              <Button variant="ghost" size="sm" className="relative h-7 w-7 lg:h-9 lg:w-9 p-0" asChild>
                 <span>
-                  <Heart className="h-4 w-4" />
+                  <Heart className="h-3.5 w-3.5 lg:h-4 lg:w-4" />
                   {wishlistCount > 0 && (
                     <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                       {wishlistCount}
@@ -282,9 +302,9 @@ export default function Header() {
 
             {/* Cart */}
             <Link href="/cart" className="inline-flex">
-              <Button variant="ghost" size="sm" className="relative h-9 w-9 p-0" asChild>
+              <Button variant="ghost" size="sm" className="relative h-7 w-7 lg:h-9 lg:w-9 p-0" asChild>
                 <span>
-                  <ShoppingCart className="h-4 w-4" />
+                  <ShoppingCart className="h-3.5 w-3.5 lg:h-4 lg:w-4" />
                   {totalItems > 0 && (
                     <span className="absolute -top-1 -right-1 bg-[#255238] text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                       {totalItems}
