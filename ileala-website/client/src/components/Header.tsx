@@ -157,19 +157,19 @@ export default function Header() {
             </Button>
 
             {/* Social Media Icons */}
-            <div className="hidden lg:flex items-center gap-2">
-              <a 
-                href="https://instagram.com/ileala.ae" 
-                target="_blank" 
+            <div className="flex items-center gap-2">
+              <a
+                href="https://instagram.com/ileala.ae"
+                target="_blank"
                 rel="noopener noreferrer"
                 className="text-muted-foreground hover:text-primary transition-colors"
                 aria-label="Instagram"
               >
                 <Instagram className="h-4 w-4" />
               </a>
-              <a 
-                href="https://www.facebook.com/share/17f63HzTAk/?mibextid=wwXIfr" 
-                target="_blank" 
+              <a
+                href="https://www.facebook.com/share/17f63HzTAk/?mibextid=wwXIfr"
+                target="_blank"
                 rel="noopener noreferrer"
                 className="text-muted-foreground hover:text-primary transition-colors"
                 aria-label="Facebook"
@@ -252,7 +252,7 @@ export default function Header() {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <div className="hidden lg:flex items-center gap-2">
+              <div className="flex items-center gap-2">
                 <Link href="/login">
                   <Button variant="ghost" size="sm" className="h-9">
                     {language === 'en' ? 'Login' : 'Entrar'}
@@ -268,7 +268,7 @@ export default function Header() {
 
             {/* Wishlist Icon */}
             <Link href="/wishlist" className="inline-flex">
-              <Button variant="ghost" size="sm" className="relative h-9 w-9 p-0 hidden lg:flex" asChild>
+              <Button variant="ghost" size="sm" className="relative h-9 w-9 p-0" asChild>
                 <span>
                   <Heart className="h-4 w-4" />
                   {wishlistCount > 0 && (
