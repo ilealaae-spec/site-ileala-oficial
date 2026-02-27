@@ -10,6 +10,8 @@ import { Loader2, Mail, Lock, LogIn, Eye, EyeOff } from 'lucide-react';
 import { getGoogleLoginUrl } from '@/const';
 import { useAuth } from '@/_core/hooks/useAuth';
 import TwoFactorVerification from '@/components/TwoFactorVerification';
+import { SocialLogin } from '@capgo/capacitor-social-login';
+import { Capacitor } from '@capacitor/core';
 
 export default function Login() {
   // Force rebuild - Chrome compatibility fix v2
@@ -138,6 +140,48 @@ export default function Login() {
     setLocation(redirect);
   };
   
+  // Handle Sign in with Apple (iOS native only)
+  const handleAppleSignIn = async () => {
+    try {
+      const result = await SocialLogin.login({
+        provider: 'apple',
+        options: {
+          scopes: ['email', 'name'],
+        },
+      });
+
+      if (!result.result?.idToken) {
+        toast.error(language === 'en' ? 'Apple Sign-In failed' : 'Falha no Sign in com Apple');
+        return;
+      }
+
+      const profile = result.result.profile as any;
+      const response = await fetch('/api/auth/apple', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          identityToken: result.result.idToken,
+          givenName: profile?.givenName || '',
+          familyName: profile?.familyName || '',
+          email: profile?.email || '',
+        }),
+      });
+
+      if (response.ok) {
+        await utils.auth.me.invalidate();
+        window.location.href = '/';
+      } else {
+        const err = await response.json();
+        toast.error(err.error || (language === 'en' ? 'Apple Sign-In failed' : 'Falha no Sign in com Apple'));
+      }
+    } catch (error: any) {
+      if (error?.code !== 'USER_CANCELLED') {
+        toast.error(language === 'en' ? 'Apple Sign-In failed' : 'Falha no Sign in com Apple');
+      }
+    }
+  };
+
   // Handle back from 2FA screen
   const handleBackFrom2FA = () => {
     setRequires2FA(false);
@@ -335,6 +379,50 @@ export default function Login() {
             </div>
           );
         })()}
+
+        {/* Apple Sign-In Button - Only shown on iOS native app */}
+        {Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios' && (
+          <div className="mt-4">
+            {/* Show divider only if Google button is not shown */}
+            {!getGoogleLoginUrl(new URLSearchParams(window.location.search).get('redirect') || '/') && (
+              <div className="relative mb-4">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-sage-300" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-white px-2 text-sage-500">
+                    {language === 'en' ? 'Or continue with' : 'Ou continue com'}
+                  </span>
+                </div>
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={handleAppleSignIn}
+              style={{
+                width: '100%',
+                backgroundColor: '#000000',
+                color: '#FFFFFF',
+                fontWeight: '600',
+                borderRadius: '6px',
+                padding: '12px 24px',
+                fontSize: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                border: 'none',
+                cursor: 'pointer',
+                minHeight: '48px',
+              }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+                <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z" />
+              </svg>
+              {language === 'en' ? 'Sign in with Apple' : 'Entrar com Apple'}
+            </button>
+          </div>
+        )}
 
         <div className="mt-6 text-center">
           <p className="text-sage-600">

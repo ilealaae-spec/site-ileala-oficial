@@ -5,6 +5,7 @@ import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
 import { registerGoogleOAuthRoutes } from "./googleOAuth";
+import { registerAppleAuthRoutes } from "../apple-auth";
 import { registerStripeWebhookRoutes } from "../stripe-webhook-routes";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
@@ -75,6 +76,9 @@ async function startServer() {
 
   // Google OAuth routes (direct Google OAuth)
   registerGoogleOAuthRoutes(app);
+
+  // Apple Sign-In routes
+  registerAppleAuthRoutes(app);
   
   // Health check endpoint
   app.get("/health", async (req, res) => {
